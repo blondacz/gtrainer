@@ -71,7 +71,7 @@ class SingleUserAuth(
 
     init {
         require(sessionLifetime > Duration.ZERO)
-        require(allowedOrigin.matches(Regex("https://[a-zA-Z0-9.:-]+")) ||
+        require((secureCookie && allowedOrigin.matches(Regex("https://[a-zA-Z0-9.:-]+"))) ||
             (!secureCookie && allowedOrigin == "http://127.0.0.1:8080")) {
             "Authentication requires HTTPS or the explicit loopback SSH-tunnel origin"
         }

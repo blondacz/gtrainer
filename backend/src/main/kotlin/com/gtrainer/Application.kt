@@ -7,6 +7,7 @@ import io.ktor.http.HttpMethod
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
+import io.ktor.server.application.createApplicationPlugin
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.http.content.staticResources
@@ -37,6 +38,17 @@ data class LoginRequest(val password: String) {
 data class SessionResponse(val authenticated: Boolean, val csrfToken: String, val intervalsConfigured: Boolean)
 
 fun Application.module(auth: SingleUserAuth = SingleUserAuth.fromEnvironment()) {
+    install(createApplicationPlugin("PrivacyHeaders") {
+        onCall { call ->
+            call.response.headers.append("X-Content-Type-Options", "nosniff")
+            call.response.headers.append("X-Frame-Options", "DENY")
+            call.response.headers.append("Referrer-Policy", "no-referrer")
+            call.response.headers.append("Content-Security-Policy",
+                "default-src 'self'; script-src 'self'; style-src 'self'; " +
+                    "connect-src 'self'; img-src 'self' data:; object-src 'none'; " +
+                    "base-uri 'none'; frame-ancestors 'none'; form-action 'self'")
+        }
+    })
     install(ContentNegotiation) {
         json()
     }
@@ -48,7 +60,6 @@ fun Application.module(auth: SingleUserAuth = SingleUserAuth.fromEnvironment()) 
         route("/api/{path...}") {
             handle {
                 call.response.headers.append(HttpHeaders.CacheControl, "no-store")
-                call.response.headers.append("X-Content-Type-Options", "nosniff")
                 val path = call.request.path()
                 val isWrite = call.request.local.method !in listOf(HttpMethod.Get, HttpMethod.Head)
                 val token = call.request.cookies["gtrainer_session"]

@@ -45,6 +45,16 @@ spec:
           env:
             - name: JAVA_OPTS
               value: "-Xmx512m"
+            - name: GTRAINER_PASSWORD_VERIFIER_FILE
+              value: /run/gtrainer-secrets/password-verifier
+            - name: GTRAINER_INTERVALS_KEY_FILE
+              value: /run/gtrainer-secrets/intervals-api-key
+            - name: GTRAINER_PUBLIC_ORIGIN
+              value: http://127.0.0.1:8080
+            # Plaintext browser leg is permitted only over local loopback;
+            # the Mac-to-Pi leg is encrypted/authenticated SSH. No LAN ingress.
+            - name: GTRAINER_SSH_TUNNEL_ONLY
+              value: "true"
           resources:
             requests:
               cpu: 100m
@@ -73,6 +83,9 @@ spec:
               mountPath: /data
             - name: temporary
               mountPath: /tmp
+            - name: runtime-secrets
+              mountPath: /run/gtrainer-secrets
+              readOnly: true
       volumes:
         - name: data
           persistentVolumeClaim:
@@ -81,3 +94,7 @@ spec:
           emptyDir:
             medium: Memory
             sizeLimit: 64Mi
+        - name: runtime-secrets
+          secret:
+            secretName: gtrainer-runtime
+            defaultMode: 0440

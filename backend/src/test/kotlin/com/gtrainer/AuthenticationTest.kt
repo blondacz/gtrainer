@@ -54,6 +54,8 @@ class AuthenticationTest {
         }
         assertEquals(HttpStatusCode.OK, response.status)
         assertEquals("no-store", response.headers[HttpHeaders.CacheControl])
+        assertEquals("DENY", response.headers["X-Frame-Options"])
+        assertTrue(assertNotNull(response.headers["Content-Security-Policy"]).contains("frame-ancestors 'none'"))
         val cookie = assertNotNull(response.headers[HttpHeaders.SetCookie])
         assertTrue(cookie.contains("HttpOnly", ignoreCase = true))
         assertTrue(cookie.contains("SameSite=Strict", ignoreCase = true))
@@ -160,7 +162,16 @@ class AuthenticationTest {
     fun `plaintext cookie exception is only for the exact SSH loopback origin`() {
         assertFailsWith<IllegalArgumentException> { SingleUserAuth(null, "http://192.0.2.1:8080", false) }
         assertFailsWith<IllegalArgumentException> { SingleUserAuth(null, ORIGIN, true) }
+        assertFailsWith<IllegalArgumentException> { SingleUserAuth(null, "https://localhost", false) }
         assertFailsWith<IllegalArgumentException> { PasswordVerifier.fromEncoded("synthetic-invalid-verifier") }
         assertTrue(SingleUserAuth(null, "https://localhost", true).secureCookie)
+    }
+
+    @Test
+    fun `password and session objects redact accidental stringification`() {
+        assertFalse(LoginRequest(SYNTHETIC_PASSWORD).toString().contains(SYNTHETIC_PASSWORD))
+        val session = UserSession("synthetic-session-token", "synthetic-csrf-token", Instant.EPOCH)
+        assertFalse(session.toString().contains(session.token))
+        assertFalse(session.toString().contains(session.csrfToken))
     }
 }

@@ -1,7 +1,7 @@
 # Protected automated image promotion
 
-Status: task 2.4 prepared; live protection/promotion verification pending.
-The currently running Pi image stays unchanged until the promotion PR passes.
+Status: task 2.4 verified. GitHub workflow approval remains an operator gate;
+merge and Flux deployment proceed automatically after required checks pass.
 
 ## Release path
 
@@ -51,8 +51,11 @@ access. Use it outside CI to:
 
 Thereafter, normal code/document changes also use PRs rather than direct main
 pushes. Do not use `[skip ci]` on a PR requiring checks. Automation-created PR
-events may be approval-pending in GitHub; the explicit `workflow_dispatch` starts
-the candidate checks without introducing a long-lived credential. No package
+events may be approval-pending in GitHub. The explicit `workflow_dispatch` starts
+candidate checks, but the live test showed dispatch checks alone did **not**
+satisfy the PR merge gate: the operator must approve the bot-created PR workflow
+when GitHub requests it. Do not claim unattended promotion or weaken protections
+to remove this gate. No long-lived credential is introduced. No package
 writes or promotion job runs on the candidate branch.
 
 ## Evidence lifetime, retries, and rollback
@@ -77,3 +80,27 @@ writes or promotion job runs on the candidate branch.
 
 Network isolation, single-user authentication, and data/backup handling remain
 independent requirements. Public software publication is not public-data consent.
+
+## Live evidence (2026-09-30)
+
+- Ruleset `24276050` is active on `main`, has both required Actions checks,
+  and the operator API confirms `bypass_actors: []`. The image-promotion
+  environment accepts protected branches only and disallows administrator bypass.
+- Intentional invalid-digest PR [1](https://github.com/blondacz/gtrainer/pull/1)
+  had passing ordinary tests but failing release provenance, `BLOCKED` merge
+  state, and skipped publication/promotion; it was closed without merging.
+- Trusted main run [36785971001](https://github.com/blondacz/gtrainer/actions/runs/36785971001)
+  passed tests, provenance, ARM64 publication/execution, and promotion. Bot PR
+  [3](https://github.com/blondacz/gtrainer/pull/3) changed only the app image and
+  release evidence, then automatically merged after the user approved PR run
+  [36786343423](https://github.com/blondacz/gtrainer/actions/runs/36786343423).
+  The extra dispatch passed but did not, by itself, unblock this PR.
+- Flux source and app reconciliation reached
+  `main@sha1:0c202ebed8f864ea1cc732f8d9174314016db542`. The physical ARM64 Pi
+  reported a Ready container using the exact recorded digest
+  `ghcr.io/blondacz/gtrainer@sha256:17cb4d4aeeac6cff731ddeaf6dc67590874c8f5c53cb25211e2fd50715517fe7`.
+- Operator-only SSH verification found health/UI available, unauthenticated
+  `/api/trends` returning 401, protected Bound storage, and unchanged default-deny
+  networking/no direct application exposure. CI received no cluster credentials.
+- This is still the scaffold release, not authentication, ingestion, backups,
+  model integration, or end-to-end dashboard evidence.
