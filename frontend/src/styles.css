@@ -21,6 +21,12 @@ h2 { margin-top: 0; font-size: 1.25rem; }
 .available .dot { background: #287b55; }
 .unavailable .dot { background: #b7493b; }
 .footnote { margin-top: 24px; color: #526a60; font-size: 0.85rem; }
+form { display: grid; gap: 12px; }
+input, button { font: inherit; border-radius: 8px; padding: 10px 12px; }
+input { border: 1px solid #9aafa2; background: inherit; color: inherit; }
+button { border: 0; background: #287b55; color: #fff; cursor: pointer; justify-self: start; }
+button:disabled { opacity: 0.6; cursor: wait; }
+.access-message { color: #b7493b; }
 
 @media (prefers-color-scheme: dark) {
   :root { color: #dfece5; background: #14211c; }
