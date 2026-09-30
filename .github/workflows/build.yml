@@ -5,12 +5,18 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      verify_failure_gate:
+        description: 'Inject a synthetic failing test to verify publication is blocked'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 concurrency:
-  group: build-${{ github.ref }}
+  # A deliberate failure-gate run must not cancel the healthy publication run.
+  group: build-${{ github.ref }}-${{ inputs.verify_failure_gate || false }}
   cancel-in-progress: true
 
 jobs:
@@ -33,6 +39,20 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Verify Gradle wrapper integrity
         run: echo '238e777fcddd7e34f9708186085def2abd6e08e658505b38718d79d74c21abd5  gradle/wrapper/gradle-wrapper.jar' | sha256sum --check
+      - name: Inject synthetic failure for publication-gate verification
+        if: github.event_name == 'workflow_dispatch' && inputs.verify_failure_gate
+        run: |
+          cat > backend/src/test/kotlin/com/gtrainer/PublicationGateVerificationTest.kt <<'KOTLIN'
+          package com.gtrainer
+          import kotlin.test.Test
+          import kotlin.test.fail
+          class PublicationGateVerificationTest {
+              @Test
+              fun `synthetic failing test blocks publication`() {
+                  fail("Intentional publication-gate verification; no real data involved")
+              }
+          }
+          KOTLIN
       - name: Run all builds and synthetic tests
         run: bash scripts/check.sh
 
@@ -52,7 +72,7 @@ jobs:
           persist-credentials: false
       - name: Refuse an existing public package
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
         run: python3 scripts/check_package_visibility.py --allow-missing
       - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
         with:
@@ -75,7 +95,7 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
       - name: Verify package remained private
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
         run: python3 scripts/check_package_visibility.py
       - name: Run the published ARM64 image by immutable digest
         env:

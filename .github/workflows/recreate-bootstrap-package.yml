@@ -1,0 +1,34 @@
+name: Remove approved bootstrap package
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Enter gtrainer/0b49b8f to remove only the initial public bootstrap package'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: remove-approved-bootstrap-package
+  cancel-in-progress: false
+
+jobs:
+  remove:
+    if: github.ref == 'refs/heads/main' && inputs.confirmation == 'gtrainer/0b49b8f'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Verify identity and remove only the approved bootstrap package
+        env:
+          GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
+          PACKAGE_ADMIN_TOKEN: ${{ github.token }}
+        run: python3 scripts/remove_bootstrap_package.py

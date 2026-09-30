@@ -9,10 +9,14 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 
+class PrivacyCheckError(ValueError):
+    """Messages contain only fixed diagnostics and HTTP status, never payloads."""
+
+
 def check(allow_missing=False):
     token = os.environ.get("GH_TOKEN")
     if not token:
-        raise ValueError("Package inspection requires a CI token.")
+        raise PrivacyCheckError("Read-only package metadata token is not configured.")
     request = Request(
         "https://api.github.com/users/blondacz/packages/container/gtrainer",
         headers={"Authorization": f"Bearer {token}",
@@ -23,12 +27,13 @@ def check(allow_missing=False):
         with urlopen(request, timeout=20) as response:
             package = json.load(response)
     except HTTPError as error:
-        if error.code == 404 and allow_missing:
+        scopes = {scope.strip() for scope in error.headers.get("X-OAuth-Scopes", "").split(",")}
+        if error.code == 404 and allow_missing and "read:packages" in scopes:
             # GitHub creates newly published container packages as private.
             return "absent; initial private package creation permitted"
-        raise ValueError(f"Cannot verify registry privacy (HTTP {error.code}).") from None
+        raise PrivacyCheckError(f"Cannot verify registry privacy (HTTP {error.code}).") from None
     if package.get("visibility") != "private":
-        raise ValueError("Registry package must be private; publication refused.")
+        raise PrivacyCheckError("Registry package is not private; publication refused.")
     return "private"
 
 
@@ -39,6 +44,9 @@ def main():
     try:
         print("GHCR visibility:", check(args.allow_missing))
         return 0
+    except PrivacyCheckError as error:
+        print(str(error), file=sys.stderr)
+        return 1
     except (OSError, ValueError, URLError):
         print("Registry privacy verification failed; no credentials or response bodies displayed.", file=sys.stderr)
         return 1

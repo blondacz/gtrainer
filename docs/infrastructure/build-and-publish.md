@@ -1,8 +1,9 @@
 # ARM64 build and publication
 
-Status: container and workflow prepared locally. Task 2.2 is **not complete**
-until the real CI publication and its failure gate have been verified. No image
-has been published and no Flux rollout has been performed.
+Status: initial CI tests and container build passed, and the scaffold image was
+published. Its package was unexpectedly public, so the privacy gate stopped
+before image startup verification. Task 2.2 is **not complete**. No Flux rollout
+or real-record import has been performed.
 
 ## Prepared behaviour
 
@@ -15,6 +16,10 @@ has been published and no Flux rollout has been performed.
 - Only the publishing job receives package-write permission. Neither job
   receives cluster credentials, the Intervals.icu key, records, model keys,
   backup keys, or prompts. CI does not connect to the home network.
+- Metadata verification uses the separate `GHCR_READ_TOKEN` secret with only
+  `read:packages`; the publishing `GITHUB_TOKEN` is not assumed to authenticate
+  this REST metadata endpoint. A 404 is accepted as initial absence only when
+  the response confirms the metadata token's `read:packages` scope.
 - GHCR publication targets `ghcr.io/blondacz/gtrainer`, tagged with the source
   commit, and records the immutable digest. Preflight rejects an existing public
   package, and postflight checks that the published package is private. New
@@ -54,16 +59,42 @@ has been published and no Flux rollout has been performed.
 
 ## Remaining verification
 
-1. Obtain user approval for the first commit/push to the public repository and
-   CI's private GHCR publication. Review the selected files for secrets/personal
-   values first; do not blanket-add unrelated `.opencode` files or user work.
-2. Initialize `main` in the remote repository, run the workflow, and verify test
-   success, private package visibility, immutable digest, and ARM64 image run.
-3. Verify a failing test on a non-release test branch prevents publication;
-   remove only the synthetic failure introduced for that verification. Required
-   branch checks/promotion protections are separate task-2.4 work.
+1. The first public source push was approved and completed as `0b49b8f` after
+   checking selected files for credentials and excluding unrelated `.opencode`
+   files. The user explicitly approved removing/recreating only the newly
+   created public bootstrap package; this does not authorize deleting other
+   packages or changing source-repository visibility.
+2. Remove the approved bootstrap package, recreate it, and verify actual private
+   visibility using authenticated metadata before running the immutable ARM64
+   image. GitHub's documented private creation default is not sufficient proof:
+   the first publication did not satisfy the observed privacy requirement.
+3. Dispatch the workflow on healthy `main` with `verify_failure_gate=true`.
+   That creates an intentionally failing synthetic backend test only in the CI
+   workspace. Verify `checks` fails and `publish` is skipped because its required
+   job failed, even though the branch/event publication condition is eligible.
+   No broken test is committed and no live data is involved. Required branch
+   checks/promotion protections are separate task-2.4 work.
 4. Complete Flux/private routing, runtime secret provisioning, persistent
-   storage, and rollout tasks before importing any real records into the app.
+  storage, and rollout tasks before importing any real records into the app.
+
+## Guarded bootstrap recreation
+
+The initial public package was created at `2026-09-30T20:59:42Z` by the first
+publication run, with three OCI versions and only the `0b49b8f` source tag. No
+personal records or credentials are part of its scaffold image. GitHub does
+not permit changing a public package back to private.
+
+The one-time manual maintenance workflow requires explicit confirmation and
+rechecks that exact package identity, timestamp, linked repository, version
+count, version dates, and tag before removal. A changed/newer package or any
+unrelated tagged version is refused. Metadata reads use the read-only PAT;
+deletion uses only the repository's short-lived package-admin `GITHUB_TOKEN`,
+as supported by GitHub's container-registry administration API. No personal
+token receives write/delete scopes.
+
+The maintenance workflow is temporary and will be removed after successful
+recreation. Publication remains blocked if the recreated package is not
+verified private. No dashboard or health-data privacy exception is accepted.
 
 Manual development invocation, on a machine with Docker/Buildx and appropriate
 ARM64 support:
