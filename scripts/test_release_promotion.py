@@ -42,6 +42,8 @@ class ReleasePromotion(unittest.TestCase):
     def test_protection_rejects_bypass_missing_checks_or_unprotected_main(self):
         rules = json.loads((ROOT / '.github/promotion-ruleset.json').read_text())
         validate_protection(rules)
+        redacted = {key: value for key, value in rules.items() if key != 'bypass_actors'}
+        validate_protection(redacted)
         for field, value in [('enforcement', 'disabled'), ('bypass_actors', [{'actor_id': 1}]),
                              ('conditions', {'ref_name': {'include': ['refs/heads/other'], 'exclude': []}})]:
             with self.subTest(field=field), self.assertRaises(ReleaseError):
