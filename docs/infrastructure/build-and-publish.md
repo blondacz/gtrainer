@@ -1,10 +1,9 @@
 # ARM64 build and publication
 
-Status: CI tests and container publication passed; the deliberate failing-test
-run verified that publication is skipped. The user approved keeping the
-code-only GHCR package public. Task 2.2 is **not complete** until the published
-ARM64 image passes startup verification. No Flux rollout or real-record import
-has been performed.
+Status: task 2.2 is **complete**. CI tests, publication, and immutable-digest
+ARM64 startup verification passed; a deliberate failing-test run verified that
+publication is skipped. The user approved keeping the code-only GHCR package
+public. No Flux rollout or real-record import has been performed.
 
 ## Prepared behaviour
 
@@ -56,16 +55,28 @@ has been performed.
 
 ## Remaining verification
 
-1. Run the revised pipeline and verify the published image starts on ARM64 by
-   immutable digest, serves the static UI, and denies private API access.
-2. The failing-test gate is already verified in run
-   [36779534284](https://github.com/blondacz/gtrainer/actions/runs/36779534284):
-   only `PublicationGateVerificationTest` failed, and publication was skipped.
-   To repeat, dispatch `verify_failure_gate=true`; the synthetic test exists only
-   in the CI workspace, not in committed source. Required branch checks and
-   promotion protections are separate task-2.4 work.
-3. Complete Flux/private routing, runtime secret provisioning, persistent
-  storage, and rollout tasks before importing any real records into the app.
+Complete Flux/private routing, runtime secret provisioning, persistent storage,
+and rollout tasks before importing any real records into the app. Required
+branch checks and promotion protections are separate task-2.4 work.
+
+## Verified CI evidence (2026-09-30)
+
+- Source commit: `f0b88e2011343397ce38f6fe517450de20693d34`.
+- Successful pipeline:
+  [36780726075](https://github.com/blondacz/gtrainer/actions/runs/36780726075).
+  All 5 backend, 6 UI, 12 utility/delivery, and 4 benchmark tests passed.
+- Published and executed immutable reference:
+  `ghcr.io/blondacz/gtrainer@sha256:ccb2c1af5a44c37b15a06656e081012f108fa0e89db81dcbad2b5bbf0c768d96`.
+  CI checked `arm64`/`aarch64`, then ran the published image under QEMU with
+  restricted loopback ports and resources. Health and UI checks passed;
+  `/api/trends` returned 401. This verifies Pi architecture compatibility, not
+  physical Pi rollout or LAN isolation. API denial is still a scaffold
+  placeholder, not completed single-user authentication.
+- Failing-test gate for the same source:
+  [36780752400](https://github.com/blondacz/gtrainer/actions/runs/36780752400).
+  Only `PublicationGateVerificationTest` failed; the publishing job was skipped.
+  To repeat, dispatch `verify_failure_gate=true`; the synthetic test exists only
+  in the CI workspace, not committed source. No personal input is used.
 
 ## Registry decision history
 

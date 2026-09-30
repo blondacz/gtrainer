@@ -11,7 +11,7 @@
 ## 2. Set up the private app
 
 - [x] 2.1 Scaffold a Kotlin/Ktor backend and React/TypeScript UI with repeatable build/test commands; verify a fresh checkout builds and both baseline test suites pass.
-- [ ] 2.2 Add a container build and CI pipeline that tests the app and publishes a Linux ARM64 image to the chosen registry; verify a failing test blocks publication and the published image runs on Pi architecture.
+- [x] 2.2 Add a container build and CI pipeline that tests the app and publishes a Linux ARM64 image to the chosen registry; verify a failing test blocks publication and the published image runs on Pi architecture.
 - [ ] 2.3 Bootstrap Flux in the existing K3s cluster and add version-pinned, private LAN-only deployment manifests with persistent storage and health checks; verify Flux reports a healthy rollout and no public access exists.
 - [ ] 2.4 Configure protected automated image promotion after passing tests so Flux pulls and applies an immutable new image reference; verify a test release appears on K3s without giving CI cluster credentials.
 - [ ] 2.5 Add single-user access control and provision the Intervals.icu API key and any model credentials outside Git or encrypt them with SOPS/age while keeping keys off Git; verify unauthenticated requests fail and CI/logs/manifests expose no raw secrets.
