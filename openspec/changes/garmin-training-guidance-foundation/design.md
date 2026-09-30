@@ -55,6 +55,15 @@ These requirements are roadmap commitments for separate phase-2/3 changes. Their
 
 ## Risks / Trade-offs
 
+**Registry decision update (2026-09-30):** The user approved keeping
+`ghcr.io/blondacz/gtrainer` public for now. The image contains only software and
+synthetic build/test inputs, never runtime credentials, imported health records,
+manual personal events, prompts, or backups. This supersedes the private-image
+proposal in the delivery decision note, not the authenticated LAN-only dashboard
+requirement. No registry-read credential is needed for public pulls. Any later
+private-image requirement needs a new package because public GHCR packages cannot
+be made private again.
+
 - [Intervals.icu may not receive or expose every Garmin metric] → Check populated values, dates, and origin per metric; show absent fitness age, endurance score, or training status as unavailable and retain a fallback adapter boundary.
 - [Garmin → Intervals.icu → app adds another dependency and data holder] → Disclose the path, use a read-only API key, handle rotation/revocation, and separate API failures from unknown upstream delays.
 - [Official Garmin API is unavailable to this personal app for now] → Do not block on approval; keep a user-controlled export path or future replacement source possible.

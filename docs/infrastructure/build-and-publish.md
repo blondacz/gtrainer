@@ -1,9 +1,10 @@
 # ARM64 build and publication
 
-Status: initial CI tests and container build passed, and the scaffold image was
-published. Its package was unexpectedly public, so the privacy gate stopped
-before image startup verification. Task 2.2 is **not complete**. No Flux rollout
-or real-record import has been performed.
+Status: CI tests and container publication passed; the deliberate failing-test
+run verified that publication is skipped. The user approved keeping the
+code-only GHCR package public. Task 2.2 is **not complete** until the published
+ARM64 image passes startup verification. No Flux rollout or real-record import
+has been performed.
 
 ## Prepared behaviour
 
@@ -16,16 +17,12 @@ or real-record import has been performed.
 - Only the publishing job receives package-write permission. Neither job
   receives cluster credentials, the Intervals.icu key, records, model keys,
   backup keys, or prompts. CI does not connect to the home network.
-- Metadata verification uses the separate `GHCR_READ_TOKEN` secret with only
-  `read:packages`; the publishing `GITHUB_TOKEN` is not assumed to authenticate
-  this REST metadata endpoint. A 404 is accepted as initial absence only when
-  the response confirms the metadata token's `read:packages` scope.
 - GHCR publication targets `ghcr.io/blondacz/gtrainer`, tagged with the source
-  commit, and records the immutable digest. Preflight rejects an existing public
-  package, and postflight checks that the published package is private. New
-  GitHub container packages are private by default; verify that on the first
-  actual publication rather than assuming the public repository implies private
-  package visibility.
+  commit, and records the immutable digest. The user approved this **public
+  software image** on 2026-09-30. Runtime records and secrets are not packaged;
+  dashboard authentication and LAN-only routing remain required. Publishing
+  uses the job's short-lived `GITHUB_TOKEN`; public image pulls need no personal
+  token, registry-read CI secret, or cluster image-pull secret.
 - The Dockerfile builds the UI and JVM distribution on the builder's native
   platform, then places the architecture-independent app on the requested
   Linux ARM64 JRE. Base images are pinned by digest. The final image runs as
@@ -51,50 +48,45 @@ or real-record import has been performed.
   check passed 5 backend tests, 6 UI tests, 11 utility/delivery tests, and 4
   benchmark tests (26 total).
 - The workflow passed checksum-verified actionlint 1.7.12. Shell scripts passed
-  Bash syntax checks. Workflow guard tests check required-job gating and reject
-  public registry packages; these are not a substitute for a real failing CI
-  run.
+   Bash syntax checks. Workflow guard tests check required-job gating, public
+   publication without personal credentials, restricted build inputs, and
+   immutable ARM64 image verification.
 - This Mac has no Docker runtime, so neither the Docker build nor the published
   image run has been claimed as locally verified.
 
 ## Remaining verification
 
-1. The first public source push was approved and completed as `0b49b8f` after
-   checking selected files for credentials and excluding unrelated `.opencode`
-   files. The user explicitly approved removing/recreating only the newly
-   created public bootstrap package; this does not authorize deleting other
-   packages or changing source-repository visibility.
-2. Remove the approved bootstrap package, recreate it, and verify actual private
-   visibility using authenticated metadata before running the immutable ARM64
-   image. GitHub's documented private creation default is not sufficient proof:
-   the first publication did not satisfy the observed privacy requirement.
-3. Dispatch the workflow on healthy `main` with `verify_failure_gate=true`.
-   That creates an intentionally failing synthetic backend test only in the CI
-   workspace. Verify `checks` fails and `publish` is skipped because its required
-   job failed, even though the branch/event publication condition is eligible.
-   No broken test is committed and no live data is involved. Required branch
-   checks/promotion protections are separate task-2.4 work.
-4. Complete Flux/private routing, runtime secret provisioning, persistent
+1. Run the revised pipeline and verify the published image starts on ARM64 by
+   immutable digest, serves the static UI, and denies private API access.
+2. The failing-test gate is already verified in run
+   [36779534284](https://github.com/blondacz/gtrainer/actions/runs/36779534284):
+   only `PublicationGateVerificationTest` failed, and publication was skipped.
+   To repeat, dispatch `verify_failure_gate=true`; the synthetic test exists only
+   in the CI workspace, not in committed source. Required branch checks and
+   promotion protections are separate task-2.4 work.
+3. Complete Flux/private routing, runtime secret provisioning, persistent
   storage, and rollout tasks before importing any real records into the app.
 
-## Guarded bootstrap recreation
+## Registry decision history
 
 The initial public package was created at `2026-09-30T20:59:42Z` by the first
 publication run, with three OCI versions and only the `0b49b8f` source tag. No
 personal records or credentials are part of its scaffold image. GitHub does
 not permit changing a public package back to private.
 
-The one-time manual maintenance workflow requires explicit confirmation and
-rechecks that exact package identity, timestamp, linked repository, version
-count, version dates, and tag before removal. A changed/newer package or any
-unrelated tagged version is refused. Metadata reads use the read-only PAT;
-deletion uses only the repository's short-lived package-admin `GITHUB_TOKEN`,
-as supported by GitHub's container-registry administration API. No personal
-token receives write/delete scopes.
+With explicit user approval, a one-time identity-guarded maintenance job removed
+only that original package in run
+[36779426643](https://github.com/blondacz/gtrainer/actions/runs/36779426643).
+Republication created a new package at `2026-09-30T21:30:25Z` which was again
+public. Both runs stopped before startup verification under the original
+private-image policy; the cause of the unexpected visibility is not established.
 
-The maintenance workflow is temporary and will be removed after successful
-recreation. Publication remains blocked if the recreated package is not
-verified private. No dashboard or health-data privacy exception is accepted.
+The user then explicitly approved public code-only images. The temporary
+deletion workflow/scripts and private-package guard are removed; no further
+package deletion or source-repository visibility change is planned. The now
+unused `GHCR_READ_TOKEN` CI secret is removed. Its local source file is left
+untouched; the user can revoke that read-only PAT in GitHub settings if no other
+use is intended. This is not consent to publish data or expose the dashboard.
 
 Manual development invocation, on a machine with Docker/Buildx and appropriate
 ARM64 support:

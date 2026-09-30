@@ -39,8 +39,8 @@ and access from outside the LAN before declaring deployment private. SSH
 tunnelling is available for initial validation without creating a public app
 endpoint. Preserve Wi-Fi fallback and verify the Ethernet DHCP reservation.
 
-Provision the Intervals.icu key, app authentication secret, registry pull
-credentials, and any eventual model credentials outside Git. If secrets later
+Provision the Intervals.icu key, app authentication secret, any future private
+registry pull credentials, and eventual model credentials outside Git. If secrets later
 need Git storage, use SOPS/age and hold the decryption key only in the cluster
 or a separate private recovery location. Do not put keys, health records,
 kubeconfig, prompts, or backup contents in CI or public repository files.
@@ -57,10 +57,13 @@ kubeconfig, prompts, or backup contents in CI or public repository files.
   with minimal token permissions; grant package write permission only to the
   gated publishing job. Do not provision cluster or health-data credentials
   to CI.
-- Registry: propose a **private** GHCR package at
-  `ghcr.io/blondacz/gtrainer`. Repository visibility does not establish package
-  visibility; verify that setting before rollout. Flux/K3s require a narrowly
-  scoped package-read credential outside Git if the package remains private.
+- Registry: the user approved keeping the **public code-only** GHCR package at
+  `ghcr.io/blondacz/gtrainer` on 2026-09-30, superseding the initial private-image
+  proposal after two publications were observed as public. Anyone may download
+  the software; this does not authorize public dashboard access or publishing
+  records, credentials, prompts, or backups. Public pulls need no registry
+  credential. If a future image must be private, use a new private package and
+  verify access: GitHub does not allow a public package to become private again.
 - Flux: the Pi pulls version-pinned manifests from the repository over outbound
   HTTPS. A public repository needs no Git credential for reads; if the user
   later makes it private, provide a read-only deploy key outside Git. There is
