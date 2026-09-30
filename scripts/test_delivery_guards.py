@@ -30,7 +30,8 @@ class DeliveryGuards(unittest.TestCase):
 
     def test_publish_has_required_test_job_and_no_failure_override(self):
         workflow = (Path(__file__).resolve().parents[1] / '.github/workflows/build.yml').read_text()
-        self.assertIn('needs: checks', workflow)
+        self.assertIn('needs: [checks, provenance]', workflow)
+        self.assertIn('needs: [checks, provenance, publish]', workflow)
         self.assertIn("github.ref == 'refs/heads/main'", workflow)
         self.assertIn("github.event_name != 'pull_request'", workflow)
         self.assertNotIn('always()', workflow)

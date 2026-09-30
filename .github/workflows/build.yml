@@ -56,9 +56,25 @@ jobs:
       - name: Run all builds and synthetic tests
         run: bash scripts/check.sh
 
+  provenance:
+    name: Verify release provenance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Reject an unverified deployment digest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/verify_release.py
+
   publish:
     name: Publish and verify ARM64 image
-    needs: checks
+    needs: [checks, provenance]
     # No package writes for pull requests or untrusted/non-main branches.
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
@@ -66,6 +82,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      image: ghcr.io/blondacz/gtrainer@${{ steps.image.outputs.digest }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -98,4 +116,34 @@ jobs:
       - name: Record verified immutable image reference
         env:
           IMAGE: ghcr.io/blondacz/gtrainer@${{ steps.image.outputs.digest }}
-        run: printf 'Verified image `%s`\n' "$IMAGE" >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          printf 'Verified image `%s`\n' "$IMAGE" >> "$GITHUB_STEP_SUMMARY"
+          python3 scripts/release_evidence.py "$RUNNER_TEMP/verified-image.json"
+      - name: Store metadata-only release evidence
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: verified-arm64-release
+          path: ${{ runner.temp }}/verified-image.json
+          if-no-files-found: error
+          retention-days: 90
+
+  promote:
+    name: Propose protected image promotion
+    needs: [checks, provenance, publish]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: image-promotion
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Open a digest-only PR and dispatch its protected checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE: ${{ needs.publish.outputs.image }}
+        run: python3 scripts/promote_image.py
