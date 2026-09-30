@@ -53,6 +53,11 @@ class DeploymentGuards(unittest.TestCase):
         install = (ROOT / 'clusters/pi/flux-system/kustomization.yaml').read_text()
         self.assertIn('/releases/download/v2.9.5/install.yaml', install)
         self.assertNotIn('latest', '\n'.join(line for line in install.splitlines() if not line.lstrip().startswith('#')))
+        self.assertIn('name: (image-automation-controller|image-reflector-controller|source-watcher)', install)
+        access = (ROOT / 'clusters/pi/gtrainer-access.yaml').read_text()
+        self.assertIn('resources: [replicasets]', access)
+        self.assertIn('verbs: [get, list, watch]', access)
+        self.assertNotIn('secrets', access)
 
     def test_tunnel_binds_both_ends_to_loopback_and_verifies_host(self):
         tunnel = (ROOT / 'scripts/pi-tunnel.sh').read_text()

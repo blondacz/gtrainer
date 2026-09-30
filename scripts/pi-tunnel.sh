@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Keep both ends on loopback. Stop with Ctrl-C; no background listener is left.
 # This uses the existing dedicated SSH key, never a copied kubeconfig.
-ssh -i "$HOME/.ssh/gtrainer_pi" \
+ssh -tt -i "$HOME/.ssh/gtrainer_pi" \
   -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes \
   -o HostKeyAlias=192.168.1.232 -o ConnectTimeout=5 \
   -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 \

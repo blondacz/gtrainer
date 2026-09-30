@@ -4,3 +4,33 @@ resources:
   # Official release, fixed version; never track latest or a moving branch.
   - https://github.com/fluxcd/flux2/releases/download/v2.9.5/install.yaml
   - gotk-sync.yaml
+patches:
+  # The upstream install.yaml includes optional controllers too. Keep only the
+  # four standard controllers exported by our bootstrap CLI invocation.
+  - target:
+      kind: Deployment
+      name: (image-automation-controller|image-reflector-controller|source-watcher)
+    patch: |-
+      $patch: delete
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: unused
+  - target:
+      kind: ServiceAccount
+      name: (image-automation-controller|image-reflector-controller|source-watcher)
+    patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: unused
+  - target:
+      kind: Service
+      name: source-watcher
+    patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: unused
