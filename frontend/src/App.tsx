@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { SessionPanel } from './SessionPanel'
 
 type Connection = 'checking' | 'available' | 'unavailable'
 
@@ -46,6 +47,7 @@ export function App() {
           <span aria-hidden="true" className="dot" />{connectionLabels[connection]}
         </p>
       </section>
+      <SessionPanel />
       <p className="footnote">AI analysis is not configured. No data is sent to a model.</p>
     </main>
   )

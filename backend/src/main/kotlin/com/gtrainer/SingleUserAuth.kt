@@ -17,7 +17,9 @@ private val encoder = Base64.getUrlEncoder().withoutPadding()
 private val decoder = Base64.getUrlDecoder()
 
 /** No personal identifier or health values are part of an authentication session. */
-data class UserSession(val token: String, val csrfToken: String, val expiresAt: Instant)
+data class UserSession(val token: String, val csrfToken: String, val expiresAt: Instant) {
+    override fun toString(): String = "UserSession(tokens=[REDACTED], expiresAt=$expiresAt)"
+}
 
 class PasswordVerifier private constructor(
     private val iterations: Int,
@@ -109,7 +111,7 @@ class SingleUserAuth(
     @Synchronized
     fun logout(token: String) { sessions.remove(token) }
 
-    fun validCsrf(session: UserSession, token: String?): Boolean = token != null &&
+    fun validCsrf(session: UserSession, token: String?): Boolean = token?.length == 43 &&
         MessageDigest.isEqual(session.csrfToken.toByteArray(), token.toByteArray())
 
     private fun randomToken(): String = encoder.encodeToString(ByteArray(32).also(random::nextBytes))

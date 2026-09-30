@@ -19,7 +19,7 @@ import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import io.ktor.utils.io.readRemaining
+import io.ktor.utils.io.readBuffer
 import kotlinx.io.readByteArray
 
 @Serializable
@@ -29,7 +29,9 @@ data class HealthResponse(val status: String)
 data class ApiError(val error: String)
 
 @Serializable
-data class LoginRequest(val password: String)
+data class LoginRequest(val password: String) {
+    override fun toString(): String = "LoginRequest(password=[REDACTED])"
+}
 
 @Serializable
 data class SessionResponse(val authenticated: Boolean, val csrfToken: String, val intervalsConfigured: Boolean)
@@ -62,7 +64,7 @@ fun Application.module(auth: SingleUserAuth = SingleUserAuth.fromEnvironment()) 
                     }
                     val request = try {
                         // Bounded even for chunked/no-Content-Length requests.
-                        val body = call.receiveChannel().readRemaining(4097).readByteArray()
+                        val body = call.receiveChannel().readBuffer(4097L).readByteArray()
                         if (body.size > 4096) {
                             call.respond(HttpStatusCode.PayloadTooLarge, ApiError("request_too_large"))
                             return@handle
