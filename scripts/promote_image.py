@@ -14,10 +14,16 @@ from release_evidence import (CHECKS, DEPLOYMENT_PATH, EVIDENCE_PATH, REPOSITORY
 
 def validate_protection(protection):
     require(protection.get('enforcement') == 'active' and protection.get('target') == 'branch'
-            and protection.get('bypass_actors') == []
             and protection.get('conditions', {}).get('ref_name') == {
                 'include': ['refs/heads/main'], 'exclude': []},
-            'Main ruleset must be active with no bypass actors or excluded main branch.')
+            'Main ruleset must be active with no excluded main branch.')
+    # GitHub redacts bypass_actors from non-admin API responses, including the
+    # short-lived job token. The operator verifies [] during configuration and
+    # rollout audit; CI must not receive an administration credential to read it.
+    # Reject a bypass if GitHub does supply the field, but do not confuse an
+    # omitted field with an inactive rule or claim that omission proves [].
+    if 'bypass_actors' in protection:
+        require(protection['bypass_actors'] == [], 'Main ruleset must not have bypass actors.')
     rules = {rule['type']: rule for rule in protection.get('rules', [])}
     status = rules.get('required_status_checks', {}).get('parameters', {})
     checks = {c['context']: c.get('integration_id') for c in status.get('required_status_checks', [])}

@@ -15,8 +15,12 @@ The currently running Pi image stays unchanged until the promotion PR passes.
    whose deployment policy permits only protected branches. It has temporary
    repository/PR/workflow permissions, never SSH, kubeconfig, health-data keys,
    or access to the home network. No personal token/App private key is added.
-4. It verifies the active no-bypass main ruleset and successful prerequisite
-   jobs, then matches the image to the original CI artifact. If `main` advanced
+4. It verifies the CI-visible active main rules/checks and successful prerequisite
+   jobs, then matches the image to the original CI artifact. GitHub redacts the
+   bypass list from CI's non-admin token: the operator separately verifies the
+   actual empty bypass list during setup/rollout audit. CI rejects bypass actors
+   if the API supplies them, but never treats omission as proof of no bypass.
+   No administration token is supplied to CI. If `main` advanced
    during the build, it refuses to propose an obsolete release.
 5. It creates a candidate branch/PR changing only the image line in
    `deploy/gtrainer/deployment.yaml` and `deploy/gtrainer/release.json`, explicitly
