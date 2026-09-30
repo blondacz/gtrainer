@@ -1,0 +1,14 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: gtrainer-isolation
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+  # Initial access: authenticated SSH + loopback-only kubectl port-forward.
+  # No ingress, NodePort, LoadBalancer, hostPort, or direct pod traffic.
+  # Kubelet health probes/port-forward are not blocked by NetworkPolicy.
+  ingress: []
+  # Scaffold needs no upstream access. Expand explicitly for ingestion later;
+  # do not treat broad network access as hosted-model consent.
+  egress: []
