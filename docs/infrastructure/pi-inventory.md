@@ -71,6 +71,18 @@ disconnecting Ethernet.
 - Application authentication, private routing, bounded model resources,
   persistent storage, backups, and Flux rollout verification remain pending.
 
+## Deployment-time storage recheck (2026-09-30)
+
+The user expected a 64 GB card. Read-only `lsblk -b` and `fdisk -l` instead
+reported the physical `/dev/mmcblk0` device as **31,719,424,000 bytes** (29.54 GiB,
+approximately a marketed 32 GB card), not a 64 GB device with a small partition.
+The 512 MiB boot partition plus root partition fill the device through its last
+sector; no unused partition space was found. No partition/filesystem resizing
+was attempted. Physically check the card if this differs from its label.
+After Flux/app deployment, root had approximately 11 GiB free. The original
+inventory above remains a pre-deployment snapshot; current deployment evidence
+is in [`flux-deployment.md`](flux-deployment.md).
+
 ## Verification commands
 
 Run these on the Pi through the established SSH connection. Do not print or

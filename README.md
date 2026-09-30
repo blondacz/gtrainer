@@ -8,9 +8,11 @@ The browser/backend boundary uses REST/JSON over HTTP, not gRPC.
 ## Current state
 
 The repository contains a **development scaffold**, source-coverage checks, and
-infrastructure/model decisions. No records are loaded by the scaffold. Import,
-authentication, charts, events, model integration, and automated deployment
-remain pending tasks. Google Calendar and adaptive plans are later phases.
+infrastructure/model decisions. The tested ARM64 scaffold is deployed on the Pi
+through Flux, with persistent storage and SSH-tunnel-only access. No records
+are loaded. Import, authentication, charts, events, model integration, and
+protected automatic image promotion remain pending tasks. Google Calendar and
+adaptive plans are later phases.
 
 The two small Pi models tested were not sufficiently grounded; no default model
 or hosted fallback has been selected. See
@@ -64,6 +66,14 @@ Open `http://127.0.0.1:5173`. The UI proxies the process-only `/healthz` check t
 `GTRAINER_HOST` and `GTRAINER_PORT` configure the backend; do not expose it to a
 public network. Private `/api` routes return 401 until authentication is built.
 The health response contains only process availability, not personal records.
+
+## Pi scaffold
+
+Run `bash scripts/pi-tunnel.sh` on the operator Mac and keep it running. Open
+`http://127.0.0.1:8080`; stop the tunnel with Ctrl-C. No direct LAN/public web
+port is exposed. This is still the scaffold, not a connected health dashboard.
+See [`docs/infrastructure/flux-deployment.md`](docs/infrastructure/flux-deployment.md)
+for the deployment, access boundary, and verified limitations.
 
 ## Privacy
 
