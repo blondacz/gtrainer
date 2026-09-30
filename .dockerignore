@@ -1,0 +1,32 @@
+# Allowlist the build inputs: credentials, records, Git state, and tool output
+# must never become part of a Docker build context or image layer.
+**
+!Dockerfile
+!.dockerignore
+!gradlew
+!gradlew.bat
+!settings.gradle.kts
+!build.gradle.kts
+!gradle.properties
+!gradle/
+!gradle/**
+!backend/
+!backend/build.gradle.kts
+!backend/src/
+!backend/src/**
+!frontend/
+!frontend/package.json
+!frontend/package-lock.json
+!frontend/tsconfig.json
+!frontend/vite.config.ts
+!frontend/index.html
+!frontend/src/
+!frontend/src/**
+**/.env*
+**/*.key
+**/*.pem
+**/*.db
+**/*.db-*
+**/*.sqlite
+**/*.sqlite-*
+**/*.age

@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gtrainer-benchmark
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ollama-models
+  namespace: gtrainer-benchmark
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 4Gi
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: no-inbound-inference
+  namespace: gtrainer-benchmark
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress: []
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ollama
+  namespace: gtrainer-benchmark
+  labels:
+    app: ollama-benchmark
+spec:
+  automountServiceAccountToken: false
+  nodeSelector:
+    kubernetes.io/arch: arm64
+  containers:
+    - name: ollama
+      # Official 0.35.0 Linux ARM64 image, verified through Docker Hub metadata.
+      image: ollama/ollama@sha256:0d7a1b2e50d33428f0117535a25933fa61f8868f383c8e1d07823889412c8084
+      ports:
+        - name: inference
+          containerPort: 11434
+      env:
+        - name: OLLAMA_NO_CLOUD
+          value: "1"
+        - name: OLLAMA_MAX_LOADED_MODELS
+          value: "1"
+        - name: OLLAMA_NUM_PARALLEL
+          value: "1"
+        - name: OLLAMA_CONTEXT_LENGTH
+          value: "2048"
+      resources:
+        requests:
+          cpu: "500m"
+          memory: 512Mi
+        limits:
+          cpu: "3"
+          memory: 4Gi
+      readinessProbe:
+        httpGet:
+          path: /api/version
+          port: inference
+        initialDelaySeconds: 5
+        periodSeconds: 5
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: [ALL]
+        seccompProfile:
+          type: RuntimeDefault
+      volumeMounts:
+        - name: models
+          mountPath: /root/.ollama
+  volumes:
+    - name: models
+      persistentVolumeClaim:
+        claimName: ollama-models

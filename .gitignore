@@ -1,0 +1,24 @@
+# Credentials and private data must stay outside version control.
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+secrets/
+private-data/
+
+# Local build and tool output.
+__pycache__/
+*.pyc
+.DS_Store
+.gradle/
+.kotlin/
+**/build/
+**/node_modules/
+**/dist/
+**/coverage/
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.age
