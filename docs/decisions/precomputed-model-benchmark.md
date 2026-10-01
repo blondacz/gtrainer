@@ -192,3 +192,9 @@ candidate/configuration. Do not silently increase Pi resource limits, narrow the
 phase-one grounding requirements to accept bad prose, select a failed default,
 or enable a hosted fallback. The application stays AI-off and the checklist
 remains **18/27 complete** until the remaining tasks are actually implemented.
+
+The user subsequently authorized the
+[Ministral typed-claim retest](ministral-typed-retest.md). Eight of ten responses
+passed its narrower contract and two were rejected before rendering. This is a
+fail-closed architecture experiment, not a reversal of the failed free-form
+configuration, a selected default, or production integration.
