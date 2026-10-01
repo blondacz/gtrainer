@@ -19,10 +19,10 @@
 
 ## 3. Collect Garmin-derived history from Intervals.icu
 
-- [ ] 3.1 Implement a read-only Intervals.icu activities/wellness adapter using a rotatable API key and a replaceable source interface; verify API auth failure, revoked-key handling, no upstream writes, and category tests using synthetic fixtures.
-- [ ] 3.2 Add normalized activity and wellness records with Intervals.icu IDs, upstream source when known, sport, units, and timestamp context; verify synthetic examples preserve absent values and time zones without committing real records.
-- [ ] 3.3 Validate input, prevent duplicate imports, report per-category Intervals.icu fetch outcomes and unknown upstream freshness separately, and allow local data removal; verify invalid/repeated records, API failures, missing recent data, and deletion with tests.
-- [ ] 3.4 Document verified field coverage, source limitations, intermediary privacy, key rotation, and missing proprietary Garmin scores; verify docs match tests and do not disclose credentials or personal values.
+- [x] 3.1 Implement a read-only Intervals.icu activities/wellness adapter using a rotatable API key and a replaceable source interface; verify API auth failure, revoked-key handling, no upstream writes, and category tests using synthetic fixtures.
+- [x] 3.2 Add normalized activity and wellness records with Intervals.icu IDs, upstream source when known, sport, units, and timestamp context; verify synthetic examples preserve absent values and time zones without committing real records.
+- [x] 3.3 Validate input, prevent duplicate imports, report per-category Intervals.icu fetch outcomes and unknown upstream freshness separately, and allow local data removal; verify invalid/repeated records, API failures, missing recent data, and deletion with tests.
+- [x] 3.4 Document verified field coverage, source limitations, intermediary privacy, key rotation, and missing proprietary Garmin scores; verify docs match tests and do not disclose credentials or personal values.
 
 ## 4. Show history and connect the trends with AI
 

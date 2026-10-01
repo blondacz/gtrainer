@@ -9,7 +9,8 @@ From this Mac, run `bash scripts/pi-tunnel.sh`, then open
 `http://127.0.0.1:8080`. Sign in using the separately provisioned dashboard
 password. The public HTML shell and `/healthz` contain no personal data.
 Every private `/api/` route requires a valid session, except password login.
-Authenticated data routes currently return `feature_not_implemented`.
+The import release adds authenticated history/status/sync/local-removal routes;
+until its image rolls out, the prior release returns `feature_not_implemented`.
 
 Authentication uses a salted PBKDF2-HMAC-SHA256 verifier with 600,000 iterations;
 the raw dashboard password is not stored on the Pi. Sessions/CSRF tokens are
@@ -41,7 +42,9 @@ The deployment references the externally provisioned Kubernetes Secret
 `gtrainer/gtrainer-runtime`, mounted read-only under `/run/gtrainer-secrets`
 with mode 0440 and app GID 10001. Git contains only the Secret name/file paths,
 never a Secret payload. No secret values are environment variables or image
-inputs. Missing/unreadable/invalid credential configuration fails closed.
+inputs. Missing/unreadable/invalid password verifier configuration fails closed.
+Missing source credentials fail closed for source retrieval while preserving
+authenticated access to stored history.
 
 Initial setup, using the existing private Intervals.icu key:
 

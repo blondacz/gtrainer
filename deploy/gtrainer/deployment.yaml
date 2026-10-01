@@ -44,7 +44,9 @@ spec:
               containerPort: 8080
           env:
             - name: JAVA_OPTS
-              value: "-Xmx512m"
+              value: "-Xmx512m -Dorg.sqlite.lib.path=/app/native"
+            - name: GTRAINER_DATABASE_FILE
+              value: /data/gtrainer.sqlite3
             - name: GTRAINER_PASSWORD_VERIFIER_FILE
               value: /run/gtrainer-secrets/password-verifier
             - name: GTRAINER_INTERVALS_KEY_FILE

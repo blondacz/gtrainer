@@ -1,7 +1,7 @@
 import copy
 import unittest
 
-from verify_pi_deployment import validate_runtime
+from verify_pi_deployment import validate_runtime, validate_source_egress
 
 
 class RuntimeVerification(unittest.TestCase):
@@ -56,6 +56,25 @@ class RuntimeVerification(unittest.TestCase):
         pvc['status']['phase'] = 'Pending'
         with self.assertRaises(ValueError):
             self.verify(pvc=pvc)
+
+    def test_source_exception_allows_only_cluster_dns_and_pinned_https_without_ingress(self):
+        policy = {'spec': {'podSelector': {'matchLabels': {'app.kubernetes.io/name': 'gtrainer'}},
+                          'policyTypes': ['Egress'], 'egress': [
+            {'to': [{'namespaceSelector': {'matchLabels': {'kubernetes.io/metadata.name': 'kube-system'}},
+                     'podSelector': {'matchLabels': {'k8s-app': 'kube-dns'}}}],
+             'ports': [{'protocol': 'UDP', 'port': 53}, {'protocol': 'TCP', 'port': 53}]},
+            {'to': [{'ipBlock': {'cidr': ip}} for ip in ('104.26.14.117/32','104.26.15.117/32','172.67.73.247/32')],
+             'ports': [{'protocol': 'TCP', 'port': 443}]},
+        ]}}
+        validate_source_egress(policy)
+        broad = copy.deepcopy(policy)
+        broad['spec']['egress'][1]['to'] = [{'ipBlock': {'cidr': '0.0.0.0/0'}}]
+        with self.assertRaises(ValueError):
+            validate_source_egress(broad)
+        ingress = copy.deepcopy(policy)
+        ingress['spec']['ingress'] = [{}]
+        with self.assertRaises(ValueError):
+            validate_source_egress(ingress)
         pvc = copy.deepcopy(self.pvc)
         pvc['metadata']['annotations'] = {}
         with self.assertRaises(ValueError):

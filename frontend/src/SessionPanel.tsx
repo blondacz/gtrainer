@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ImportPanel } from './ImportPanel'
 
 type Session = { authenticated: true; csrfToken: string; intervalsConfigured: boolean }
 
@@ -83,9 +84,10 @@ export function SessionPanel() {
     <h2 id="access-heading">Private access</h2>
     {checking ? <p>Checking sign-in…</p> : session ? <>
       <p>Signed in to your private dashboard.</p>
-      <p>{session.intervalsConfigured ? 'Intervals.icu credential is configured. Import is not implemented yet.' :
+      <p>{session.intervalsConfigured ? 'Intervals.icu credential is configured.' :
         'Intervals.icu credential is not configured.'}</p>
       <button type="button" onClick={() => void signOut()} disabled={busy}>Sign out</button>
+      <ImportPanel csrfToken={session.csrfToken} configured={session.intervalsConfigured} />
     </> : <form onSubmit={event => void signIn(event)}>
       <p>Sign in before accessing private records. Your password is never stored in browser storage.</p>
       <input type="hidden" name="username" autoComplete="username" value="owner" readOnly />
