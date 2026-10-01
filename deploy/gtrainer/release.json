@@ -1,6 +1,6 @@
 {
   "repository": "blondacz/gtrainer",
-  "source_sha": "8ecb0e982a3566641302050a727f900e7a080f1a",
-  "run_id": 36899138384,
-  "image": "ghcr.io/blondacz/gtrainer@sha256:142ca0bca480e8ee38a3a0242740cee7761c1c81c0add08587d214be4c4f743f"
+  "source_sha": "7eedfccf62038882844ee7bd43bb5ee22a767546",
+  "run_id": 36907289396,
+  "image": "ghcr.io/blondacz/gtrainer@sha256:3ff83b81e129cb7dcb00747b1ff2badee4f10b0e5325419eefbb3ca85bdba568"
 }
