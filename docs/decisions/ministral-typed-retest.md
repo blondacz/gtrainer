@@ -122,3 +122,8 @@ require failed selections to produce AI-unavailable states, not repaired or
 unvalidated observations; it must retain deterministic charts and every consent,
 privacy, evidence, resource, and protected-deployment requirement. Do not begin
 that larger integration or use actual records without the user's direction.
+
+The user subsequently approved the Kotlin prototype; its implementation boundary
+and remaining hardware/production qualification are documented in
+[guarded local analysis](guarded-local-analysis.md). This does not change the
+measured benchmark results or select a default.

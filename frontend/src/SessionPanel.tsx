@@ -90,7 +90,7 @@ export function SessionPanel() {
         'Intervals.icu credential is not configured.'}</p>
       <button type="button" onClick={() => void signOut()} disabled={busy}>Sign out</button>
       <ImportPanel csrfToken={session.csrfToken} configured={session.intervalsConfigured} onChanged={() => setHistoryRevision(value => value + 1)} />
-      <TrendPanel revision={historyRevision} />
+      <TrendPanel revision={historyRevision} csrfToken={session.csrfToken} />
     </> : <form onSubmit={event => void signIn(event)}>
       <p>Sign in before accessing private records. Your password is never stored in browser storage.</p>
       <input type="hidden" name="username" autoComplete="username" value="owner" readOnly />

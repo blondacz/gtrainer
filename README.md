@@ -7,16 +7,18 @@ The browser/backend boundary uses REST/JSON over HTTP, not gRPC.
 
 ## Current state
 
-The repository contains a **development scaffold**, source-coverage checks, and
-infrastructure/model decisions. The tested ARM64 scaffold is deployed on the Pi
-through Flux, with persistent storage and SSH-tunnel-only access. No records
-are loaded. Import, authentication, charts, events, model integration, and
-protected automatic image promotion remain pending tasks. Google Calendar and
-adaptive plans are later phases.
+The private application supports authenticated read-only imports, normalized
+SQLite history, factual charts, and source-linked comparisons. Tested ARM64
+images reach the Pi through protected promotion PRs and Flux; access uses an
+authenticated SSH tunnel, not direct LAN/public application ingress.
 
-The two small Pi models tested were not sufficiently grounded; no default model
-or hosted fallback has been selected. See
-[`docs/decisions/local-model-benchmark.md`](docs/decisions/local-model-benchmark.md).
+This source adds an **opt-in experimental local analysis prototype**, with typed
+claim validation and code-rendered facts. It does not deploy a model service or
+select a default. See
+[`docs/decisions/guarded-local-analysis.md`](docs/decisions/guarded-local-analysis.md)
+for configuration, limits, and outstanding hardware qualification. Hosted
+inference, manual events, and full phase-one verification remain unfinished.
+Google Calendar and adaptive plans are later phases.
 
 ## Build and test
 
@@ -62,16 +64,18 @@ npm --prefix frontend run dev
 ```
 
 Open `http://127.0.0.1:5173`. The UI proxies the process-only `/healthz` check to
-`http://127.0.0.1:8080`. Both development servers bind to loopback by default.
+`http://127.0.0.1:8080`, including private `/api` routes. Both development servers bind to loopback by default.
 `GTRAINER_HOST` and `GTRAINER_PORT` configure the backend; do not expose it to a
-public network. Private `/api` routes return 401 until authentication is built.
+public network. Private `/api` routes require a configured single-user session;
+see [`docs/infrastructure/private-access.md`](docs/infrastructure/private-access.md).
 The health response contains only process availability, not personal records.
 
-## Pi scaffold
+## Pi dashboard
 
 Run `bash scripts/pi-tunnel.sh` on the operator Mac and keep it running. Open
 `http://127.0.0.1:8080`; stop the tunnel with Ctrl-C. No direct LAN/public web
-port is exposed. This is still the scaffold, not a connected health dashboard.
+port is exposed. Source import and model generation require separate explicit
+user actions; opening the dashboard does not perform either.
 See [`docs/infrastructure/flux-deployment.md`](docs/infrastructure/flux-deployment.md)
 for the deployment, access boundary, and verified limitations.
 
@@ -79,9 +83,9 @@ for the deployment, access boundary, and verified limitations.
 
 Keep API keys, personal records, prompts, backup keys, and kubeconfig outside
 Git, fixtures, logs, CI, and model inputs used for development. All tests use
-synthetic data. The production adapter will be Kotlin; Python utilities here
+synthetic data. The production adapter is Kotlin; Python utilities here
 only inspect source coverage or run synthetic hardware benchmarks. No hosted
-health-data transfer is authorized by running the scaffold or tests.
+health-data transfer is authorized by running the application or tests.
 
 Runtime, encrypted Mac backups (NAS later), and private GitOps delivery decisions
 are documented in

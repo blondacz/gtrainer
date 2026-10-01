@@ -22,6 +22,7 @@ import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.decodeFromJsonElement
 import io.ktor.utils.io.readBuffer
 import kotlinx.io.readByteArray
 import kotlinx.coroutines.CancellationException
@@ -57,7 +58,7 @@ private suspend inline fun <reified T> ApplicationCall.privateJson(): T {
     try {
         val body = receiveChannel().readBuffer(4097L).readByteArray()
         if (body.size > 4096) throw PrivateRequestError(HttpStatusCode.PayloadTooLarge)
-        return Json.decodeFromString<T>(body.decodeToString(throwOnInvalidSequence = true))
+        return Json.decodeFromJsonElement<T>(StrictModelJson.parse(body.decodeToString(throwOnInvalidSequence = true)))
     } catch (cancelled: CancellationException) {
         throw cancelled
     } catch (error: PrivateRequestError) {
@@ -68,8 +69,9 @@ private suspend inline fun <reified T> ApplicationCall.privateJson(): T {
 }
 
 fun Application.module(auth: SingleUserAuth = SingleUserAuth.fromEnvironment(),
-                       history: HistoryService? = HistoryService.fromEnvironment()) {
-    monitor.subscribe(ApplicationStopped) { history?.close() }
+                        history: HistoryService? = HistoryService.fromEnvironment(),
+                        analysis: AnalysisService = AnalysisService.fromEnvironment()) {
+    monitor.subscribe(ApplicationStopped) { history?.close(); analysis.close() }
     install(createApplicationPlugin("PrivacyHeaders") {
         onCall { call ->
             call.response.headers.append("X-Content-Type-Options", "nosniff")
@@ -147,12 +149,23 @@ fun Application.module(auth: SingleUserAuth = SingleUserAuth.fromEnvironment(),
                 } else {
                     try {
                         when {
+                            path == "/api/models" && call.request.local.method == HttpMethod.Get -> call.respond(analysis.status())
+                            path == "/api/models" && call.request.local.method == HttpMethod.Put ->
+                                call.respond(analysis.select(call.privateJson<ModelSelectionRequest>().modelId))
+                            history != null && path == "/api/analysis" && call.request.local.method == HttpMethod.Post -> {
+                                val request = call.privateJson<AnalysisRequest>()
+                                val range = TrendRange(LocalDate.parse(request.oldest), LocalDate.parse(request.newest))
+                                val result = analysis.analyze(request, history.trends(range, request.sport)) { history.trends(range, request.sport) }
+                                if (auth.session(token) == null) call.respond(HttpStatusCode.Unauthorized, ApiError("authentication_required"))
+                                else call.respond(result)
+                            }
                             history != null && path == "/api/imports" && call.request.local.method == HttpMethod.Get ->
                                 call.respond(history.statuses())
                             history != null && path in setOf("/api/trends", "/api/analysis-input") && call.request.local.method == HttpMethod.Get -> {
                                 val range = TrendRange(LocalDate.parse(requireNotNull(call.request.queryParameters["oldest"])),
                                     LocalDate.parse(requireNotNull(call.request.queryParameters["newest"])))
                                 val report = history.trends(range, call.request.queryParameters["sport"])
+                                call.response.headers.append("X-Evidence-Report-Sha256", Trends.analysisInput(report).evidenceReportSha256)
                                 if (path == "/api/analysis-input") call.respond(Trends.analysisInput(report)) else call.respond(report)
                             }
                             history != null && path == "/api/history" && call.request.local.method == HttpMethod.Get -> {
