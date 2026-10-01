@@ -1,8 +1,9 @@
 # Factual historical trends and descriptive input summaries
 
-Status: tasks 4.1–4.3 implemented with synthetic tests. Protected release/physical
-Pi chart verification is pending. The Pi currently runs the verified import
-release with an empty database; see [read-only-import.md](read-only-import.md).
+Status: tasks 4.1–4.3 implemented with synthetic tests and deployed through the
+protected ARM64 release. Physical Pi empty-trend/summary, private-access, shipped
+UI, native SQLite, and backup/restore checks pass. The database is still empty;
+see [read-only-import.md](read-only-import.md).
 No real records, model requests, or hosted transfers are part of development.
 
 ## Private chart workflow
@@ -98,3 +99,42 @@ privacy/summary reproducibility, authenticated API access, UI empty/error/stale
 states, evidence pagination, and clearing/cancelling obsolete chart data. The
 immutable ARM64 image gate additionally checks empty private trends and summary
 endpoints using only synthetic credentials, with no upstream/model read.
+
+## Chart-release operational evidence (2026-10-01)
+
+- Source PR [14](https://github.com/blondacz/gtrainer/pull/14) passed protected
+  checks and merged as `7eedfccf62038882844ee7bd43bb5ee22a767546`.
+  Local checks passed 39 backend, 28 UI, 45 utility, and 4 benchmark tests.
+  The packaged synthetic JVM app also passed the exact publication API gate,
+  including the SHA-256 binding against serialized HTTP report bytes.
+- Main run [36907289396](https://github.com/blondacz/gtrainer/actions/runs/36907289396)
+  passed tests, provenance, ARM64 image build, native SQLite/auth/empty trend/input
+  execution with synthetic credentials, and protected promotion. No source/model
+  request was made by the image verifier.
+- User-approved promotion PR
+  [15](https://github.com/blondacz/gtrainer/pull/15) passed protected checks and
+  merged as `f1635ca624a8a8e0574d600e1195e695f8ef15b7`. Flux applied that revision
+  and became Ready. The physical Pi's Ready ARM64 image is
+  `ghcr.io/blondacz/gtrainer@sha256:3ff83b81e129cb7dcb00747b1ff2badee4f10b0e5325419eefbb3ca85bdba568`.
+- The available process loaded `/app/native/libsqlitejdbc.so`; the version-1 store
+  passes integrity and UID 10001/mode-600 database/WAL/SHM checks. Imported records,
+  events, and read-status tables remain empty. No schema migration was introduced.
+- The shipped public UI bundle contains the factual chart and explicit AI-off
+  views, with no synthetic evidence fixture bundled. Anonymous trend/input calls
+  return 401. Authenticated empty trends/input return 200 with `no-store`, correct
+  preceding equal-length dates, unavailable wellness/proprietary scores, and exact
+  report/summary SHA-256 agreement. CSRF-less sync fails before retrieval; logout
+  invalidates the cookie. Current logs contain no tested password/key/session values.
+- The default-deny/no-direct-ingress boundary, explicit source-egress manifest,
+  external runtime Secret, and protected PVC remain unchanged and validated.
+  Scoped live source-egress probe evidence is recorded with the import release;
+  this does not constitute a new router, IPv6, or public SSH/API-server audit.
+- A fresh actual-app encrypted snapshot was taken during the release window and
+  decrypted only into an isolated private Mac database. Version-1 schema/integrity
+  and owner-only restore permissions pass; plaintext was removed. No health values
+  were displayed or placed in Git/images/CI/development inputs. Independent
+  recovery-key storage and whole-Mac-loss protection remain unverified.
+- This proves empty-state physical rollout, not a real import feeding nonempty
+  Pi charts or the full phase-one flow. No event write, model selection, inference,
+  hosted consent, or automatic fallback is claimed. The user has model suggestions;
+  get those before starting model integration rather than selecting failed defaults.

@@ -3,8 +3,9 @@
 Status: task **2.3 complete**, verified on 2026-09-30. Flux pulled and reconciled
 the scaffold on the physical Pi, with no health records, credentials, or model
 calls. Access is operator-only through an SSH tunnel, not a public web endpoint.
-Current authentication/import image and empty-database backup verification are
-recorded in [read-only-import.md](../data/read-only-import.md).
+Authentication/import and empty-database backup verification are recorded in
+[read-only-import.md](../data/read-only-import.md); the current factual chart
+release is verified in [historical-trends.md](../data/historical-trends.md).
 
 ## Layout and access boundary
 
