@@ -7,11 +7,19 @@ const syntheticPassword = 'synthetic-test-password-not-a-real-credential'
 
 describe('private access', () => {
   it('signs in and signs out without browser-storage credentials', async () => {
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce({ ok: false, status: 401 })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ authenticated: true, csrfToken: csrf, intervalsConfigured: true }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => [] })
-      .mockResolvedValueOnce({ ok: true })
+    // Import-status effects and logout can overlap: mock by endpoint rather
+    // than assuming a particular scheduling order across operating systems.
+    const fetchMock = vi.fn(async (path: string) => {
+      if (path === '/api/session') return { ok: false, status: 401 }
+      if (path === '/api/login') return { ok: true, json: async () => ({ authenticated: true, csrfToken: csrf, intervalsConfigured: true }) }
+      if (path === '/api/imports') return { ok: true, json: async () => ['activities', 'wellness'].map(category => ({
+        category, recordCount: 0, readStatus: 'NEVER_READ', rejected: 0, incomplete: 0,
+        lastAttemptUtc: null, lastSuccessUtc: null, latestObservedDate: null, latestObservedAgeDays: null,
+        upstreamFreshness: 'unknown',
+      })) }
+      if (path === '/api/logout') return { ok: true }
+      throw new Error('Unexpected synthetic request')
+    })
     vi.stubGlobal('fetch', fetchMock)
     render(<SessionPanel />)
     const input = await screen.findByLabelText('Dashboard password')
@@ -23,7 +31,7 @@ describe('private access', () => {
     expect(window.sessionStorage.length).toBe(0)
     fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
     expect(await screen.findByLabelText('Dashboard password')).toHaveValue('')
-    expect(fetchMock).toHaveBeenLastCalledWith('/api/logout', expect.objectContaining({
+    expect(fetchMock).toHaveBeenCalledWith('/api/logout', expect.objectContaining({
       method: 'POST', headers: { 'X-CSRF-Token': csrf },
     }))
   })
