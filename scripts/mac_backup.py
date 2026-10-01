@@ -171,7 +171,18 @@ def restore(ciphertext, output, key=KEY):
             require(database.execute('PRAGMA integrity_check').fetchone() == ('ok',), 'Restored database integrity failed.')
             require(database.execute('PRAGMA user_version').fetchone() == (1,), 'Select a compatible database schema/app version.')
             tables = {row[0] for row in database.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-            require({'activities', 'wellness', 'events'} <= tables, 'Expected record/event schema is missing.')
+            require({'schema_migrations', 'activities', 'wellness', 'events', 'sync_status'} <= tables,
+                    'Expected record/event/migration schema is missing.')
+            for table, expected in {
+                'activities': {'source', 'source_id', 'observed_date', 'record_json'},
+                'wellness': {'source', 'source_id', 'observed_date', 'record_json'},
+                'events': {'id', 'start_date', 'end_date', 'sport', 'goal', 'notes'},
+                'sync_status': {'category', 'last_attempt_utc', 'last_success_utc', 'read_status', 'rejected', 'incomplete'},
+            }.items():
+                columns = {row[1] for row in database.execute(f'PRAGMA table_info({table})')}
+                require(expected <= columns, 'Restored schema is not compatible with the record/event store.')
+            require(database.execute('SELECT version FROM schema_migrations WHERE version=1').fetchone() == (1,),
+                    'Restored migration record is missing.')
         # Exclusive publication: even a concurrent restore cannot overwrite a
         # pre-existing target after the initial existence check.
         os.link(temporary, output)

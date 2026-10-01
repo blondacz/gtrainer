@@ -8,7 +8,7 @@ describe('development foundation', () => {
     vi.stubGlobal('fetch', fetchMock)
     render(<App />)
     expect(screen.getByRole('heading', { level: 1, name: 'GTrainer' })).toBeInTheDocument()
-    expect(screen.getByText(/No personal records have been loaded/)).toBeInTheDocument()
+    expect(screen.getByText(/No personal data is bundled with this app/)).toBeInTheDocument()
     expect(await screen.findByText('Backend available')).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledWith('/healthz', expect.objectContaining({ signal: expect.any(AbortSignal) }))
     expect(screen.getByText(/No data is sent to a model/)).toBeInTheDocument()

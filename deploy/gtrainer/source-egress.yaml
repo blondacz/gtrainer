@@ -1,0 +1,36 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: gtrainer-source-egress
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: gtrainer
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # IPv4 DNS answers for intervals.icu verified 2026-10-01. Fail closed if
+    # addresses change; refresh through a protected PR, never allow all HTTPS.
+    # Cloudflare addresses are shared, not a network-level hostname guarantee.
+    # The client fixes https://intervals.icu, validates TLS, and rejects redirects.
+    - to:
+        - ipBlock:
+            cidr: 104.26.14.117/32
+        - ipBlock:
+            cidr: 104.26.15.117/32
+        - ipBlock:
+            cidr: 172.67.73.247/32
+      ports:
+        - protocol: TCP
+          port: 443

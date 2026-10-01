@@ -8,6 +8,8 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.application.createApplicationPlugin
+import io.ktor.server.application.ApplicationCall
+import io.ktor.server.application.ApplicationStopped
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.http.content.staticResources
@@ -22,6 +24,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import io.ktor.utils.io.readBuffer
 import kotlinx.io.readByteArray
+import kotlinx.coroutines.CancellationException
+import java.time.LocalDate
 
 @Serializable
 data class HealthResponse(val status: String)
@@ -35,9 +39,37 @@ data class LoginRequest(val password: String) {
 }
 
 @Serializable
-data class SessionResponse(val authenticated: Boolean, val csrfToken: String, val intervalsConfigured: Boolean)
+data class SessionResponse(val authenticated: Boolean, val csrfToken: String, val intervalsConfigured: Boolean) {
+    override fun toString(): String = "SessionResponse([REDACTED])"
+}
 
-fun Application.module(auth: SingleUserAuth = SingleUserAuth.fromEnvironment()) {
+@Serializable
+data class SyncRequest(val oldest: String, val newest: String) {
+    override fun toString(): String = "SyncRequest([REDACTED])"
+}
+
+@Serializable
+data class RemovalRequest(val confirmation: String)
+
+private class PrivateRequestError(val status: HttpStatusCode) : IllegalArgumentException("Invalid private request")
+
+private suspend inline fun <reified T> ApplicationCall.privateJson(): T {
+    try {
+        val body = receiveChannel().readBuffer(4097L).readByteArray()
+        if (body.size > 4096) throw PrivateRequestError(HttpStatusCode.PayloadTooLarge)
+        return Json.decodeFromString<T>(body.decodeToString(throwOnInvalidSequence = true))
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (error: PrivateRequestError) {
+        throw error
+    } catch (_: Exception) {
+        throw PrivateRequestError(HttpStatusCode.BadRequest)
+    }
+}
+
+fun Application.module(auth: SingleUserAuth = SingleUserAuth.fromEnvironment(),
+                       history: HistoryService? = HistoryService.fromEnvironment()) {
+    monitor.subscribe(ApplicationStopped) { history?.close() }
     install(createApplicationPlugin("PrivacyHeaders") {
         onCall { call ->
             call.response.headers.append("X-Content-Type-Options", "nosniff")
@@ -113,8 +145,42 @@ fun Application.module(auth: SingleUserAuth = SingleUserAuth.fromEnvironment()) 
                         httpOnly = true, secure = auth.secureCookie, extensions = mapOf("SameSite" to "Strict")))
                     call.respond(ApiError("logged_out"))
                 } else {
-                    // No ingestion/data APIs are implemented by adding authentication.
-                    call.respond(HttpStatusCode.NotImplemented, ApiError("feature_not_implemented"))
+                    try {
+                        when {
+                            history != null && path == "/api/imports" && call.request.local.method == HttpMethod.Get ->
+                                call.respond(history.statuses())
+                            history != null && path == "/api/history" && call.request.local.method == HttpMethod.Get -> {
+                                val oldest = LocalDate.parse(requireNotNull(call.request.queryParameters["oldest"]))
+                                val newest = LocalDate.parse(requireNotNull(call.request.queryParameters["newest"]))
+                                require(oldest <= newest)
+                                call.respond(history.history(oldest, newest))
+                            }
+                            history != null && path == "/api/sync" && call.request.local.method == HttpMethod.Post -> {
+                                val request = call.privateJson<SyncRequest>()
+                                val range = ReadRange(LocalDate.parse(request.oldest), LocalDate.parse(request.newest))
+                                require(range.newest <= LocalDate.now(java.time.Clock.systemUTC()).plusDays(1))
+                                call.respond(history.sync(range))
+                            }
+                            history != null && path == "/api/imports" && call.request.local.method == HttpMethod.Delete -> {
+                                require(call.privateJson<RemovalRequest>().confirmation == "remove-local-imports")
+                                history.removeImports()
+                                call.respond(ApiError("local_imports_removed"))
+                            }
+                            else -> call.respond(HttpStatusCode.NotImplemented, ApiError("feature_not_implemented"))
+                        }
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: SyncBusy) {
+                        call.respond(HttpStatusCode.Conflict, ApiError("private_operation_running"))
+                    } catch (error: PrivateRequestError) {
+                        call.respond(error.status, ApiError("invalid_request"))
+                    } catch (_: java.time.DateTimeException) {
+                        call.respond(HttpStatusCode.BadRequest, ApiError("invalid_date_range"))
+                    } catch (_: IllegalArgumentException) {
+                        call.respond(HttpStatusCode.BadRequest, ApiError("invalid_request"))
+                    } catch (_: Exception) {
+                        call.respond(HttpStatusCode.ServiceUnavailable, ApiError("data_operation_failed"))
+                    }
                 }
             }
         }

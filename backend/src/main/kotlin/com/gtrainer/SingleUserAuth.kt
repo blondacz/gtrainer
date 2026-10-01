@@ -137,7 +137,7 @@ class SingleUserAuth(
                     require(Files.size(file) in 1..256)
                     Files.readString(file).trim().isNotEmpty()
                 } catch (_: Exception) {
-                    throw IllegalArgumentException("Cannot read source credential configuration")
+                    false // A source failure must not hide authenticated stored history.
                 }
             } ?: false
             return SingleUserAuth(verifier, origin, !tunnel, intervalsConfigured)

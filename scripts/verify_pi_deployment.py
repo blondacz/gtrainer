@@ -70,6 +70,24 @@ def kubectl(*args):
     return json.loads(result.stdout)
 
 
+def validate_source_egress(policy):
+    spec = policy['spec']
+    require(spec.get('podSelector') == {'matchLabels': {'app.kubernetes.io/name': 'gtrainer'}}
+            and spec.get('policyTypes') == ['Egress'] and not spec.get('ingress'),
+            'Source policy must only allow app egress, never ingress.')
+    rules = spec.get('egress', [])
+    require(len(rules) == 2, 'Expected only DNS and pinned-source HTTPS egress rules.')
+    dns, https = rules
+    require(dns['to'] == [{'namespaceSelector': {'matchLabels': {'kubernetes.io/metadata.name': 'kube-system'}},
+                          'podSelector': {'matchLabels': {'k8s-app': 'kube-dns'}}}]
+            and dns['ports'] == [{'protocol': 'UDP', 'port': 53}, {'protocol': 'TCP', 'port': 53}],
+            'DNS egress must be restricted to cluster DNS.')
+    require(https['to'] == [{'ipBlock': {'cidr': value}} for value in
+                           ('104.26.14.117/32', '104.26.15.117/32', '172.67.73.247/32')]
+            and https['ports'] == [{'protocol': 'TCP', 'port': 443}],
+            'HTTPS egress must be restricted to the verified pinned source addresses.')
+
+
 def main():
     require(not os.environ.get('GITHUB_ACTIONS'), 'CI must not connect to the home cluster.')
     for kind, name in (('gitrepository', 'flux-system'), ('kustomization', 'flux-system'),
@@ -88,11 +106,18 @@ def main():
                      kubectl('-n', 'gtrainer', 'get', 'ingresses', '-o', 'json'))
     require(len(kubectl('-n', 'gtrainer', 'get', 'services', '-o', 'json')['items']) == 1,
             'Unexpected service in app namespace.')
-    require(len(kubectl('-n', 'gtrainer', 'get', 'networkpolicies', '-o', 'json')['items']) == 1,
+    policies = kubectl('-n', 'gtrainer', 'get', 'networkpolicies', '-o', 'json')['items']
+    require({p['metadata']['name'] for p in policies} in
+            ({'gtrainer-isolation'}, {'gtrainer-isolation', 'gtrainer-source-egress'}),
             'Unexpected policy might broaden app access.')
+    source = [p for p in policies if p['metadata']['name'] == 'gtrainer-source-egress']
+    if source:
+        validate_source_egress(source[0])
     print('Flux source and both reconciliations are Ready; app is available on ARM64.')
     print('Storage is Bound/protected; no direct app ingress, node port, or host port exists.')
-    print('Default-deny ingress/egress is configured; live traffic tests are still required.')
+    print('Default-deny networking is configured' +
+          (' with explicit cluster DNS/pinned-source HTTPS egress.' if source else ' with no egress exceptions.') +
+          ' Live traffic tests are still required.')
     print('Configured image:', deployment['spec']['template']['spec']['containers'][0]['image'])
 
 

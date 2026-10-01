@@ -6,3 +6,4 @@ resources:
   - service.yaml
   - storage.yaml
   - network-policy.yaml
+  - source-egress.yaml

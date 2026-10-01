@@ -29,10 +29,10 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertFailsWith
 
-private const val SYNTHETIC_PASSWORD = "synthetic-test-password-not-a-real-credential"
+internal const val SYNTHETIC_PASSWORD = "synthetic-test-password-not-a-real-credential"
 private const val ORIGIN = "http://127.0.0.1:8080"
 
-private fun syntheticVerifier(): PasswordVerifier {
+internal fun syntheticVerifier(): PasswordVerifier {
     val salt = ByteArray(16) { it.toByte() }
     val spec = PBEKeySpec(SYNTHETIC_PASSWORD.toCharArray(), salt, 600_000, 256)
     val key = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded

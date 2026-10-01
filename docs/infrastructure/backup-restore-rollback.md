@@ -110,7 +110,8 @@ python3 scripts/mac_backup.py restore \
 
 Decryption writes a private temporary file outside Git, requires successful age
 authentication, validates SQLite integrity and schema `user_version=1`, and
-requires activity/wellness/event tables. Validation treats this complete snapshot
+requires the actual record/event/sync-status/migration tables and version-1
+columns/migration entry. Validation treats this complete snapshot
 as immutable and creates no SQLite sidecars. The final output is published
 exclusively: an existing database is never overwritten. Wrong keys, tampered
 ciphertext, unexpected schema, oversized input, or bad integrity leave no accepted

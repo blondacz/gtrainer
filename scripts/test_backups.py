@@ -12,18 +12,31 @@ from pi_snapshot import snapshot
 
 
 def fixture(path):
+    import json
     connection = sqlite3.connect(path)
     connection.executescript('''
         PRAGMA journal_mode=WAL;
         PRAGMA wal_autocheckpoint=0;
         PRAGMA user_version=1;
-        CREATE TABLE activities (id TEXT PRIMARY KEY, duration_seconds INTEGER);
-        CREATE TABLE wellness (id TEXT PRIMARY KEY, hrv REAL);
-        CREATE TABLE events (id TEXT PRIMARY KEY, description TEXT);
-        INSERT INTO activities VALUES ('synthetic-activity', 1234);
-        INSERT INTO wellness VALUES ('synthetic-wellness', 42);
-        INSERT INTO events VALUES ('synthetic-event', 'synthetic trip, not personal data');
+        CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_utc TEXT NOT NULL);
+        INSERT INTO schema_migrations VALUES (1, '2020-01-01T00:00:00Z');
+        CREATE TABLE activities (source TEXT, source_id TEXT, observed_date TEXT, record_json TEXT, PRIMARY KEY(source,source_id));
+        CREATE TABLE wellness (source TEXT, source_id TEXT, observed_date TEXT, record_json TEXT, PRIMARY KEY(source,source_id));
+        CREATE TABLE events (id TEXT PRIMARY KEY, start_date TEXT, end_date TEXT, sport TEXT, goal TEXT, notes TEXT);
+        CREATE TABLE sync_status (category TEXT PRIMARY KEY, last_attempt_utc TEXT, last_success_utc TEXT, read_status TEXT, rejected INTEGER, incomplete INTEGER);
+        INSERT INTO activities VALUES ('synthetic', 'synthetic-activity', '2020-06-01', '{}');
+        INSERT INTO wellness VALUES ('synthetic', 'synthetic-wellness', '2020-06-01', '{}');
+        INSERT INTO events VALUES ('synthetic-event', '2020-06-01', '2020-06-02', 'synthetic sport', 'synthetic trip, not personal data', NULL);
     ''')
+    activity = {'source': 'synthetic', 'sourceRecordId': 'synthetic-activity', 'upstreamSources': [],
+                'sport': 'Run', 'startLocal': '2020-06-01T12:00', 'startInstant': '2020-06-01T12:00:00Z',
+                'timeZone': 'UTC', 'sourceTimeZoneLabel': 'UTC', 'utcOffset': 'Z', 'timeContext': 'explicit_offset',
+                'movingTime': {'value': 1234.0, 'unit': 'seconds'}, 'elapsedTime': {'value': 1234.0, 'unit': 'seconds'},
+                'calories': None, 'distance': None, 'averageHeartRate': None, 'intervalsTrainingLoad': None}
+    wellness = {'source': 'synthetic', 'sourceRecordId': '2020-06-01', 'date': '2020-06-01',
+                'upstreamSources': [], 'measurements': {'hrv': {'value': 42.0, 'unit': 'ms'}}}
+    connection.execute('UPDATE activities SET record_json=?', (json.dumps(activity),))
+    connection.execute('UPDATE wellness SET source_id=?,record_json=?', ('2020-06-01', json.dumps(wellness)))
     connection.commit()
     return connection
 
@@ -34,7 +47,9 @@ class Backups(unittest.TestCase):
             root = Path(directory)
             connection = fixture(root / 'synthetic.sqlite3')
             try:
-                connection.execute("INSERT INTO activities VALUES ('synthetic-wal-activity', 2345)")
+                original = connection.execute('SELECT record_json FROM activities').fetchone()[0]
+                wal_record = original.replace('synthetic-activity', 'synthetic-wal-activity').replace('2020-06-01', '2020-06-02')
+                connection.execute("INSERT INTO activities VALUES ('synthetic', 'synthetic-wal-activity', '2020-06-02', ?)", (wal_record,))
                 connection.commit()
                 output = io.BytesIO()
                 snapshot(root, 'synthetic.sqlite3', output)
