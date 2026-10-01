@@ -3,6 +3,8 @@
 Status: task **2.3 complete**, verified on 2026-09-30. Flux pulled and reconciled
 the scaffold on the physical Pi, with no health records, credentials, or model
 calls. Access is operator-only through an SSH tunnel, not a public web endpoint.
+Current authentication/import image and empty-database backup verification are
+recorded in [read-only-import.md](../data/read-only-import.md).
 
 ## Layout and access boundary
 
@@ -12,7 +14,7 @@ calls. Access is operator-only through an SSH tunnel, not a public web endpoint.
   namespace-scoped app reconciler. Flux's installation/root reconciler has
   cluster privileges; the app reconciler cannot read secrets or change other
   namespaces. Restrict repository writes accordingly.
-- `deploy/gtrainer`: a single ARM64 replica using the task-2.2 verified digest,
+- `deploy/gtrainer`: a single ARM64 replica using a CI-verified immutable digest,
   Recreate strategy, non-root/read-only runtime, bounded CPU/memory/tmp, process
   probes, and a 2 GiB `local-path` PVC mounted at `/data`.
 - Namespace and PVC have Flux pruning disabled. Removing a manifest must not
@@ -23,10 +25,11 @@ calls. Access is operator-only through an SSH tunnel, not a public web endpoint.
   LoadBalancer, host networking, or host port. Default-deny ingress/egress covers
   the app namespace. Kubelet probes and authenticated API-server port-forward
   remain available. Health probes check the process, not source/model readiness.
-- The scaffold does not yet use the PVC for a database; task 3.2 will connect
-  storage. Task 2.5 still needs real user authentication. Do not import records.
-- No model/Intervals.icu egress is allowed yet. Later ingestion must add explicit
-  network rules; network permission alone is never hosted-model consent.
+- The current import release uses the PVC for its private version-1 SQLite store
+  and requires single-user authentication for history and import controls.
+- Explicit egress allows cluster DNS and the three pinned source HTTPS IPv4
+  addresses; default-deny ingress remains. No model egress/client is configured.
+  Network permission alone is never hosted-model consent.
 
 ## Bootstrap (operator Mac, not CI)
 
