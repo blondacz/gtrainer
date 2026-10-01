@@ -9,8 +9,8 @@ From this Mac, run `bash scripts/pi-tunnel.sh`, then open
 `http://127.0.0.1:8080`. Sign in using the separately provisioned dashboard
 password. The public HTML shell and `/healthz` contain no personal data.
 Every private `/api/` route requires a valid session, except password login.
-The import release adds authenticated history/status/sync/local-removal routes;
-until its image rolls out, the prior release returns `feature_not_implemented`.
+The deployed import release adds authenticated history/status/sync/local-removal
+routes; charts, event editing, and model analysis remain later tasks.
 
 Authentication uses a salted PBKDF2-HMAC-SHA256 verifier with 600,000 iterations;
 the raw dashboard password is not stored on the Pi. Sessions/CSRF tokens are
@@ -83,7 +83,8 @@ contains no Intervals.icu, dashboard, model, or SSH credentials.
 - A password change need not change the Intervals.icu account, imported records,
   or manual events. The source adapter will read the key file at import time.
 - Off-Pi backups must not accidentally include unencrypted source keys or the
-  Mac password file. Encrypted database backup/restore remains task 2.6.
+  Mac password file. Encrypted database backup/restore is verified separately;
+  see [backup-restore-rollback.md](backup-restore-rollback.md).
 
 Tests use only synthetic credentials and cover wrong/missing/fabricated sessions,
 expiry/restart/logout, Origin/CSRF denial, bounded bodies/attempts, redacted
@@ -103,7 +104,7 @@ the current pod's last 1,000 log lines in memory for exact credentials/session
 tokens without printing log contents. It does not certify every historical log,
 provider key validity, or datastore encryption.
 
-## Live evidence (2026-10-01)
+## Initial authentication-release evidence (2026-10-01)
 
 - Main build [36789923126](https://github.com/blondacz/gtrainer/actions/runs/36789923126)
   passed tests, provenance, immutable ARM64 image execution, and promotion.
@@ -128,3 +129,9 @@ provider key validity, or datastore encryption.
   11 UI tests, 35 utility/deployment tests, and 4 benchmark tests.
 - Networking and storage protections were unchanged. No health data, manual
   personal event, prompt, model call, or backup is claimed by this evidence.
+
+The later import release repeats the authentication/log checks and verifies
+private SQLite-backed status/history plus anonymous and CSRF-less sync/removal
+denial. Current image and operational evidence are in
+[read-only-import.md](../data/read-only-import.md). Source-key configuration is
+verified, not actual provider-key validity: no real import has been requested.

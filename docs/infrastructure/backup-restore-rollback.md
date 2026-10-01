@@ -2,8 +2,8 @@
 
 Status: task 2.6 verified: encrypted synthetic Pi-to-Mac backup/restore, Mac
 scheduler, protected Git image-revert rollback and return to authentication.
-There is no real app database
-yet, so there is no production recovery point or imported personal data.
+The import release now has an actual empty version-1 app database and a verified
+encrypted recovery point/isolated restore. No personal records have been imported.
 
 ## Install and upgrade
 
@@ -23,8 +23,8 @@ promotion PR workflows may require the operator's GitHub approval.
 Verify Flux Ready, the desired image, and private access after upgrades. Before
 any schema-changing upgrade, require a fresh encrypted database backup and a
 compatible tested restore. Image reversion does **not** reverse schema/data
-migrations. Database code/ingestion are later tasks; do not import real data
-until the schema and actual production backup are verified.
+migrations. The import release's version-1 schema and actual initial backup/restore
+are verified; require another fresh recovery point before later migrations.
 
 ## Mac tooling and scheduled backup
 
@@ -54,8 +54,9 @@ Mac/user session is available, keeping one **successful** daily UTC snapshot and
 the first successful snapshot each ISO week: 14 daily and 8 weekly copies.
 This is not a guarantee of a daily recovery point when the Mac sleeps, is
 offline, or the job fails. Default source is `/data/gtrainer.sqlite3` on the Pi.
-Until ingestion creates it, the job fails honestly with “No application database
-yet”; no empty database or successful-backup status is manufactured.
+If the database is absent, the job fails honestly with “No application database
+yet”; backup tooling never manufactures an empty database or successful status.
+The import release creates its own schema at startup, before the first user read.
 
 The operator-only tool discovers the Bound app PV via SSH and requests a SQLite
 online backup using the Pi's Python/SQLite library. It reads the source with
@@ -125,8 +126,9 @@ database only with explicit operator approval, then restore the single replica
 and reconciliation. Treat old WAL/SHM files as part of the old stopped database,
 not files to combine with a restored snapshot. Re-provision runtime credentials
 separately: database backups contain no intended credential store. The production
-schema and exact live-replacement procedure must be confirmed when database
-implementation lands; no live personal database restore is claimed here.
+schema is now version 1 and isolated restore validation is verified. The exact
+live-replacement procedure still needs operator review/approval; no live personal
+database restore is claimed here.
 
 ## Git image-revert rollback
 
@@ -144,7 +146,8 @@ implementation lands; no live personal database restore is claimed here.
    through another protected PR. Sessions reset whenever the app restarts.
 
 Any database/schema rollback uses a verified compatible restore, not just step 1.
-This release still has no production database or schema migrations.
+The import release uses schema version 1. The earlier scaffold/auth-only images
+do not implement this database: returning to them does not migrate or restore it.
 
 ## Removal without erasing data
 
@@ -175,9 +178,27 @@ This release still has no production database or schema migrations.
   sources, retention scoping, and missing-snapshot non-commit. Operator age tests
   cover real encryption/decryption, wrong keys, corrupted ciphertext, private
   restore permissions, and refusal to overwrite an existing output.
-- The Mac LaunchAgent is loaded. There is still no real app database and no
-  successful production recovery point; the first real backup must be verified
-  once ingestion/storage are implemented.
+- At this synthetic verification point, the Mac LaunchAgent was loaded but no
+  real app database or production recovery point existed. The later initial
+  application backup verification below supersedes that operational state.
+
+## Initial actual application backup evidence (2026-10-01)
+
+- The import image deployed through protected PR 12 and Flux, as recorded in
+  [read-only-import.md](../data/read-only-import.md). Native SQLite created the
+  actual version-1 schema, with empty imported-record/event/read-status tables.
+- The stable Mac runner was refreshed with the actual five-table schema validation;
+  the existing `io.gtrainer.backup` scheduler remains loaded.
+- A forced fresh SSH online snapshot of `/data/gtrainer.sqlite3` was streamed into
+  age encryption and committed to the private daily/weekly backup directories.
+  The backup and all database/sidecars have owner-only permissions.
+- Decryption into an isolated private Mac database passed integrity, version-1
+  columns/migration, and all four empty-category checks. The plaintext restore
+  was removed afterward. Encrypted recovery copies remain outside Git/images/CI.
+- This verifies recovery of the initial empty application database, not restoration
+  of imported personal records or live replacement. No real source import has
+  been performed. A separate protected recovery-key copy remains unverified;
+  Mac-only key/ciphertext storage does not protect against loss of the whole Mac.
 
 ## Protected Git rollback/return evidence (2026-10-01)
 
