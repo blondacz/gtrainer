@@ -9,8 +9,9 @@ From this Mac, run `bash scripts/pi-tunnel.sh`, then open
 `http://127.0.0.1:8080`. Sign in using the separately provisioned dashboard
 password. The public HTML shell and `/healthz` contain no personal data.
 Every private `/api/` route requires a valid session, except password login.
-The deployed import release adds authenticated history/status/sync/local-removal
-routes; charts, event editing, and model analysis remain later tasks.
+The deployed release adds authenticated history/status/sync/local-removal,
+factual charts, and traceable input summaries. Event editing and model analysis
+remain later tasks; summary retrieval does not call a model.
 
 Authentication uses a salted PBKDF2-HMAC-SHA256 verifier with 600,000 iterations;
 the raw dashboard password is not stored on the Pi. Sessions/CSRF tokens are
@@ -135,3 +136,5 @@ private SQLite-backed status/history plus anonymous and CSRF-less sync/removal
 denial. Current image and operational evidence are in
 [read-only-import.md](../data/read-only-import.md). Source-key configuration is
 verified, not actual provider-key validity: no real import has been requested.
+The subsequent [chart release](../data/historical-trends.md) repeats those checks
+and verifies authenticated empty trend/summary access and report snapshot binding.
