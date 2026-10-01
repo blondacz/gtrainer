@@ -144,3 +144,77 @@ The 2026-10-01 physical run and per-case semantic review are recorded in
 Ministral completed but failed grounding; Qwen was OOM-killed at the cap after
 six responses. Neither is a selected default. Numeric/evidence schema screening
 must not be presented as production validation or complete semantic approval.
+
+## Authorized Ministral typed-claim retest
+
+The user authorized a tighter evidence-linked Ministral retest after reviewing
+the failures above. It uses the same setup manifest, model digest, resource cap,
+sampling settings, and original seven synthetic cases. Two added cases test
+mixed activity/wellness directions and mismatched comparison periods. The first
+prompt is again repeated unchanged warm: ten requests across nine cases.
+
+The runner's default `--contract freeform` retains the original experiment.
+`--model ministral-3:3b --contract typed` imports `typed_contract.py` and refuses
+a changed Ministral manifest digest. It does not allow a typed Qwen rerun or
+increase the Pi memory cap. The operator must make both Python modules available
+on the Pi; they can be loaded from SSH stdin into in-memory modules without
+installing files or using application credentials.
+
+### Closed output vocabulary, not unconstrained interpretation
+
+The model outputs one or two objects containing a **kind** and **evidence**.
+Each evidence reference contains an actual ID and its prepared state. Allowed
+kinds are `co_occurrence`, `sport_mix`, `recorded_change`,
+`unavailable_comparison`, and `workout_profile`. States describe prepared
+directions, unavailable comparisons, or documented workout-profile facts.
+
+- The per-case JSON grammar limits references to actual evidence IDs. This is
+  a decoding constraint, **not** proof that the model learned to cite reliably.
+- All possible kinds/states remain in the grammar, including choices that are
+  wrong for that evidence. Exact validation rejects direction/state mismatches,
+  invalid kind/evidence combinations, duplicate evidence/observations, and
+  cross-metric connections across mismatched date ranges.
+- A safe but incomplete selection does not pass the case: useful-case coverage
+  is evaluated separately. The validator never adds facts to repair a response.
+- The model does not copy numbers, dates, missing-metric lists, or limitations.
+  Those are already known to code and need not become LLM bookkeeping tasks.
+- Only after the **whole response** passes does benchmark code render personal
+  prose, authoritative numbers/dates, evidence references, and every input
+  disclosure. Arbitrary model prose, reasoning, scores, diagnoses, prescriptions,
+  and intensity classifications are outside the contract and rejected.
+- SHA-256 binds validation/rendering to the exact canonical synthetic packet
+  used for that request. This is **not** the live app's HTTP evidence-report
+  binding; a later Kotlin implementation would need to preserve that boundary.
+- JSON parsing rejects duplicate keys and non-finite constants. Incomplete or
+  unexpected-thinking generations produce no accepted rendering.
+
+`test_typed_contract.py` exercises supported examples and malicious/malformed
+counterexamples independently of any live inference. The Python validator and
+renderer are benchmark prototypes, not a production service or an implementation
+of tasks 4.4/4.6. Passing this narrow pattern-selection experiment cannot prove
+free-form workout understanding, clinical expertise, useful training advice, or
+the full phase-one flow. Do not quietly substitute these limits for the OpenSpec
+requirements or enable inference on actual health data from this result alone.
+
+### Progress and failure evidence
+
+The runner emits `case_started`, request index/total, completed output and
+validation/rendering fields, and a bounded error-type/monitor summary on request
+failure. Resource health samples and fresh-pod memory accounting remain unchanged.
+The operator can mirror synthetic JSONL to an owner-only, exclusively created
+temporary file on the Pi for live viewing:
+
+```sh
+sudo tail -f /run/gtrainer-profile-benchmark-progress.jsonl
+```
+
+The mirror contains only synthetic benchmark output and non-record infrastructure
+telemetry. Never mirror production prompts or health payloads. Refuse to overwrite
+an existing file; remove only the file created by this run when the runner exits.
+Namespace/model cleanup remains the ownership-checked procedure described above.
+
+Physical results and qualification limits are recorded in
+[ministral-typed-retest.md](../../docs/decisions/ministral-typed-retest.md).
+Eight of ten responses passed the closed contract; two were rejected as whole
+responses. The synthetic replay artifact retains actual typed outputs and exact
+packet hashes. This does not select a default or authorize app integration.

@@ -226,9 +226,13 @@ class Monitor:
                 "maximum_health_seconds": max((s["health_seconds"] for s in samples), default=None)}
 
 
-def chat_request(model, case):
-    return {"model": model, "stream": False, "think": False, "format": SCHEMA,
-            "keep_alive": "2m", "messages": [{"role": "system", "content": SYSTEM},
+def chat_request(model, case, contract="freeform"):
+    system, output_schema = SYSTEM, SCHEMA
+    if contract == "typed":
+        import typed_contract
+        system, output_schema = typed_contract.SYSTEM, typed_contract.schema(case)
+    return {"model": model, "stream": False, "think": False, "format": output_schema,
+            "keep_alive": "2m", "messages": [{"role": "system", "content": system},
                                               {"role": "user", "content": json.dumps(case)}],
             "options": OPTIONS}
 
@@ -242,7 +246,15 @@ def main():
         raise RuntimeError("CI must not connect to the home cluster.")
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", choices=MODELS, required=True)
-    model = parser.parse_args().model
+    parser.add_argument("--contract", choices=("freeform", "typed"), default="freeform")
+    arguments = parser.parse_args()
+    model, contract = arguments.model, arguments.contract
+    cases = CASES
+    if contract == "typed":
+        if model != "ministral-3:3b":
+            raise RuntimeError("Only the authorized Ministral typed retest is supported.")
+        import typed_contract
+        cases = typed_contract.CASES
     forwards = []
     try:
         for namespace, target, port in ((NAMESPACE, "pod/ollama", "11435:11434"),
@@ -266,35 +278,56 @@ def main():
         assert baseline and all(c["ready"] for c in baseline)
         assert not api("/api/tags")["models"], "A fresh, empty model pod is required."
         emit({"checked_at_utc": datetime.now(timezone.utc).isoformat(), "model": model,
+              "contract": contract,
               "ollama": version, "synthetic_only": True, "precomputed_profiles": True,
               "settings": {**OPTIONS, "think": False, "parallel": 1, "container_limit_mib": 5120},
               "baseline_app_state": baseline, **host_snapshot()})
         start = time.monotonic()
         assert api("/api/pull", {"model": model, "stream": False}, timeout=900).get("status") == "success"
         metadata = next(item for item in api("/api/tags")["models"] if item["name"] == model)
+        if contract == "typed" and metadata["digest"] != "f04aa1c738f64e13c625b82ae92504fc0260fa6723b509ed1ece0fa188179b1d":
+            raise RuntimeError("Ministral manifest changed; stop rather than compare a different artifact.")
         show = api("/api/show", {"model": model})
         emit({"model": model, "model_digest": metadata["digest"], "model_size_bytes": metadata["size"],
               "download_seconds": round(time.monotonic() - start, 2), "details": show.get("details"),
               "capabilities": show.get("capabilities"), "thinking_controls": show.get("thinking")})
         # Repeat the exact first prompt warm; other cases are warm but different prompts.
-        for case, repetition in [(CASES[0], "cold"), (CASES[0], "warm_repeat")] + [(c, "warm") for c in CASES[1:]]:
+        for index, (case, repetition) in enumerate([(cases[0], "cold"), (cases[0], "warm_repeat")] + [(c, "warm") for c in cases[1:]], 1):
+            emit({"case_started": case["name"], "request_index": index, "request_total": len(cases) + 1,
+                  "repetition": repetition, "contract": contract})
+            expected_hash = typed_contract.snapshot_hash(case) if contract == "typed" else None
             monitor = Monitor()
             monitor.thread.start()
             start = time.monotonic()
             try:
-                response = api("/api/chat", chat_request(model, case))
+                response = api("/api/chat", chat_request(model, case, contract))
+            except Exception as error:
+                emit({"request_failed": case["name"], "error_type": type(error).__name__,
+                      "wall_seconds": round(time.monotonic() - start, 2), **monitor.summary()})
+                raise
             finally:
                 monitored = monitor.summary()
             wall = time.monotonic() - start
+            rendered = None
+            safety_flags, coverage_flags = [], []
             try:
-                output = json.loads(response["message"]["content"])
-                flags = review_flags(output, case)
+                raw = response["message"]["content"]
+                output = typed_contract.decode(raw) if contract == "typed" else json.loads(raw)
+                if contract == "typed":
+                    safety_flags = typed_contract.validate(output, case, expected_hash)
+                    coverage_flags = typed_contract.selection_flags(output, case) if not safety_flags else []
+                    flags = safety_flags + coverage_flags
+                    rendered = typed_contract.render(output, case, expected_hash)
+                else:
+                    flags = review_flags(output, case)
             except (ValueError, KeyError, TypeError):
                 output, flags = {"invalid_json": response.get("message", {}).get("content")}, ["invalid_json"]
             if response.get("done_reason") != "stop":
                 flags.append("incomplete_generation")
             if response.get("message", {}).get("thinking"):
                 flags.append("unexpected_thinking_output")
+            if flags:
+                rendered = None
             loaded = api("/api/ps").get("models", [])
             evaluation_seconds = response.get("eval_duration", 0) / 1e9
             emit({"model": model, "case": case["name"], "repetition": repetition,
@@ -304,6 +337,8 @@ def main():
                   "done_reason": response.get("done_reason"),
                   "loaded_model_mib": round(loaded[0].get("size", 0) / 1024**2, 1) if loaded else None,
                   **memory_snapshot(), **monitored, "smoke_check_flags": sorted(set(flags)),
+                  **({"typed_validation_flags": safety_flags, "selection_flags": coverage_flags,
+                      "synthetic_evidence_sha256": expected_hash, "validated_rendering": rendered} if contract == "typed" else {}),
                   "synthetic_response_for_human_review": output})
             state = app_state()
             if state != baseline or monitored["health_failures"] or (monitored["minimum_host_available_mib"] or 0) < 768:

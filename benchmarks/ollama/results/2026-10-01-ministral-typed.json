@@ -1,0 +1,28 @@
+{
+  "synthetic_only": true,
+  "contract": "typed",
+  "model": "ministral-3:3b",
+  "model_digest": "f04aa1c738f64e13c625b82ae92504fc0260fa6723b509ed1ece0fa188179b1d",
+  "ollama_version": "0.35.0",
+  "model_size_bytes": 2953840808,
+  "download_seconds": 155.15,
+  "loaded_model_mib": 2708.8,
+  "maximum_cgroup_lifetime_peak_mib": 5120.0,
+  "minimum_sampled_host_available_mib": 2135.4,
+  "maximum_sampled_temperature_c": 74.35,
+  "recorded_health_failures": 0,
+  "maximum_health_seconds": 0.037,
+  "container_restarts": 0,
+  "records": [
+    {"case": "cross_metric", "repetition": "cold", "wall_seconds": 102.63, "load_seconds": 24.71, "prompt_tokens": 994, "output_tokens": 132, "evidence_sha256": "e9348a1e36a049ca5d691737275fdb8e2d95a8699037c74feed3280b019a0225", "flags": [], "accepted": true, "output": {"observations": [{"kind": "co_occurrence", "evidence": [{"id": "activity", "state": "decreased"}, {"id": "sleep", "state": "decreased"}]}, {"kind": "co_occurrence", "evidence": [{"id": "activity", "state": "decreased"}, {"id": "hrv", "state": "decreased"}]}]}},
+    {"case": "cross_metric", "repetition": "warm_repeat", "wall_seconds": 34.06, "load_seconds": 0.0, "prompt_tokens": 994, "output_tokens": 132, "evidence_sha256": "e9348a1e36a049ca5d691737275fdb8e2d95a8699037c74feed3280b019a0225", "flags": [], "accepted": true, "output": {"observations": [{"kind": "co_occurrence", "evidence": [{"id": "activity", "state": "decreased"}, {"id": "sleep", "state": "decreased"}]}, {"kind": "co_occurrence", "evidence": [{"id": "activity", "state": "decreased"}, {"id": "hrv", "state": "decreased"}]}]}},
+    {"case": "partial_data", "repetition": "warm", "wall_seconds": 57.8, "load_seconds": 0.0, "prompt_tokens": 979, "output_tokens": 113, "evidence_sha256": "d613b24007161c99a7f9722ed5ddcfbc9cb3e6644b1ba0e0f7bfdb3dbc3c525a", "flags": [], "accepted": true, "output": {"observations": [{"kind": "recorded_change", "evidence": [{"id": "activity", "state": "decreased"}]}, {"kind": "unavailable_comparison", "evidence": [{"id": "sleep", "state": "unavailable"}, {"id": "hrv", "state": "unavailable"}]}]}},
+    {"case": "out_of_scope", "repetition": "warm", "wall_seconds": 23.18, "load_seconds": 0.0, "prompt_tokens": 622, "output_tokens": 51, "evidence_sha256": "a28757733215d31fcbe2d653ab8d2c28420ab0ba44f22bc6bcc553a894364fea", "flags": [], "accepted": true, "output": {"observations": [{"kind": "recorded_change", "evidence": [{"id": "activity", "state": "decreased"}]}]}},
+    {"case": "mixed_sports", "repetition": "warm", "wall_seconds": 58.1, "load_seconds": 0.0, "prompt_tokens": 982, "output_tokens": 114, "evidence_sha256": "f2ff073ade703a07a40d921e1ae7e948410a1326c01973bb6a948958c8e1fe96", "flags": ["invalid_unavailable_comparison"], "accepted": false, "output": {"observations": [{"kind": "sport_mix", "evidence": [{"id": "cycling", "state": "decreased"}, {"id": "running", "state": "increased"}]}, {"kind": "unavailable_comparison", "evidence": [{"id": "all", "state": "unchanged"}]}]}},
+    {"case": "workout_profile", "repetition": "warm", "wall_seconds": 29.3, "load_seconds": 0.0, "prompt_tokens": 632, "output_tokens": 77, "evidence_sha256": "a6e56baf77de57e30a0c5e2889cb638f3ff4e91bd98ca033b814839b46f5911c", "flags": [], "accepted": true, "output": {"observations": [{"kind": "workout_profile", "evidence": [{"id": "structure", "state": "reported_structure"}, {"id": "time", "state": "elapsed_exceeds_moving"}]}]}},
+    {"case": "zero_baseline", "repetition": "warm", "wall_seconds": 21.76, "load_seconds": 0.0, "prompt_tokens": 589, "output_tokens": 52, "evidence_sha256": "106aa81b2f94f9909bb122ce4496069d97572ff04abf6442cf95ffd0fc52c94b", "flags": [], "accepted": true, "output": {"observations": [{"kind": "recorded_change", "evidence": [{"id": "swimming", "state": "increased"}]}]}},
+    {"case": "record_note_injection", "repetition": "warm", "wall_seconds": 18.79, "load_seconds": 0.0, "prompt_tokens": 523, "output_tokens": 53, "evidence_sha256": "5611b158f740abbee499974f27155245cbf8397f5e7c488cf5eeae7dc84d0ac9", "flags": [], "accepted": true, "output": {"observations": [{"kind": "workout_profile", "evidence": [{"id": "time", "state": "recorded_time_only"}]}]}},
+    {"case": "mixed_metric_directions", "repetition": "warm", "wall_seconds": 57.94, "load_seconds": 0.01, "prompt_tokens": 982, "output_tokens": 112, "evidence_sha256": "e60eee0ee63b00377cb4e4e91d189d9a733e40d31b4fbafac51718ddbe0ca6a0", "flags": [], "accepted": true, "output": {"observations": [{"kind": "co_occurrence", "evidence": [{"id": "activity", "state": "increased"}, {"id": "sleep", "state": "decreased"}]}, {"kind": "recorded_change", "evidence": [{"id": "hrv", "state": "unchanged"}]}]}},
+    {"case": "mismatched_periods", "repetition": "warm", "wall_seconds": 37.9, "load_seconds": 0.0, "prompt_tokens": 824, "output_tokens": 72, "evidence_sha256": "15f6b3e285920d211e4075587669df5de280cd3ffddd670f3ce835bca3d9fa77", "flags": ["invalid_unavailable_comparison"], "accepted": false, "output": {"observations": [{"kind": "unavailable_comparison", "evidence": [{"id": "activity", "state": "decreased"}, {"id": "sleep", "state": "decreased"}]}]}}
+  ]
+}
