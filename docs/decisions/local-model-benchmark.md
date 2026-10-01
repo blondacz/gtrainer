@@ -89,3 +89,10 @@ requirement or mark later model-integration tasks complete.
 Task 1.5's experiment and decision note are complete. Model selection remains
 unresolved; a successful candidate still needs broader grounding, sparse-data,
 outage, privacy, and app-resource tests in the later implementation tasks.
+
+The user's subsequent authorization to test Ministral 3 3B and Qwen 3.5 4B with
+precomputed workout/trend profiles is recorded in
+[precomputed-model-benchmark.md](precomputed-model-benchmark.md). Neither follow-up
+configuration qualifies as a default: semantic/evidence failures remain, and
+Qwen was OOM-killed at the 5 GiB cap. The app remains AI-off; personal data was
+not supplied to any model.
