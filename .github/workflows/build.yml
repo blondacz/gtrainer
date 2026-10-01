@@ -24,10 +24,16 @@ jobs:
     name: Tests and build
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    outputs:
+      image_changed: ${{ steps.image_inputs.outputs.changed }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
+          fetch-depth: 0
+      - name: Detect software changes separately from deployment rollbacks
+        id: image_inputs
+        run: python3 scripts/image_inputs.py
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
@@ -76,7 +82,7 @@ jobs:
     name: Publish and verify ARM64 image
     needs: [checks, provenance]
     # No package writes for pull requests or untrusted/non-main branches.
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && needs.checks.outputs.image_changed == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
