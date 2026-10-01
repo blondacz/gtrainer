@@ -41,14 +41,14 @@ export function App() {
       </header>
       <section className="panel" aria-labelledby="setup-heading">
         <h2 id="setup-heading">Foundation in progress</h2>
-        <p>Private access, read-only import, and factual trend charts are available. Events and AI observations are still being built.</p>
+        <p>Private access, read-only import, factual charts, and guarded experimental local observations are available. Manual events are still being built.</p>
         <p>No personal data is bundled with this app. Sign in to read and review your private imported history.</p>
         <p role="status" className={`connection ${connection}`}>
           <span aria-hidden="true" className="dot" />{connectionLabels[connection]}
         </p>
       </section>
       <SessionPanel />
-      <p className="footnote">AI analysis is not configured. No data is sent to a model.</p>
+      <p className="footnote">No data is sent to a model unless you explicitly select a configured local model and request analysis. No hosted fallback.</p>
     </main>
   )
 }

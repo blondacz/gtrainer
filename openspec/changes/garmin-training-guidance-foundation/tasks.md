@@ -32,7 +32,7 @@
 - [ ] 4.4 Add a switchable model interface with a user-selected local model option; verify selected local inference receives only the needed summarized data and changing models leaves stored Garmin records untouched.
 - [ ] 4.5 Add an explicitly selected hosted-model option behind informed user consent, with no automatic fallback or sensitive prompt/key logging; verify no personal data leaves the device without consent and log tests find no sensitive values.
 - [ ] 4.6 Generate cross-metric observations from the selected model and validate each personal claim against supplied metrics and time ranges; verify tests reject invented Garmin values, unsupported causal claims, diagnoses, and workout prescriptions.
-- [ ] 4.7 Keep charts usable when no model works or data is too sparse and report why AI analysis is unavailable; verify outage, insufficient-input, and unusable-output tests.
+- [x] 4.7 Keep charts usable when no model works or data is too sparse and report why AI analysis is unavailable; verify outage, insufficient-input, and unusable-output tests.
 - [ ] 4.8 Document available metrics, model selection, local resource needs, hosted-data consent, and analysis limits; verify instructions and sample observations match tested behavior.
 
 ## 5. Add manual events and dashboard
@@ -44,3 +44,17 @@
 ## 6. Check the whole phase-one flow
 
 - [ ] 6.1 Verify a tested ARM64 release reaches the Pi through CI and Flux and that a read-only Intervals.icu import feeds historical charts and grounded AI cross-metric observations while a manually entered trip appears as the next event; confirm no non-local model transfer without consent and that dashboard data stays private.
+
+## Guarded local prototype status
+
+The user-approved Kotlin comparison validator, switchable local interface,
+authenticated explicit generation, and model-status UI are implemented with
+synthetic backend/adapter/API/UI tests. Task 4.7's unavailable reasons and
+independent chart/evidence behavior are verified. Tasks 4.4, 4.6, and 4.8 remain
+unchecked pending verification of the exact app packet/prompt with the local
+model and operator instructions, not just fake-provider tests or the different
+benchmark prompt. No default or inference-service rollout is approved by this
+prototype. See [guarded local analysis](../../../docs/decisions/guarded-local-analysis.md)
+for scope, resource limits, and the still-required synthetic Pi integration
+qualification. Hosted consent, events, and actual-data end-to-end verification
+remain outstanding; no requirements are waived.

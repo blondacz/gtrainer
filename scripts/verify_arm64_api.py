@@ -48,6 +48,8 @@ def check():
             assert len(payload) <= 65536
             return response.code, response.headers, payload
     assert request('/api/imports')[0] == 401
+    assert request('/api/models')[0] == 401
+    assert request('/api/analysis', 'POST', {})[0] == 401
     status, headers, body = request('/api/login', 'POST', {'password': PASSWORD})
     assert status == 200
     cookie = headers['Set-Cookie'].split(';')[0]
@@ -63,6 +65,7 @@ def check():
         report = json.loads(body)
         report_digest = hashlib.sha256(body).hexdigest()
         assert status == 200 and headers['Cache-Control'] == 'no-store'
+        assert headers['X-Evidence-Report-Sha256'] == report_digest
         assert report['current']['activityRecords'] == 0 and report['current']['wellnessRecords'] == 0
         assert all(metric['value'] is None for metric in report['current']['wellness'])
         assert report['previous']['oldest'] == '2019-12-30' and len(report['unavailable']) == 3
@@ -70,13 +73,26 @@ def check():
         summary = json.loads(body)
         assert status == 200 and summary['schemaVersion'] == 1
         assert summary['evidenceReportSha256'] == report_digest and all(fact['value'] is None for fact in summary['facts'])
+        status, headers, body = request('/api/models', cookie=cookie)
+        models = json.loads(body)
+        assert status == 200 and headers['Cache-Control'] == 'no-store'
+        assert models['selectedModelId'] is None and models['models'] == [] and models['hostedEnabled'] is False
+        assert models['reason'] == 'local_not_configured'
+        assert request('/api/models', 'PUT', {'modelId': 'unknown-local'}, cookie, csrf)[0] == 400
+        analysis = {'oldest': '2020-01-01', 'newest': '2020-01-02', 'evidenceReportSha256': report_digest,
+                    'modelId': 'unknown-local', 'selectionVersion': 0}
+        assert request('/api/analysis', 'POST', analysis, cookie)[0] == 403
+        status, headers, body = request('/api/analysis', 'POST', analysis, cookie, csrf)
+        result = json.loads(body)
+        assert status == 200 and headers['Cache-Control'] == 'no-store'
+        assert result['reason'] == 'model_not_selected' and result['status'] == 'unavailable' and result['observations'] == []
         # No real API request: missing CSRF must reject before source retrieval.
         assert request('/api/sync', 'POST', {'oldest': '2020-01-01', 'newest': '2020-02-01'}, cookie)[0] == 403
         assert request('/api/imports', 'DELETE', {'confirmation': 'remove-local-imports'}, cookie, csrf)[0] == 200
     finally:
         assert request('/api/logout', 'POST', cookie=cookie, csrf=csrf)[0] == 200
     assert request('/api/imports', cookie=cookie)[0] == 401
-    print('Immutable ARM64 image passes native SQLite migration/read/delete, private auth, and empty trend/summary checks; no upstream/model read.')
+    print('Immutable ARM64 image passes native SQLite, private auth, report binding, and model-off checks; no upstream/model read.')
 
 
 if __name__ == '__main__':

@@ -41,6 +41,9 @@ figcaption { font-size: 0.85rem; }
 table { width: 100%; border-collapse: collapse; margin: 16px 0; }
 th, td { text-align: left; padding: 8px; border-bottom: 1px solid #9aafa2; overflow-wrap: anywhere; }
 caption { text-align: left; font-weight: 600; }
+.analysis-panel { margin-top: 24px; padding-top: 16px; border-top: 1px solid #9aafa2; overflow-wrap: anywhere; }
+.analysis-panel select { display: block; max-width: 100%; margin: 8px 0 12px; }
+.analysis-panel article { margin: 16px 0; border: 1px solid #9aafa2; border-radius: 8px; padding: 16px; }
 
 @media (prefers-color-scheme: dark) {
   :root { color: #dfece5; background: #14211c; }

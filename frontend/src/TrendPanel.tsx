@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { AnalysisPanel } from './AnalysisPanel'
 
 export type ObservedValue = {
   source: string; sourceRecordId: string; category: string; field: string; date: string; value: number; unit: string
@@ -132,7 +133,7 @@ function MetricCard({ series, comparison, oldest, newest }: { series: MetricSeri
   </section>
 }
 
-export function TrendPanel({ revision = 0 }: { revision?: number }) {
+export function TrendPanel({ revision = 0, csrfToken }: { revision?: number; csrfToken?: string }) {
   const today = new Date().toISOString().slice(0, 10)
   const earlier = new Date(Date.now() - 27 * 86400000).toISOString().slice(0, 10)
   const [oldest, setOldest] = useState(earlier)
@@ -144,10 +145,12 @@ export function TrendPanel({ revision = 0 }: { revision?: number }) {
   const [availableSports, setAvailableSports] = useState<string[]>([])
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(true)
+  const [digest, setDigest] = useState<string | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
     setReport(null)
+    setDigest(null)
     setBusy(true)
     setMessage('')
     async function load() {
@@ -160,7 +163,10 @@ export function TrendPanel({ revision = 0 }: { revision?: number }) {
         if (result.current.oldest !== query.oldest || result.current.newest !== query.newest || result.selectedSport !== (query.sport || null)) {
           throw new Error('Mismatched private period')
         }
-        if (!controller.signal.aborted) { setReport(result); setLoaded({ query, revision }); setAvailableSports(result.availableSports) }
+        if (!controller.signal.aborted) {
+          setReport(result); setLoaded({ query, revision }); setAvailableSports(result.availableSports)
+          setDigest(response.headers?.get('X-Evidence-Report-Sha256') ?? null)
+        }
       } catch {
         if (!controller.signal.aborted) setMessage('History unavailable. Reconnect or sign in again; try a shorter period if needed.')
       } finally {
@@ -184,7 +190,7 @@ export function TrendPanel({ revision = 0 }: { revision?: number }) {
   return <section className="panel" aria-labelledby="trends-heading">
     <h2 id="trends-heading">Historical trends</h2>
     <p>Factual imported records, not AI analysis. Recorded activity time is not Garmin intensity minutes.
-      No upstream read or model call is made by this view.</p>
+      Loading charts makes no upstream read or model call. Experimental observations below require a separate request.</p>
     <form onSubmit={selectPeriod}>
       <label htmlFor="trend-oldest">Trend first date</label><input id="trend-oldest" type="date" required value={oldest} onChange={event => setOldest(event.target.value)} />
       <label htmlFor="trend-newest">Trend last date</label><input id="trend-newest" type="date" required max={today} value={newest} onChange={event => setNewest(event.target.value)} />
@@ -219,7 +225,8 @@ export function TrendPanel({ revision = 0 }: { revision?: number }) {
         oldest={report.current.oldest} newest={report.current.newest} comparison={report.comparisons.find(item => item.sport === null && item.key === series.key)} />)}</div>
       <h3>Unavailable Garmin scores</h3>
       <ul>{report.unavailable.map(metric => <li key={metric.key}>{metric.label}: unavailable. {metric.reason}</li>)}</ul>
-      <p>AI analysis unavailable: no usable model is selected. Charts remain independent of inference; no hosted fallback.</p>
+      {csrfToken ? <AnalysisPanel csrfToken={csrfToken} report={report} digest={digest} /> :
+        <p>AI analysis unavailable: no usable model is selected. Charts remain independent of inference; no hosted fallback.</p>}
     </div>}
   </section>
 }

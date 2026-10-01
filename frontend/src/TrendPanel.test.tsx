@@ -215,4 +215,16 @@ describe('factual private trends', () => {
     expect(within(screen.getByRole('region', { name: 'Weight' })).getByText(/Observed change: \+3 kg/)).toHaveTextContent('2 current / 2 previous records')
     expect(screen.getByText(/not significance, diagnoses, causes, or prescriptions/)).toBeInTheDocument()
   })
+
+  it('keeps charts and evidence usable when private model configuration is unavailable', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (path: string) => path === '/api/models' ? { ok: false, status: 503 } :
+      { ...response(fixture(path)), headers: new Headers({ 'X-Evidence-Report-Sha256': 'a'.repeat(64) }) }))
+    render(<TrendPanel csrfToken={'s'.repeat(43)} />)
+    expect(await screen.findByText(/AI analysis unavailable. Reconnect/)).toBeInTheDocument()
+    expect(screen.getByText('Mean of measured records: 71 kg')).toBeInTheDocument()
+    const card = screen.getByRole('region', { name: 'Weight' })
+    fireEvent.click(within(card).getByRole('button', { name: 'Show evidence: Weight' }))
+    expect(within(card).getByRole('table')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Generate observations/ })).toBeDisabled()
+  })
 })
