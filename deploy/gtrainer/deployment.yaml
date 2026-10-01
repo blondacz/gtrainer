@@ -32,7 +32,7 @@ spec:
       containers:
         - name: app
           # Passed CI tests and published-image ARM64 execution; not a tag.
-          image: ghcr.io/blondacz/gtrainer@sha256:cbfd0dd1cc2b8c44ce788b3c036aa2c8e8e11558de4c378c3ab2dca608c6848b
+          image: ghcr.io/blondacz/gtrainer@sha256:142ca0bca480e8ee38a3a0242740cee7761c1c81c0add08587d214be4c4f743f
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
