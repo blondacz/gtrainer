@@ -45,6 +45,9 @@ class HistoryService(private val store: HistoryStore, private val source: Histor
 
     suspend fun statuses(): List<CategoryStatus> = withContext(Dispatchers.IO) { store.statuses(LocalDate.now(clock)) }
     suspend fun history(oldest: LocalDate, newest: LocalDate): HistoryResponse = withContext(Dispatchers.IO) { store.history(oldest, newest) }
+    suspend fun trends(range: TrendRange, sport: String?): TrendReport = withContext(Dispatchers.IO) {
+        store.trends(range, sport, LocalDate.now(clock))
+    }
     suspend fun removeImports() = withContext(Dispatchers.IO) {
         if (!operation.tryLock()) throw SyncBusy()
         try { store.removeImports() } finally { operation.unlock() }

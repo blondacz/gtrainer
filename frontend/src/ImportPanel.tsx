@@ -26,7 +26,7 @@ function statusList(value: unknown): CategoryStatus[] {
   return statuses
 }
 
-export function ImportPanel({ csrfToken, configured }: { csrfToken: string; configured: boolean }) {
+export function ImportPanel({ csrfToken, configured, onChanged }: { csrfToken: string; configured: boolean; onChanged?: () => void }) {
   const today = new Date().toISOString().slice(0, 10)
   const earlier = new Date(Date.now() - 90 * 86400 * 1000).toISOString().slice(0, 10)
   const [oldest, setOldest] = useState(earlier)
@@ -73,6 +73,7 @@ export function ImportPanel({ csrfToken, configured }: { csrfToken: string; conf
       }
       const body: unknown = await response.json()
       setStatuses(statusList(body))
+      onChanged?.()
       setMessage('Read finished. Review each category below; existing history is retained during failures.')
     } catch {
       setMessage('Import unavailable. Reconnect and check its status before retrying.')
@@ -92,6 +93,7 @@ export function ImportPanel({ csrfToken, configured }: { csrfToken: string; conf
         body: JSON.stringify({ confirmation: 'remove-local-imports' }),
       })
       if (!response.ok) throw new Error('Removal failed')
+      onChanged?.()
       const status = await fetch('/api/imports', { cache: 'no-store' })
       if (!status.ok) throw new Error('Status unavailable')
       const body: unknown = await status.json()

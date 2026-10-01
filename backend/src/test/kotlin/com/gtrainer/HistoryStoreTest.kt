@@ -136,6 +136,7 @@ class HistoryStoreTest {
         assertEquals(2, store.history(range.oldest, range.newest).activities.size)
         assertEquals(2, store.statuses(date).first().recordCount)
         assertFailsWith<IllegalArgumentException> { store.begin("activities; DROP TABLE events", clock.instant()) }
+        assertFailsWith<TrendSizeLimit> { store.history(range.oldest, range.newest, maximumRecords = 1) }
     }
 
     @Test

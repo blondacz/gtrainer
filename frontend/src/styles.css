@@ -22,11 +22,25 @@ h2 { margin-top: 0; font-size: 1.25rem; }
 .unavailable .dot { background: #b7493b; }
 .footnote { margin-top: 24px; color: #526a60; font-size: 0.85rem; }
 form { display: grid; gap: 12px; }
-input, button { font: inherit; border-radius: 8px; padding: 10px 12px; }
-input { border: 1px solid #9aafa2; background: inherit; color: inherit; }
+input, select, button { font: inherit; border-radius: 8px; padding: 10px 12px; }
+input, select { border: 1px solid #9aafa2; background: inherit; color: inherit; }
 button { border: 0; background: #287b55; color: #fff; cursor: pointer; justify-self: start; }
 button:disabled { opacity: 0.6; cursor: wait; }
 .access-message { color: #b7493b; }
+.metric-grid { display: grid; gap: 16px; }
+.metric-card { border: 1px solid #9aafa2; border-radius: 8px; padding: 16px; min-width: 0; }
+.metric-value { font-size: 1.2rem; font-weight: 600; }
+.trend-chart { width: 100%; max-height: 220px; }
+.trend-chart text { fill: currentColor; font-size: 12px; }
+.chart-axis { stroke: currentColor; }
+.chart-value { fill: #287b55; }
+figure { margin: 16px 0; }
+figcaption { font-size: 0.85rem; }
+.secondary { background: transparent; color: inherit; border: 1px solid #9aafa2; margin: 8px 8px 0 0; }
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+th, td { text-align: left; padding: 8px; border-bottom: 1px solid #9aafa2; overflow-wrap: anywhere; }
+caption { text-align: left; font-weight: 600; }
 
 @media (prefers-color-scheme: dark) {
   :root { color: #dfece5; background: #14211c; }
@@ -34,4 +48,5 @@ button:disabled { opacity: 0.6; cursor: wait; }
   .eyebrow, .intro, .footnote { color: #b0c6b9; }
   .available .dot { background: #79c89c; }
   .unavailable .dot { background: #ff9d87; }
+  .chart-value { fill: #79c89c; }
 }

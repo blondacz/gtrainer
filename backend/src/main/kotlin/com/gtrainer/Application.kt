@@ -149,6 +149,12 @@ fun Application.module(auth: SingleUserAuth = SingleUserAuth.fromEnvironment(),
                         when {
                             history != null && path == "/api/imports" && call.request.local.method == HttpMethod.Get ->
                                 call.respond(history.statuses())
+                            history != null && path in setOf("/api/trends", "/api/analysis-input") && call.request.local.method == HttpMethod.Get -> {
+                                val range = TrendRange(LocalDate.parse(requireNotNull(call.request.queryParameters["oldest"])),
+                                    LocalDate.parse(requireNotNull(call.request.queryParameters["newest"])))
+                                val report = history.trends(range, call.request.queryParameters["sport"])
+                                if (path == "/api/analysis-input") call.respond(Trends.analysisInput(report)) else call.respond(report)
+                            }
                             history != null && path == "/api/history" && call.request.local.method == HttpMethod.Get -> {
                                 val oldest = LocalDate.parse(requireNotNull(call.request.queryParameters["oldest"]))
                                 val newest = LocalDate.parse(requireNotNull(call.request.queryParameters["newest"]))
@@ -172,6 +178,8 @@ fun Application.module(auth: SingleUserAuth = SingleUserAuth.fromEnvironment(),
                         throw cancelled
                     } catch (_: SyncBusy) {
                         call.respond(HttpStatusCode.Conflict, ApiError("private_operation_running"))
+                    } catch (_: TrendSizeLimit) {
+                        call.respond(HttpStatusCode.PayloadTooLarge, ApiError("choose_shorter_trend_range"))
                     } catch (error: PrivateRequestError) {
                         call.respond(error.status, ApiError("invalid_request"))
                     } catch (_: java.time.DateTimeException) {

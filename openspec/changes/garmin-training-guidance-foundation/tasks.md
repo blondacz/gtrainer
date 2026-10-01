@@ -26,9 +26,9 @@
 
 ## 4. Show history and connect the trends with AI
 
-- [ ] 4.1 Compute activity-by-sport, recorded-activity-time, and calorie trends over user-selected periods; verify totals and period comparisons with known test records and label recorded time distinctly from Garmin intensity minutes.
-- [ ] 4.2 Show verified populated weight, VO2 max, HRV, and sleep values with source, dates, and units; verify fitness age, endurance score, Garmin training status, and any other unavailable field show 'unavailable', while Intervals.icu load values are named separately.
-- [ ] 4.3 Create a reproducible, source-linked summary of validated metrics and period comparisons for AI input; verify known samples contain dates, units, provenance, and missing/stale-data flags without invented scores.
+- [x] 4.1 Compute activity-by-sport, recorded-activity-time, and calorie trends over user-selected periods; verify totals and period comparisons with known test records and label recorded time distinctly from Garmin intensity minutes.
+- [x] 4.2 Show verified populated weight, VO2 max, HRV, and sleep values with source, dates, and units; verify fitness age, endurance score, Garmin training status, and any other unavailable field show 'unavailable', while Intervals.icu load values are named separately.
+- [x] 4.3 Create a reproducible, source-linked summary of validated metrics and period comparisons for AI input; verify known samples contain dates, units, provenance, and missing/stale-data flags without invented scores.
 - [ ] 4.4 Add a switchable model interface with a user-selected local model option; verify selected local inference receives only the needed summarized data and changing models leaves stored Garmin records untouched.
 - [ ] 4.5 Add an explicitly selected hosted-model option behind informed user consent, with no automatic fallback or sensitive prompt/key logging; verify no personal data leaves the device without consent and log tests find no sensitive values.
 - [ ] 4.6 Generate cross-metric observations from the selected model and validate each personal claim against supplied metrics and time ranges; verify tests reject invented Garmin values, unsupported causal claims, diagnoses, and workout prescriptions.

@@ -15,6 +15,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.nio.file.Files
+import java.security.MessageDigest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -33,6 +34,8 @@ class HistoryApiTest {
                 }
                 assertEquals(HttpStatusCode.Unauthorized, client.get("/api/imports").status)
                 assertEquals(HttpStatusCode.Unauthorized, client.get("/api/history?oldest=2020-06-01&newest=2020-06-30").status)
+                assertEquals(HttpStatusCode.Unauthorized, client.get("/api/trends?oldest=2020-06-01&newest=2020-06-30").status)
+                assertEquals(HttpStatusCode.Unauthorized, client.get("/api/analysis-input?oldest=2020-06-01&newest=2020-06-30").status)
                 assertEquals(HttpStatusCode.Unauthorized, client.post("/api/sync").status)
                 assertEquals(0, source.calls)
                 val login = client.post("/api/login") {
@@ -64,6 +67,25 @@ class HistoryApiTest {
                 assertTrue(history.bodyAsText().contains("synthetic-store-a1"))
                 assertTrue(history.bodyAsText().contains("\"unit\":\"seconds\""))
                 assertFalse(history.bodyAsText().contains(SYNTHETIC_PASSWORD))
+                val trends = client.get("/api/trends?oldest=2020-06-01&newest=2020-06-30") { header(HttpHeaders.Cookie, cookie) }
+                assertEquals(HttpStatusCode.OK, trends.status)
+                assertEquals("no-store", trends.headers[HttpHeaders.CacheControl])
+                assertTrue(trends.bodyAsText().contains("Recorded activity time (moving)"))
+                assertTrue(trends.bodyAsText().contains("synthetic-store-a1"))
+                val summary = client.get("/api/analysis-input?oldest=2020-06-01&newest=2020-06-30") { header(HttpHeaders.Cookie, cookie) }
+                assertEquals(HttpStatusCode.OK, summary.status)
+                assertEquals("no-store", summary.headers[HttpHeaders.CacheControl])
+                assertFalse(summary.bodyAsText().contains("synthetic-store-a1"))
+                assertTrue(summary.bodyAsText().contains("evidenceReportSha256"))
+                val digest = MessageDigest.getInstance("SHA-256").digest(trends.bodyAsText().toByteArray(Charsets.UTF_8))
+                    .joinToString("") { "%02x".format(it.toInt() and 255) }
+                assertEquals(digest, Json.parseToJsonElement(summary.bodyAsText()).jsonObject["evidenceReportSha256"]!!.jsonPrimitive.content)
+                assertTrue(trends.bodyAsText().contains("dateBasis"))
+                assertEquals(2, source.calls) // Charts and input summaries never retrieve upstream.
+                for (query in listOf("", "?oldest=2020-06-01&newest=2019-01-01", "?oldest=2020-01-01&newest=2021-01-01",
+                    "?oldest=2020-06-01&newest=2020-06-30&sport=bad/selector", "?oldest=9999-01-01&newest=9999-01-02")) {
+                    assertEquals(HttpStatusCode.BadRequest, client.get("/api/trends$query") { header(HttpHeaders.Cookie, cookie) }.status)
+                }
                 assertEquals(HttpStatusCode.BadRequest, client.delete("/api/imports") {
                     header(HttpHeaders.Cookie, cookie); header(HttpHeaders.Origin, "http://127.0.0.1:8080"); header("X-CSRF-Token", csrf)
                     setBody("""{"confirmation":"wrong-confirmation"}""")
