@@ -70,6 +70,11 @@ public network. Private `/api` routes require a configured single-user session;
 see [`docs/infrastructure/private-access.md`](docs/infrastructure/private-access.md).
 The health response contains only process availability, not personal records.
 
+The plaintext SSH exception applies only to `http://127.0.0.1:8080`, not Vite's
+5173 origin. Exercise private UI writes through the packaged loopback dashboard
+or synthetic tests; do not broaden the authentication Origin/cookie exception
+to make a development proxy work.
+
 ## Pi dashboard
 
 Run `bash scripts/pi-tunnel.sh` on the operator Mac and keep it running. Open
