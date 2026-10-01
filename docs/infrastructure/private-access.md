@@ -1,7 +1,7 @@
 # Single-user access and runtime secrets
 
-Status: authentication/secret code is tested locally; deployed-authentication
-verification is pending. No import, stored health records, or model calls yet.
+Status: task 2.5 verified on the Pi. No import, stored health records, or model
+calls yet.
 
 ## Access
 
@@ -99,3 +99,29 @@ checks anonymous/wrong-password/Origin/CSRF rejection and login/logout, and scan
 the current pod's last 1,000 log lines in memory for exact credentials/session
 tokens without printing log contents. It does not certify every historical log,
 provider key validity, or datastore encryption.
+
+## Live evidence (2026-10-01)
+
+- Main build [36789923126](https://github.com/blondacz/gtrainer/actions/runs/36789923126)
+  passed tests, provenance, immutable ARM64 image execution, and promotion.
+  The user approved release workflow
+  [36790259973](https://github.com/blondacz/gtrainer/actions/runs/36790259973),
+  which passed; PR [5](https://github.com/blondacz/gtrainer/pull/5) merged as
+  `84552c8b5af58dc930c9b529b86d1a65991f8578`.
+- Flux applied that revision and became Ready. The available ARM64 app image is
+  `ghcr.io/blondacz/gtrainer@sha256:cbfd0dd1cc2b8c44ce788b3c036aa2c8e8e11558de4c378c3ab2dca608c6848b`.
+- Operator-only live authentication checks passed: anonymous session/private API
+  401, wrong password 401, hostile Origin 403, configured password login 200,
+  authenticated session 200, missing CSRF/hostile-Origin logout 403, valid logout
+  200, and reused logged-out cookie 401. Cookies had HttpOnly/SameSite=Strict and
+  login responses disabled caching.
+- The existing Intervals.icu key and password verifier were provisioned outside
+  Git via SSH/stdin, with the raw password stored only in the owner-only Mac file
+  `~/.config/gtrainer/dashboard-password`. Authenticated configuration reported
+  the source key present; no source request was made.
+- Inspected current app logs contained none of the exact source/dashboard/session
+  values; merged PR CI logs and tracked files contained none of the actual
+  source/dashboard/registry credentials. Local checks passed 13 backend tests,
+  11 UI tests, 35 utility/deployment tests, and 4 benchmark tests.
+- Networking and storage protections were unchanged. No health data, manual
+  personal event, prompt, model call, or backup is claimed by this evidence.
