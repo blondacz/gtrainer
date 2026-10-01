@@ -1,7 +1,8 @@
 # Pi operations: encrypted backup, restore, rollback, removal
 
-Status: encrypted synthetic Pi-to-Mac backup/restore and Mac scheduler verified;
-Git image-revert rollback verification pending. There is no real app database
+Status: task 2.6 verified: encrypted synthetic Pi-to-Mac backup/restore, Mac
+scheduler, protected Git image-revert rollback and return to authentication.
+There is no real app database
 yet, so there is no production recovery point or imported personal data.
 
 ## Install and upgrade
@@ -176,3 +177,27 @@ This release still has no production database or schema migrations.
 - The Mac LaunchAgent is loaded. There is still no real app database and no
   successful production recovery point; the first real backup must be verified
   once ingestion/storage are implemented.
+
+## Protected Git rollback/return evidence (2026-10-01)
+
+- Protected rollback PR [7](https://github.com/blondacz/gtrainer/pull/7) passed
+  app/tests and original release-artifact provenance, then merged as
+  `05675d885971a5ae44da351d10f0f49c277c12d6`. Flux became Ready at that revision;
+  the physical Pi's Ready container reported the exact older scaffold digest
+  `ghcr.io/blondacz/gtrainer@sha256:17cb4d4aeeac6cff731ddeaf6dc67590874c8f5c53cb25211e2fd50715517fe7`.
+- The rolled-back scaffold passed private health and rejected session/trends
+  access with 401. No personal database existed, and no records were requested.
+- Protected return PR [8](https://github.com/blondacz/gtrainer/pull/8) passed
+  tests/provenance and merged as `db5f4c34ee3045267fa04d247e87b6dd70a84cf6`.
+  Flux applied that revision and the Pi returned to the exact tested auth digest
+  `ghcr.io/blondacz/gtrainer@sha256:cbfd0dd1cc2b8c44ce788b3c036aa2c8e8e11558de4c378c3ab2dca608c6848b`.
+  Full operator login/logout, anonymous denial, Origin/CSRF rejection, and
+  no-credential-in-current-logs checks passed again.
+- PVC `pvc-3e9f0be6-bacf-4036-91c9-a568541294ec`, external runtime secrets, and
+  default-deny/no-direct-ingress protections remained intact. No direct cluster
+  image mutation, CI cluster access, or protection bypass was used.
+- Main rollback run
+  [36874118751](https://github.com/blondacz/gtrainer/actions/runs/36874118751)
+  passed; deployment-only gating prevented a new image from undoing the rollback.
+  The in-flight operational source build was cancelled when main advanced rather
+  than deploying an obsolete source release. No new promotion PR was left open.
