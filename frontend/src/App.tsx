@@ -41,7 +41,7 @@ export function App() {
       </header>
       <section className="panel" aria-labelledby="setup-heading">
         <h2 id="setup-heading">Foundation in progress</h2>
-        <p>Private access and read-only import are available. Trend charts and events are still being built.</p>
+        <p>Private access, read-only import, and factual trend charts are available. Events and AI observations are still being built.</p>
         <p>No personal data is bundled with this app. Sign in to read and review your private imported history.</p>
         <p role="status" className={`connection ${connection}`}>
           <span aria-hidden="true" className="dot" />{connectionLabels[connection]}

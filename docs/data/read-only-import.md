@@ -25,7 +25,9 @@ it is not evidence that this app has imported those records.
    never app events or the Garmin/Intervals.icu accounts. Retained encrypted backups
    are not erased. This is not forensic SD-card or backup erasure.
 
-Trend charts, AI observations, and event editing are later tasks. The private
+Factual [trend charts and input summaries](historical-trends.md) are implemented
+in the next release; their Pi rollout is pending. AI observations and event editing
+are later tasks. The private
 `GET /api/history?oldest=YYYY-MM-DD&newest=YYYY-MM-DD` endpoint currently provides
 normalized records for their upcoming UI; public HTML contains no history.
 All private data responses disable caching. Neither source records nor model

@@ -44,7 +44,9 @@ def check():
         except urllib.error.HTTPError as error:
             response = error
         with response:
-            return response.code, response.headers, response.read(16384)
+            payload = response.read(65537)
+            assert len(payload) <= 65536
+            return response.code, response.headers, payload
     assert request('/api/imports')[0] == 401
     status, headers, body = request('/api/login', 'POST', {'password': PASSWORD})
     assert status == 200
@@ -57,13 +59,24 @@ def check():
         assert len(categories) == 2 and all(item['recordCount'] == 0 for item in categories)
         status, _, body = request('/api/history?oldest=2020-01-01&newest=2020-12-31', cookie=cookie)
         assert status == 200 and json.loads(body) == {'activities': [], 'wellness': []}
+        status, headers, body = request('/api/trends?oldest=2020-01-01&newest=2020-01-02', cookie=cookie)
+        report = json.loads(body)
+        report_digest = hashlib.sha256(body).hexdigest()
+        assert status == 200 and headers['Cache-Control'] == 'no-store'
+        assert report['current']['activityRecords'] == 0 and report['current']['wellnessRecords'] == 0
+        assert all(metric['value'] is None for metric in report['current']['wellness'])
+        assert report['previous']['oldest'] == '2019-12-30' and len(report['unavailable']) == 3
+        status, _, body = request('/api/analysis-input?oldest=2020-01-01&newest=2020-01-02', cookie=cookie)
+        summary = json.loads(body)
+        assert status == 200 and summary['schemaVersion'] == 1
+        assert summary['evidenceReportSha256'] == report_digest and all(fact['value'] is None for fact in summary['facts'])
         # No real API request: missing CSRF must reject before source retrieval.
         assert request('/api/sync', 'POST', {'oldest': '2020-01-01', 'newest': '2020-02-01'}, cookie)[0] == 403
         assert request('/api/imports', 'DELETE', {'confirmation': 'remove-local-imports'}, cookie, csrf)[0] == 200
     finally:
         assert request('/api/logout', 'POST', cookie=cookie, csrf=csrf)[0] == 200
     assert request('/api/imports', cookie=cookie)[0] == 401
-    print('Immutable ARM64 image passes native SQLite migration/read/delete and private auth checks; no upstream read.')
+    print('Immutable ARM64 image passes native SQLite migration/read/delete, private auth, and empty trend/summary checks; no upstream/model read.')
 
 
 if __name__ == '__main__':

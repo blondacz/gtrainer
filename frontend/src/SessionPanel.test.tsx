@@ -18,6 +18,7 @@ describe('private access', () => {
         upstreamFreshness: 'unknown',
       })) }
       if (path === '/api/logout') return { ok: true }
+      if (path.startsWith('/api/trends?')) return { ok: false, status: 503 }
       throw new Error('Unexpected synthetic request')
     })
     vi.stubGlobal('fetch', fetchMock)
@@ -31,6 +32,7 @@ describe('private access', () => {
     expect(window.sessionStorage.length).toBe(0)
     fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
     expect(await screen.findByLabelText('Dashboard password')).toHaveValue('')
+    expect(screen.queryByRole('heading', { name: 'Historical trends' })).not.toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledWith('/api/logout', expect.objectContaining({
       method: 'POST', headers: { 'X-CSRF-Token': csrf },
     }))

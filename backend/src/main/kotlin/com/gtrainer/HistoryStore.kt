@@ -160,15 +160,24 @@ class HistoryStore(path: Path) : AutoCloseable {
     }
 
     @Synchronized
-    fun history(oldest: LocalDate, newest: LocalDate): HistoryResponse {
+    fun history(oldest: LocalDate, newest: LocalDate, maximumRecords: Int? = null): HistoryResponse {
         require(oldest <= newest)
-        fun rows(category: String): List<String> = connection.prepareStatement("SELECT record_json FROM ${categoryTable(category)} WHERE observed_date BETWEEN ? AND ? ORDER BY observed_date,source,source_id").use {
+        require(maximumRecords == null || maximumRecords in 1..50_000)
+        fun rows(category: String): List<String> = connection.prepareStatement("SELECT record_json FROM ${categoryTable(category)} WHERE observed_date BETWEEN ? AND ? ORDER BY observed_date,source,source_id" +
+            (maximumRecords?.let { " LIMIT ${it + 1}" } ?: "")).use {
             it.setString(1, oldest.toString()); it.setString(2, newest.toString())
             it.executeQuery().use { result -> buildList { while (result.next()) add(result.getString(1)) } }
         }
-        return HistoryResponse(rows("activities").map { Json.decodeFromString<ActivityRecord>(it) },
-            rows("wellness").map { Json.decodeFromString<WellnessRecord>(it) })
+        val activities = rows("activities")
+        val wellness = rows("wellness")
+        if (maximumRecords != null && activities.size + wellness.size > maximumRecords) throw TrendSizeLimit()
+        return HistoryResponse(activities.map { Json.decodeFromString<ActivityRecord>(it) },
+            wellness.map { Json.decodeFromString<WellnessRecord>(it) })
     }
+
+    @Synchronized
+    fun trends(range: TrendRange, sport: String?, today: LocalDate): TrendReport =
+        Trends.report(history(range.previous().oldest, range.newest, 50_000), range, sport, today, statuses(today))
 
     @Synchronized
     fun removeImports() {

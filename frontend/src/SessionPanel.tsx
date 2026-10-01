@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ImportPanel } from './ImportPanel'
+import { TrendPanel } from './TrendPanel'
 
 type Session = { authenticated: true; csrfToken: string; intervalsConfigured: boolean }
 
@@ -18,6 +19,7 @@ export function SessionPanel() {
   const [checking, setChecking] = useState(true)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
+  const [historyRevision, setHistoryRevision] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -87,7 +89,8 @@ export function SessionPanel() {
       <p>{session.intervalsConfigured ? 'Intervals.icu credential is configured.' :
         'Intervals.icu credential is not configured.'}</p>
       <button type="button" onClick={() => void signOut()} disabled={busy}>Sign out</button>
-      <ImportPanel csrfToken={session.csrfToken} configured={session.intervalsConfigured} />
+      <ImportPanel csrfToken={session.csrfToken} configured={session.intervalsConfigured} onChanged={() => setHistoryRevision(value => value + 1)} />
+      <TrendPanel revision={historyRevision} />
     </> : <form onSubmit={event => void signIn(event)}>
       <p>Sign in before accessing private records. Your password is never stored in browser storage.</p>
       <input type="hidden" name="username" autoComplete="username" value="owner" readOnly />
