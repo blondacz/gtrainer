@@ -17,7 +17,8 @@ claim validation and code-rendered facts. It does not deploy a model service or
 select a default. See
 [`docs/decisions/guarded-local-analysis.md`](docs/decisions/guarded-local-analysis.md)
 for configuration, limits, and outstanding hardware qualification. Hosted
-inference, manual events, and full phase-one verification remain unfinished.
+inference and full phase-one verification remain unfinished. Local manual-event
+CRUD and the rounded, tabbed dashboard are implemented with synthetic tests.
 Google Calendar and adaptive plans are later phases.
 
 ## Build and test
@@ -53,6 +54,23 @@ is in `frontend/dist/`. Both are ignored by Git.
 
 ## Local development
 
+The code-owned **Factual review — no AI** view retains all comparisons and selects
+descriptive focus using deterministic rules, with no model or upstream call.
+It is separate from the optional experimental AI path and is not yet deployed
+on the Pi. See [deterministic factual reviews](docs/decisions/deterministic-factual-reviews.md)
+for focus rules, snapshot binding and the remaining integration boundary.
+The [separate guarded interpretation API](docs/decisions/guarded-review-interpretation.md)
+keeps the existing AI prototype contract unchanged, defaults off, and refuses
+inference without a qualified resource/live-health guard. No production guard or
+live inference service is wired; this is local implementation, not rollout.
+The [editable presets and scheduler API](docs/decisions/review-presets-and-scheduler.md)
+adds opt-in, explicit-zone trigger routing, a durable coalescing queue and
+schema-2 persistence. Review controls show presets, eligibility, running state and
+completed coverage metadata; inference still requires the absent production guard.
+See [dashboard and manual events](docs/dashboard.md) for section navigation,
+lossless evidence paging, explicit writes and the two separate model selections.
+Live schema/helper migration is not authorized by these changes.
+
 In separate terminals:
 
 ```sh
@@ -79,8 +97,9 @@ to make a development proxy work.
 
 Run `bash scripts/pi-tunnel.sh` on the operator Mac and keep it running. Open
 `http://127.0.0.1:8080`; stop the tunnel with Ctrl-C. No direct LAN/public web
-port is exposed. Source import and model generation require separate explicit
-user actions; opening the dashboard does not perform either.
+port is exposed. Source import requires an explicit user action. Model generation
+requires an explicit request or explicitly enabled review schedules; opening the
+dashboard does not perform either. New local-source features are not yet deployed.
 See [`docs/infrastructure/flux-deployment.md`](docs/infrastructure/flux-deployment.md)
 for the deployment, access boundary, and verified limitations.
 

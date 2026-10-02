@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { TrendReport } from './TrendPanel'
+import { TextPages } from './TilePrimitives'
 
 type Model = { id: string; label: string; tag: string; digest: string; experimental: boolean }
 type Models = { selectedModelId: string | null; selectionVersion: number; models: Model[]; reason: string; hostedEnabled: false }
@@ -63,7 +64,7 @@ function resultFrom(value: unknown, digest: string, selected: Model, report: Tre
   return data
 }
 
-export function AnalysisPanel({ csrfToken, report, digest }: { csrfToken: string; report: TrendReport; digest: string | null }) {
+export function AnalysisPanel({ csrfToken, report, digest, compact = false }: { csrfToken: string; report: TrendReport; digest: string | null; compact?: boolean }) {
   const [models, setModels] = useState<Models | null>(null)
   const [result, setResult] = useState<Result | null>(null)
   const [message, setMessage] = useState('Loading local model configuration…')
@@ -71,6 +72,9 @@ export function AnalysisPanel({ csrfToken, report, digest }: { csrfToken: string
   const [busy, setBusy] = useState(false)
   const lifetime = useRef<AbortController | null>(null)
   const generation = useRef<AbortController | null>(null)
+  const [view, setView] = useState('controls')
+  const [observationIndex, setObservationIndex] = useState(0)
+  const [supportIndex, setSupportIndex] = useState(0)
   useEffect(() => {
     const controller = new AbortController()
     lifetime.current = controller
@@ -107,7 +111,7 @@ export function AnalysisPanel({ csrfToken, report, digest }: { csrfToken: string
     if (!selected || !digest || !hash(digest) || !models) return
     const controller = new AbortController()
     generation.current = controller
-    setResult(null); setBusy(true); setMessage('Generating experimental local observations… Cold startup may take up to two minutes.')
+    setResult(null); setObservationIndex(0); setSupportIndex(0); setBusy(true); setMessage('Generating experimental local observations… Cold startup may take up to two minutes.')
     try {
       const response = await fetch('/api/analysis', { method: 'POST', cache: 'no-store', signal: controller.signal,
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
@@ -127,7 +131,9 @@ export function AnalysisPanel({ csrfToken, report, digest }: { csrfToken: string
 
   return <section aria-labelledby="analysis-heading" className="analysis-panel">
     <h3 id="analysis-heading">Experimental AI observations</h3>
-    <p>Local inference only, with no hosted fallback. Select a configured model, then explicitly request analysis.
+    {compact && <nav className="section-tabs" aria-label="Prototype sections">{['controls', 'observation', 'support', 'limits'].map(name =>
+      <button key={name} aria-pressed={view === name} onClick={() => setView(name)}>{name}</button>)}</nav>}
+    {(!compact || view === 'controls') && <><p>Local inference only, with no hosted fallback. Select a configured model, then explicitly request analysis.
       Bookkeeping and facts stay in code; unsupported model output is rejected. Selection resets to off when the backend restarts.</p>
     <label htmlFor="analysis-model">Local model</label>
     <select id="analysis-model" value={models?.selectedModelId ?? ''} disabled={!models || choosing} onChange={event => void select(event.target.value)}>
@@ -135,8 +141,24 @@ export function AnalysisPanel({ csrfToken, report, digest }: { csrfToken: string
     </select>
     <button type="button" disabled={!models?.selectedModelId || choosing || busy || !digest || !hash(digest)} onClick={() => void generate()}>Generate observations for displayed period</button>
     {!digest && <p>Analysis requires a verified report snapshot. Refresh the factual charts.</p>}
+    </>}
     <p aria-live="polite">{message}</p>
-    {result?.status === 'available' && <div>
+    {compact && result?.status === 'available' && view !== 'controls' && <div className="dashboard-tile">
+      {view !== 'limits' && <><label htmlFor="prototype-observation">AI-selected observation</label><select id="prototype-observation" value={observationIndex} onChange={event => { setObservationIndex(Number(event.target.value)); setSupportIndex(0) }}>
+        {result.observations.map((_, index) => <option value={index} key={index}>Observation {index + 1}</option>)}</select></>}
+      {view === 'observation' && <TextPages label="Observation" text={result.observations[observationIndex]?.text ?? 'Unavailable'} />}
+      {view === 'support' && (() => {
+        const support = result.observations[observationIndex]?.supportingMetrics ?? []
+        const metric = support[supportIndex]
+        return <><label htmlFor="prototype-support">Supporting metric</label><select id="prototype-support" value={supportIndex} onChange={event => setSupportIndex(Number(event.target.value))}>
+          {support.map((item, index) => <option value={index} key={item.evidenceId}>{item.period} · {item.label}</option>)}</select>
+          {metric && <TextPages key={`${observationIndex}-${supportIndex}`} label="Support" text={`${metric.value ?? 'unavailable'} ${metric.unit}; ${metric.oldest}–${metric.newest}; ${metric.sampleCount} populated records across ${metric.observedDays}/${metric.periodDays} dates. Sources: ${metric.sources.join(', ') || 'unknown'}; origins: ${metric.metricOrigins.join(', ') || 'unknown'}; evidence: ${metric.evidenceId}; flags: ${metric.flags.join(', ') || 'none'}.`} />}</>
+      })()}
+      {view === 'limits' && <TextPages label="Prototype limits" text={`Model: ${result.model?.label}; artifact ${result.model?.digest}; evidence ${result.evidenceReportSha256}. ` +
+        result.unavailable.map(item => `${item.label}: unavailable. ${item.reason}`).join(' ') +
+        result.sourceStatus.map(item => `${item.category}: ${item.readStatus}; upstream freshness unknown.`).join(' ') + result.limitations.join(' ')} />}
+    </div>}
+    {!compact && result?.status === 'available' && <div>
       <p>AI model: {result.model?.label}; artifact {result.model?.digest}. Evidence snapshot: {result.evidenceReportSha256}.</p>
       {result.observations.map((observation, index) => <article key={index}>
         <h4>AI-selected observation {index + 1}</h4><p>{observation.text}</p>

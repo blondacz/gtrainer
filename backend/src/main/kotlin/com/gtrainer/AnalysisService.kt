@@ -105,6 +105,8 @@ class AnalysisService(models: List<AnalysisModel> = emptyList(), private val con
 
     override fun close() { running.get()?.cancel(); closeModels() }
 
+    internal fun inferenceGate(): Mutex = operation // New profile shares the slot, never the prototype contract or selection.
+
     companion object {
         fun fromEnvironment(): AnalysisService = try {
             val config = OllamaAnalysisModel.configurationFromEnvironment()

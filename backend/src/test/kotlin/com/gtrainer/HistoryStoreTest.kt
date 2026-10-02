@@ -64,7 +64,7 @@ class HistoryStoreTest {
         DriverManager.getConnection("jdbc:sqlite:$path").use { database ->
             database.createStatement().use { statement ->
                 statement.executeQuery("SELECT count(*) FROM schema_migrations").use { result ->
-                    result.next(); assertEquals(1, result.getInt(1))
+                    result.next(); assertEquals(2, result.getInt(1))
                 }
             }
         }

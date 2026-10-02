@@ -1,0 +1,362 @@
+{
+  "synthetic_only": true,
+  "complete": true,
+  "cleanup_verified": true,
+  "app_image": "ghcr.io/blondacz/gtrainer@sha256:90b7144514c27b2fc10e8498b8789ca8f42722fe3fd365ba891ad36169ff5448",
+  "app_revision": "f6d879a7293ca0f07d218d31f8fe96e9fa0cc6f3",
+  "candidate": {
+    "tag": "qwen3:4b-instruct",
+    "alias": "qwen3-instruct-synthetic:4b",
+    "digest": "0edcdef34593eac1aa2be9c7d06c432dcf81945adca5eca2f27662c18f168ba0",
+    "id": "qwen3-4b-instruct",
+    "label": "Qwen3 4B Instruct-2507",
+    "aliasId": "qwen3-instruct-synthetic-alias",
+    "aliasLabel": "Qwen3 Instruct synthetic alias - same weights"
+  },
+  "operator_source_sha256": {
+    "app_fixtures": "21e76e5071536813ac356de3542a30754052fbcf7bbcea3ca7cf39a666c33639",
+    "app_capture_proxy": "724b8eb78c174990d72696d48f2208c16c2dc477b395135a6f0735f408350d79",
+    "run_app_on_pi": "bbb3e7a866395a7ec424bbfda19622f319aa642c1404e624c07ca8b50fbfa179"
+  },
+  "cases": [
+    {
+      "case": "cross_metric",
+      "repetition": "first_cold",
+      "wall_seconds": 72.382,
+      "status": "unavailable",
+      "reason": "unusable_model_output",
+      "chart_probe": {
+        "model_request_seen": true,
+        "generation_pending": true,
+        "wall_seconds": 0.0757,
+        "report_unchanged": true
+      },
+      "replay": {
+        "gate": "rejected_output",
+        "packet_sha256": "a7f443a8fb06563b9bab6acbe809957610c5c8fcf9e19a4f4a71e4c0e2f6b0c9",
+        "flags": [
+          "cross_metric_connection_missing",
+          "invalid_recorded_change",
+          "invalid_sport_mix"
+        ],
+        "load_seconds": 7.378063006,
+        "prompt_tokens": 573,
+        "output_tokens": 114,
+        "done_reason": "stop",
+        "validated_observation_count": 0
+      },
+      "http_report_sha256": "61a322cbf5e4f96a8a8229d9243db31e34c1fc30b2bd414bd45f19a41f89f676",
+      "request_body_sha256": "c4e6d1541928d8945355a633628f69a59456b5e20515a23f8629b72b7d760d61",
+      "request_started_utc": "2026-10-01T23:29:59.878162+00:00",
+      "response_body_sha256": "2f256424559598a2b347d15b2819e45fda31b0a63e927f25965c612d42cb62a4",
+      "raw_model_content": "{\n  \"observations\": [\n    {\n      \"evidence\": [\n        {\n          \"id\": \"e0\",\n          \"state\": \"decreased\"\n        }\n      ],\n      \"kind\": \"sport_mix\"\n    },\n    {\n      \"evidence\": [\n        {\n          \"id\": \"e1\",\n          \"state\": \"decreased\"\n        },\n        {\n          \"id\": \"e2\",\n          \"state\": \"decreased\"\n        }\n      ],\n      \"kind\": \"recorded_change\"\n    }\n  ]\n}",
+      "original_claim_sha256": "e447912eb11e7320a0b73f169339f8c9d7615119054d4242ce570e78033a2f1c",
+      "response_created_at": "2026-10-01T23:31:11.309267864Z",
+      "report_evaluated_on_utc": "2026-10-01"
+    },
+    {
+      "case": "cross_metric",
+      "repetition": "repeat_with_unload",
+      "wall_seconds": 80.276,
+      "status": "unavailable",
+      "reason": "unusable_model_output",
+      "chart_probe": {
+        "model_request_seen": true,
+        "generation_pending": true,
+        "wall_seconds": 0.0562,
+        "report_unchanged": true
+      },
+      "replay": {
+        "gate": "rejected_output",
+        "packet_sha256": "a7f443a8fb06563b9bab6acbe809957610c5c8fcf9e19a4f4a71e4c0e2f6b0c9",
+        "flags": [
+          "cross_metric_connection_missing",
+          "invalid_recorded_change",
+          "invalid_sport_mix"
+        ],
+        "load_seconds": 16.417723236,
+        "prompt_tokens": 573,
+        "output_tokens": 114,
+        "done_reason": "stop",
+        "validated_observation_count": 0
+      },
+      "http_report_sha256": "61a322cbf5e4f96a8a8229d9243db31e34c1fc30b2bd414bd45f19a41f89f676",
+      "request_body_sha256": "c4e6d1541928d8945355a633628f69a59456b5e20515a23f8629b72b7d760d61",
+      "request_started_utc": "2026-10-01T23:31:14.267093+00:00",
+      "response_body_sha256": "e6ed4a41867f84e2175ed05ba1c2bcfa1f08552c1fa192a11aad24be28e2ba2f",
+      "raw_model_content": "{\n  \"observations\": [\n    {\n      \"evidence\": [\n        {\n          \"id\": \"e0\",\n          \"state\": \"decreased\"\n        }\n      ],\n      \"kind\": \"sport_mix\"\n    },\n    {\n      \"evidence\": [\n        {\n          \"id\": \"e1\",\n          \"state\": \"decreased\"\n        },\n        {\n          \"id\": \"e2\",\n          \"state\": \"decreased\"\n        }\n      ],\n      \"kind\": \"recorded_change\"\n    }\n  ]\n}",
+      "original_claim_sha256": "e447912eb11e7320a0b73f169339f8c9d7615119054d4242ce570e78033a2f1c",
+      "response_created_at": "2026-10-01T23:32:33.688424908Z",
+      "report_evaluated_on_utc": "2026-10-01"
+    },
+    {
+      "case": "mixed_directions",
+      "repetition": "new_prompt_with_unload",
+      "wall_seconds": 77.232,
+      "status": "unavailable",
+      "reason": "unusable_model_output",
+      "chart_probe": {
+        "model_request_seen": true,
+        "generation_pending": true,
+        "wall_seconds": 0.0311,
+        "report_unchanged": true
+      },
+      "replay": {
+        "gate": "rejected_output",
+        "packet_sha256": "bad1ebebe5b4c7349df0d120730427f4092ecb4a883a5c1e214d8a272b318379",
+        "flags": [
+          "cross_metric_connection_missing",
+          "invalid_recorded_change",
+          "invalid_sport_mix"
+        ],
+        "load_seconds": 14.669131395,
+        "prompt_tokens": 571,
+        "output_tokens": 112,
+        "done_reason": "stop",
+        "validated_observation_count": 0
+      },
+      "http_report_sha256": "ab8b1ba1e5b10c1378dbc7e1ec1f9de13db7827de395b03ca7857cf86cc5c949",
+      "request_body_sha256": "60ac34696d51011a1bca701848312a8dc79704f7dbbb3ad90647c218b8e15722",
+      "request_started_utc": "2026-10-01T23:32:37.405454+00:00",
+      "response_body_sha256": "c0256f1b70663b8029c7b55071f23ecff5eb339f6bebfde76248c556fe127d35",
+      "raw_model_content": "{\n  \"observations\": [\n    {\n      \"evidence\": [\n        {\n          \"id\": \"e0\",\n          \"state\": \"increased\"\n        }\n      ],\n      \"kind\": \"sport_mix\"\n    },\n    {\n      \"evidence\": [\n        {\n          \"id\": \"e1\",\n          \"state\": \"decreased\"\n        },\n        {\n          \"id\": \"e2\",\n          \"state\": \"unchanged\"\n        }\n      ],\n      \"kind\": \"recorded_change\"\n    }\n  ]\n}",
+      "original_claim_sha256": "a4d04224f6b4e4edb29e79d9363e8fa9d326da8d3f6f0cd9ecaffd0e7a01b4b8",
+      "response_created_at": "2026-10-01T23:33:53.928092698Z",
+      "report_evaluated_on_utc": "2026-10-01"
+    },
+    {
+      "case": "mixed_sports",
+      "repetition": "new_prompt_with_unload",
+      "wall_seconds": 89.069,
+      "status": "unavailable",
+      "reason": "unusable_model_output",
+      "chart_probe": {
+        "model_request_seen": true,
+        "generation_pending": true,
+        "wall_seconds": 0.0532,
+        "report_unchanged": true
+      },
+      "replay": {
+        "gate": "rejected_output",
+        "packet_sha256": "eec5f03d7f0378c846bd150c5d45db8b2a7b09c579e15c2c1dba31049d50be53",
+        "flags": [
+          "cross_metric_connection_missing",
+          "invalid_co_occurrence"
+        ],
+        "load_seconds": 14.15379019,
+        "prompt_tokens": 679,
+        "output_tokens": 133,
+        "done_reason": "stop",
+        "validated_observation_count": 0
+      },
+      "http_report_sha256": "dc4781f591433dee7163f1f37f4c09e10f549f51f53a32d6293324c46f2a3b63",
+      "request_body_sha256": "dd371d75600baa768b36db77762d377c742397a24f94dfc7a60d0a82d8052ca8",
+      "request_started_utc": "2026-10-01T23:33:57.063427+00:00",
+      "response_body_sha256": "f57fd17206e712e3416eb697f5c985dfa2cf371955a8c01d6c9aff5f80cc1f87",
+      "raw_model_content": "{\n  \"observations\": [\n    {\n      \"evidence\": [\n        {\n          \"id\": \"e0\",\n          \"state\": \"decreased\"\n        },\n        {\n          \"id\": \"e1\",\n          \"state\": \"increased\"\n        }\n      ],\n      \"kind\": \"sport_mix\"\n    },\n    {\n      \"evidence\": [\n        {\n          \"id\": \"e2\",\n          \"state\": \"decreased\"\n        },\n        {\n          \"id\": \"e3\",\n          \"state\": \"unchanged\"\n        }\n      ],\n      \"kind\": \"co_occurrence\"\n    }\n  ]\n}",
+      "original_claim_sha256": "44ab10301e1d1559a75c00e86d26b84de9423d711d0fc42ac1aa7ae780b188e7",
+      "response_created_at": "2026-10-01T23:35:25.411330081Z",
+      "report_evaluated_on_utc": "2026-10-01"
+    },
+    {
+      "case": "partial_hrv",
+      "repetition": "new_prompt_with_unload",
+      "wall_seconds": 78.035,
+      "status": "unavailable",
+      "reason": "unusable_model_output",
+      "chart_probe": {
+        "model_request_seen": true,
+        "generation_pending": true,
+        "wall_seconds": 0.0271,
+        "report_unchanged": true
+      },
+      "replay": {
+        "gate": "rejected_output",
+        "packet_sha256": "2318185acb1e472ded943b23bc779f4d2d8348a9734eefe811c44bdfcfaf3ffa",
+        "flags": [
+          "cross_metric_connection_missing",
+          "invalid_recorded_change",
+          "invalid_sport_mix"
+        ],
+        "load_seconds": 15.153948199,
+        "prompt_tokens": 580,
+        "output_tokens": 113,
+        "done_reason": "stop",
+        "validated_observation_count": 0
+      },
+      "http_report_sha256": "00abb1dcd423289ad5c9356c376892b2645459caf75aae37f7bbe617f9c61aed",
+      "request_body_sha256": "4ba309251d0423eca8114e8c8b26d184979caaf946776abd3875d5f1f1908a05",
+      "request_started_utc": "2026-10-01T23:35:28.235512+00:00",
+      "response_body_sha256": "57cc8cf5fd6a903146aea9a921893e549da92a59efe0af480090c30675971db3",
+      "raw_model_content": "{\n  \"observations\": [\n    {\n      \"evidence\": [\n        {\n          \"id\": \"e0\",\n          \"state\": \"decreased\"\n        }\n      ],\n      \"kind\": \"sport_mix\"\n    },\n    {\n      \"evidence\": [\n        {\n          \"id\": \"e1\",\n          \"state\": \"decreased\"\n        },\n        {\n          \"id\": \"e2\",\n          \"state\": \"unavailable\"\n        }\n      ],\n      \"kind\": \"recorded_change\"\n    }\n  ]\n}",
+      "original_claim_sha256": "9c9e39202db2b99cdbf2ac5b81bf8fe8a7846f3e3b182920f92c6a7df26a7cd2",
+      "response_created_at": "2026-10-01T23:36:45.618146279Z",
+      "report_evaluated_on_utc": "2026-10-01"
+    },
+    {
+      "case": "zero_baseline",
+      "repetition": "new_prompt_with_unload",
+      "wall_seconds": 76.044,
+      "status": "unavailable",
+      "reason": "unusable_model_output",
+      "chart_probe": {
+        "model_request_seen": true,
+        "generation_pending": true,
+        "wall_seconds": 0.0327,
+        "report_unchanged": true
+      },
+      "replay": {
+        "gate": "rejected_output",
+        "packet_sha256": "c0aafd77f4b31c115fa915e1026ff0ad247f79a308613dbee9b770d7b069ac59",
+        "flags": [
+          "cross_metric_connection_missing",
+          "invalid_recorded_change",
+          "invalid_sport_mix"
+        ],
+        "load_seconds": 14.152802713,
+        "prompt_tokens": 570,
+        "output_tokens": 111,
+        "done_reason": "stop",
+        "validated_observation_count": 0
+      },
+      "http_report_sha256": "778e8ed971d804a2d8d1cdcaba95f7ddee7ab12b4eb3817262bd57e3337f7767",
+      "request_body_sha256": "68fd6573e5ec3bfb2b2c9cb88a4b429c4e4fffa8952f7609bea0f8bf8acfb5e0",
+      "request_started_utc": "2026-10-01T23:36:48.641779+00:00",
+      "response_body_sha256": "e474aa07520c3e6866004fd4476d933e5aad2be75f1e41c65fbf1c20b41419d1",
+      "raw_model_content": "{\n  \"observations\": [\n    {\n      \"evidence\": [\n        {\n          \"id\": \"e0\",\n          \"state\": \"increased\"\n        }\n      ],\n      \"kind\": \"sport_mix\"\n    },\n    {\n      \"evidence\": [\n        {\n          \"id\": \"e1\",\n          \"state\": \"unchanged\"\n        },\n        {\n          \"id\": \"e2\",\n          \"state\": \"unchanged\"\n        }\n      ],\n      \"kind\": \"recorded_change\"\n    }\n  ]\n}",
+      "original_claim_sha256": "a18ecbd3bebce5cde8ef16f77b26e21d791dfd6fc43c4d728d244b36dcd72950",
+      "response_created_at": "2026-10-01T23:38:04.340867836Z",
+      "report_evaluated_on_utc": "2026-10-01"
+    },
+    {
+      "case": "unchanged",
+      "repetition": "new_prompt_with_unload",
+      "wall_seconds": 75.933,
+      "status": "unavailable",
+      "reason": "unusable_model_output",
+      "chart_probe": {
+        "model_request_seen": true,
+        "generation_pending": true,
+        "wall_seconds": 0.0199,
+        "report_unchanged": true
+      },
+      "replay": {
+        "gate": "rejected_output",
+        "packet_sha256": "b2b005178b733f5d7d5bd90c2b336b71d0e1aef17295c3a57cdbc382709e353c",
+        "flags": [
+          "cross_metric_connection_missing",
+          "invalid_recorded_change",
+          "invalid_sport_mix",
+          "state_mismatch"
+        ],
+        "load_seconds": 14.408045957,
+        "prompt_tokens": 568,
+        "output_tokens": 112,
+        "done_reason": "stop",
+        "validated_observation_count": 0
+      },
+      "http_report_sha256": "bfc49a3b673c14803ebaf2739200100ee5e3891afabcfe84f10fd861ff02c65f",
+      "request_body_sha256": "1cc5008f74db6f51c4f11d139d7da1570410c31ea7bfaeaa4dd15e58fa9fa655",
+      "request_started_utc": "2026-10-01T23:38:06.943234+00:00",
+      "response_body_sha256": "04b701cba542b38dded117d5864a8cfcbccaa77ffd98ece1628768bbbc4a0f93",
+      "raw_model_content": "{\n  \"observations\": [\n    {\n      \"evidence\": [\n        {\n          \"id\": \"e0\",\n          \"state\": \"unchanged\"\n        }\n      ],\n      \"kind\": \"sport_mix\"\n    },\n    {\n      \"evidence\": [\n        {\n          \"id\": \"e1\",\n          \"state\": \"increased\"\n        },\n        {\n          \"id\": \"e2\",\n          \"state\": \"unchanged\"\n        }\n      ],\n      \"kind\": \"recorded_change\"\n    }\n  ]\n}",
+      "original_claim_sha256": "859b8ac89df2c98458b01a9672c96262a933e5adb0930a3214d0b7d54678cad3",
+      "response_created_at": "2026-10-01T23:39:22.479708839Z",
+      "report_evaluated_on_utc": "2026-10-01"
+    },
+    {
+      "case": "sparse_activity",
+      "repetition": "new_prompt_with_unload",
+      "wall_seconds": 0.01,
+      "status": "unavailable",
+      "reason": "insufficient_input",
+      "chart_probe": null,
+      "replay": {
+        "gate": "insufficient_input",
+        "flags": [],
+        "validated_observation_count": 0
+      },
+      "http_report_sha256": "78debee59737b1622c7c68b733e056c77b6013f316e9b73011830fdd249a22ad",
+      "report_evaluated_on_utc": "2026-10-01"
+    },
+    {
+      "case": "missing_current_wellness",
+      "repetition": "new_prompt_with_unload",
+      "wall_seconds": 0.01,
+      "status": "unavailable",
+      "reason": "insufficient_input",
+      "chart_probe": null,
+      "replay": {
+        "gate": "insufficient_input",
+        "flags": [],
+        "validated_observation_count": 0
+      },
+      "http_report_sha256": "91aa403bee3da0572ffb3f8ea1a817893d4a8873414ce5200973c3deff306b75",
+      "report_evaluated_on_utc": "2026-10-01"
+    },
+    {
+      "case": "cross_metric",
+      "repetition": "selected_alias_same_weights",
+      "wall_seconds": 78.326,
+      "status": "unavailable",
+      "reason": "unusable_model_output",
+      "chart_probe": {
+        "model_request_seen": true,
+        "generation_pending": true,
+        "wall_seconds": 0.0337,
+        "report_unchanged": true
+      },
+      "replay": {
+        "gate": "rejected_output",
+        "packet_sha256": "a7f443a8fb06563b9bab6acbe809957610c5c8fcf9e19a4f4a71e4c0e2f6b0c9",
+        "flags": [
+          "cross_metric_connection_missing",
+          "invalid_recorded_change",
+          "invalid_sport_mix"
+        ],
+        "load_seconds": 14.425457384,
+        "prompt_tokens": 573,
+        "output_tokens": 114,
+        "done_reason": "stop",
+        "validated_observation_count": 0
+      },
+      "http_report_sha256": "61a322cbf5e4f96a8a8229d9243db31e34c1fc30b2bd414bd45f19a41f89f676",
+      "request_body_sha256": "107b2e9f7d0e1d06ee3751e858043d763122bd09f9d6168d59113f0428181103",
+      "request_started_utc": "2026-10-01T23:39:30.205429+00:00",
+      "response_body_sha256": "81746dc79091c55b3c108243821b663c380cc073856e10c2149ef3a869ee07ea",
+      "raw_model_content": "{\n  \"observations\": [\n    {\n      \"evidence\": [\n        {\n          \"id\": \"e0\",\n          \"state\": \"decreased\"\n        }\n      ],\n      \"kind\": \"sport_mix\"\n    },\n    {\n      \"evidence\": [\n        {\n          \"id\": \"e1\",\n          \"state\": \"decreased\"\n        },\n        {\n          \"id\": \"e2\",\n          \"state\": \"decreased\"\n        }\n      ],\n      \"kind\": \"recorded_change\"\n    }\n  ]\n}",
+      "original_claim_sha256": "e447912eb11e7320a0b73f169339f8c9d7615119054d4242ce570e78033a2f1c",
+      "response_created_at": "2026-10-01T23:40:47.948849898Z",
+      "report_evaluated_on_utc": "2026-10-01"
+    }
+  ],
+  "inference_attempts": 8,
+  "accepted": 0,
+  "distinct_usable_cases": 6,
+  "distinct_accepted_cases": 0,
+  "unavailable_reasons": {
+    "unusable_model_output": 8,
+    "insufficient_input": 2
+  },
+  "telemetry": {
+    "sample_count": 123,
+    "maximum_temperature_c": 73.8,
+    "minimum_host_available_mib": 2803.8,
+    "live_health_failures": 0,
+    "synthetic_health_failures": 0,
+    "maximum_live_health_seconds": 0.0483,
+    "maximum_synthetic_health_seconds": 0.0521,
+    "ollama_current_mib": 5113.8,
+    "ollama_lifetime_peak_mib": 5120.0,
+    "app_current_mib": 121.6,
+    "app_lifetime_peak_mib": 125.5,
+    "proxy_current_mib": 27.8,
+    "proxy_lifetime_peak_mib": 32.2
+  },
+  "failures": [],
+  "qualification": "No automatic default, production resource qualification, or actual-health authorization.",
+  "source_jsonl_sha256": "c090b11464f6582f93535e6b693c5b307e6805b9daabcc4119b2b49b2ef7584e",
+  "retention": "Compact extraction; original synthetic JSONL retains full reports, packets, transport and samples. Original raw claims below are never repaired. Received-but-unfinalized outcomes do not imply runner completion or app acceptance.",
+  "controls_exported": true,
+  "log_marker_scan_passed": true
+}

@@ -110,9 +110,11 @@ python3 scripts/mac_backup.py restore \
 ```
 
 Decryption writes a private temporary file outside Git, requires successful age
-authentication, validates SQLite integrity and schema `user_version=1`, and
+authentication, validates SQLite integrity and compatible schema `user_version=1`
+or `2`, and
 requires the actual record/event/sync-status/migration tables and version-1
-columns/migration entry. Validation treats this complete snapshot
+columns/migration entry. Schema 2 additionally requires the review scheduling
+tables, columns and migration marker. Validation treats this complete snapshot
 as immutable and creates no SQLite sidecars. The final output is published
 exclusively: an existing database is never overwritten. Wrong keys, tampered
 ciphertext, unexpected schema, oversized input, or bad integrity leave no accepted
@@ -129,6 +131,13 @@ separately: database backups contain no intended credential store. The productio
 schema is now version 1 and isolated restore validation is verified. The exact
 live-replacement procedure still needs operator review/approval; no live personal
 database restore is claimed here.
+
+Local scheduler implementation migrates to schema 2; it is **not deployed**.
+The stable operator-installed restore helper must be explicitly updated before
+any later schema-2 rollout. Current source validation supports both complete
+schemas. A schema-1 image cannot open schema 2: rollback needs a verified
+compatible pre-migration backup, never an automatic reverse migration. See
+[review scheduling](../decisions/review-presets-and-scheduler.md).
 
 ## Git image-revert rollback
 

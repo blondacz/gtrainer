@@ -169,7 +169,8 @@ def restore(ciphertext, output, key=KEY):
         uri = 'file:' + quote(str(temporary), safe='/') + '?mode=ro&immutable=1'
         with sqlite3.connect(uri, uri=True) as database:
             require(database.execute('PRAGMA integrity_check').fetchone() == ('ok',), 'Restored database integrity failed.')
-            require(database.execute('PRAGMA user_version').fetchone() == (1,), 'Select a compatible database schema/app version.')
+            version = database.execute('PRAGMA user_version').fetchone()[0]
+            require(version in (1, 2), 'Select a compatible database schema/app version.')
             tables = {row[0] for row in database.execute("SELECT name FROM sqlite_master WHERE type='table'")}
             require({'schema_migrations', 'activities', 'wellness', 'events', 'sync_status'} <= tables,
                     'Expected record/event/migration schema is missing.')
@@ -183,6 +184,17 @@ def restore(ciphertext, output, key=KEY):
                 require(expected <= columns, 'Restored schema is not compatible with the record/event store.')
             require(database.execute('SELECT version FROM schema_migrations WHERE version=1').fetchone() == (1,),
                     'Restored migration record is missing.')
+            if version == 2:
+                require({'review_schedule', 'review_import_changes'} <= tables, 'Expected review scheduling schema is missing.')
+                for table, expected in {
+                    'review_schedule': {'singleton', 'state_json'},
+                    'review_import_changes': {'revision', 'category', 'observed_date', 'received_utc',
+                                              'identity_sha256', 'sport', 'sleep_changed', 'sleep_available'},
+                }.items():
+                    columns = {row[1] for row in database.execute(f'PRAGMA table_info({table})')}
+                    require(expected <= columns, 'Restored review schema is not compatible.')
+                require(database.execute('SELECT version FROM schema_migrations WHERE version=2').fetchone() == (2,),
+                        'Restored review migration record is missing.')
         # Exclusive publication: even a concurrent restore cannot overwrite a
         # pre-existing target after the initial existence check.
         os.link(temporary, output)

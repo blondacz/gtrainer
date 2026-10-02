@@ -1,0 +1,2199 @@
+{
+  "profile": "prepared-focus-v1",
+  "synthetic_only": true,
+  "not_production_app_acceptance": true,
+  "source_jsonl_sha256": "597af7235d80543f9211d0999d65402b1d512b334fa8d72665a23acf4a6718f9",
+  "model": "qwen3.5:4b",
+  "model_digest": "2a654d98e6fba55d452b7043684e9b57a947e393bbffa62485a7aac05ee4eefd",
+  "source_sha256": {
+    "app_fixtures": "1efd8db75cd4c03c82316caa6050acff4cc1d29340f5f97233dc3d2f25316540",
+    "app_unseen_fixtures": "66f5154f00c5ba358c38fca7cb08e8827c914565d9387da635d62e00a78a5b8c",
+    "prepared_review": "309dc4e72611f094d6fdc1b9baef81f24c5a213cbfcece9baa7053501946f93d",
+    "run_app_on_pi": "d4ece1fa96f5474100bfe53666d0ee1fa5335973804137bb930337e1f231eecb",
+    "run_prepared_review_on_pi": "136d6759a3393d261c2563dbbbc1285183f3504daac81bebc05ce4bbe7ec7341",
+    "app_capture_proxy": "7c271415da1129516e77a8a8d80d2f5c1c42a9a0e05f83c5d8b09be547f5e313"
+  },
+  "complete": true,
+  "cleanup_verified": true,
+  "first_pass_accepted": 5,
+  "final_accepted": 5,
+  "finalized_cases": 6,
+  "planned_usable_cases": 6,
+  "inference_attempts": 7,
+  "received_attempts": 7,
+  "correction_attempts": 1,
+  "sparse_no_call_gates": [
+    "sparse_activity",
+    "missing_current_wellness"
+  ],
+  "attempts": [
+    {
+      "phase": "prepared_attempt_started",
+      "case": "unseen_opposing_sleep_up",
+      "attempt": 1,
+      "request_base64": "eyJmb3JtYXQiOnsiYWRkaXRpb25hbFByb3BlcnRpZXMiOmZhbHNlLCJwcm9wZXJ0aWVzIjp7ImZvY3VzX2lkcyI6eyJpdGVtcyI6eyJlbnVtIjpbImYwIiwiZjEiLCJmMiJdLCJ0eXBlIjoic3RyaW5nIn0sIm1heEl0ZW1zIjoyLCJtaW5JdGVtcyI6MSwidHlwZSI6ImFycmF5In19LCJyZXF1aXJlZCI6WyJmb2N1c19pZHMiXSwidHlwZSI6Im9iamVjdCJ9LCJrZWVwX2FsaXZlIjoiMHMiLCJtZXNzYWdlcyI6W3siY29udGVudCI6IlNlbGVjdCBhIGRlc2NyaXB0aXZlIHJldmlldyBmb2N1cyBmcm9tIGEgc3ludGhldGljIGNvZGUtcHJlcGFyZWQgcGFja2V0LlxuVGhlIGFwcGxpY2F0aW9uIGFscmVhZHkgZ3JvdXBlZCBldmVyeSByZXF1aXJlZCBmYWN0IGFuZCB3aWxsIHNob3cgdGhlbSBhbGwsXG5pbmNsdWRpbmcgbWlzc2luZyBjb21wYXJpc29ucywgaW5kZXBlbmRlbnRseSBvZiB5b3VyIGFuc3dlci4gRG8gbm90IHJlY2FsY3VsYXRlLFxucmVncm91cCwgY29weSBmYWN0cywgaW52ZW50IHJlbGF0aW9uc2hpcHMsIG9yIGdlbmVyYXRlIHBlcnNvbmFsIHByb3NlLlxuU2VsZWN0IG9uZSBvciB0d28gY2FuZGlkYXRlIElEcyB0aGF0IGRpcmVjdGx5IGFuc3dlciB0aGUgcmVxdWVzdGVkIGZvY3VzLiBQcmVmZXJcbnRoZSBtb3N0IHJlbGV2YW50IGNhbmRpZGF0ZSwgbm90IHRoZSBmaXJzdCBJRC4gRG8gbm90IHNlbGVjdCB1bnJlbGF0ZWQgY2FuZGlkYXRlc1xubWVyZWx5IHRvIGNvdmVyIGZhY3RzOiBmYWN0dWFsIGNvdmVyYWdlIGlzIGFscmVhZHkgZ3VhcmFudGVlZCBieSBjb2RlLlxuZGFpbHlfY29tYmluZWQ6IGNob29zZSBhIGNvbmN1cnJlbnQgYWN0aXZpdHkvd2VsbG5lc3MgcGF0dGVybiB3aGVuIHN1cHBvcnRlZC5cbmFjdGl2aXR5X2JhbGFuY2U6IGNob29zZSB0aGUgc3BvcnQtbWl4IHBhdHRlcm4gd2hlbiBzdXBwb3J0ZWQuXG53ZWxsbmVzczogY2hvb3NlIHdlbGxuZXNzIHBhdHRlcm4gd2hlbiBzdXBwb3J0ZWQsIG9yIGl0cyBjb3ZlcmFnZSBnYXAgb3RoZXJ3aXNlLlxubWlzc2luZ193ZWxsbmVzczogY2hvb3NlIHRoZSB3ZWxsbmVzcyBjb3ZlcmFnZSBnYXAgd2hlbiBzdXBwbGllZC5cbkRvIG5vdCBpbmZlciBjYXVzZSwgcmVjb3ZlcnksIGlsbG5lc3MsIHJlYWRpbmVzcywgbWlzc2VkIHNlc3Npb25zLCBzYWZldHksXG5wcm9wcmlldGFyeSBHYXJtaW4gc2NvcmVzIG9yIHdvcmtvdXQgcHJlc2NyaXB0aW9ucyBmcm9tIGRlc2NyaXB0aXZlIGRpcmVjdGlvbnMuXG5SZXR1cm4gb25seSB7XCJmb2N1c19pZHNcIjpbXCJjYW5kaWRhdGUgSURcIl19LiBObyBvdGhlciBmaWVsZHMgb3IgdGV4dC5cbiIsInJvbGUiOiJzeXN0ZW0ifSx7ImNvbnRlbnQiOiJ7XCJjYW5kaWRhdGVzXCI6W3tcImV2aWRlbmNlX2lkc1wiOltcImUwXCJdLFwiZ3JvdXBfaWRcIjpcImcwXCIsXCJpZFwiOlwiZjBcIixcImtpbmRcIjpcImFjdGl2aXR5X3BhdHRlcm5cIixcInN0YXRlc1wiOltcImluY3JlYXNlZFwiXX0se1wiZXZpZGVuY2VfaWRzXCI6W1wiZTFcIixcImUyXCJdLFwiZ3JvdXBfaWRcIjpcImcwXCIsXCJpZFwiOlwiZjFcIixcImtpbmRcIjpcIndlbGxuZXNzX3BhdHRlcm5cIixcInN0YXRlc1wiOltcImluY3JlYXNlZFwiLFwiZGVjcmVhc2VkXCJdfSx7XCJldmlkZW5jZV9pZHNcIjpbXCJlMFwiLFwiZTFcIixcImUyXCJdLFwiZ3JvdXBfaWRcIjpcImcwXCIsXCJpZFwiOlwiZjJcIixcImtpbmRcIjpcImNyb3NzX21ldHJpY19wYXR0ZXJuXCIsXCJzdGF0ZXNcIjpbXCJpbmNyZWFzZWRcIixcImluY3JlYXNlZFwiLFwiZGVjcmVhc2VkXCJdfV0sXCJncm91cHNcIjpbe1wiZXZpZGVuY2VcIjpbe1wiY3VycmVudE5ld2VzdFwiOlwiMjAyMC0wMS0yOFwiLFwiY3VycmVudE9sZGVzdFwiOlwiMjAyMC0wMS0yMlwiLFwiY3VycmVudFZhbHVlXCI6NDgwMC4wLFwiZmxhZ3NcIjpbXSxcImlkXCI6XCJlMFwiLFwibWV0cmljXCI6XCJtb3ZpbmdUaW1lXCIsXCJwcmVwYXJlZFN0YXRlXCI6XCJpbmNyZWFzZWRcIixcInByZXZpb3VzTmV3ZXN0XCI6XCIyMDIwLTAxLTIxXCIsXCJwcmV2aW91c09sZGVzdFwiOlwiMjAyMC0wMS0xNVwiLFwicHJldmlvdXNWYWx1ZVwiOjMwMDAuMCxcInNwb3J0XCI6XCJSdW5cIixcInVuaXRcIjpcInNlY29uZHNcIn0se1wiY3VycmVudE5ld2VzdFwiOlwiMjAyMC0wMS0yOFwiLFwiY3VycmVudE9sZGVzdFwiOlwiMjAyMC0wMS0yMlwiLFwiY3VycmVudFZhbHVlXCI6MjYwMDAuMCxcImZsYWdzXCI6W1wiaW5jb21wbGV0ZV9kYXRlX2NvdmVyYWdlXCJdLFwiaWRcIjpcImUxXCIsXCJtZXRyaWNcIjpcInNsZWVwU2Vjc1wiLFwicHJlcGFyZWRTdGF0ZVwiOlwiaW5jcmVhc2VkXCIsXCJwcmV2aW91c05ld2VzdFwiOlwiMjAyMC0wMS0yMVwiLFwicHJldmlvdXNPbGRlc3RcIjpcIjIwMjAtMDEtMTVcIixcInByZXZpb3VzVmFsdWVcIjoyMjAwMC4wLFwic3BvcnRcIjpudWxsLFwidW5pdFwiOlwic2Vjb25kc1wifSx7XCJjdXJyZW50TmV3ZXN0XCI6XCIyMDIwLTAxLTI4XCIsXCJjdXJyZW50T2xkZXN0XCI6XCIyMDIwLTAxLTIyXCIsXCJjdXJyZW50VmFsdWVcIjo0NS4wLFwiZmxhZ3NcIjpbXCJpbmNvbXBsZXRlX2RhdGVfY292ZXJhZ2VcIl0sXCJpZFwiOlwiZTJcIixcIm1ldHJpY1wiOlwiaHJ2XCIsXCJwcmVwYXJlZFN0YXRlXCI6XCJkZWNyZWFzZWRcIixcInByZXZpb3VzTmV3ZXN0XCI6XCIyMDIwLTAxLTIxXCIsXCJwcmV2aW91c09sZGVzdFwiOlwiMjAyMC0wMS0xNVwiLFwicHJldmlvdXNWYWx1ZVwiOjYwLjAsXCJzcG9ydFwiOm51bGwsXCJ1bml0XCI6XCJtc1wifV0sXCJpZFwiOlwiZzBcIixcInBlcmlvZFwiOltcIjIwMjAtMDEtMTVcIixcIjIwMjAtMDEtMjFcIixcIjIwMjAtMDEtMjJcIixcIjIwMjAtMDEtMjhcIl0sXCJ1bmF2YWlsYWJsZVwiOmZhbHNlfV0sXCJsaW1pdGF0aW9uc1wiOltcImRlc2NyaXB0aXZlX25vdF9jYXVzYWxcIixcIm5vdF9yZWFkaW5lc3Nfb3JfdHJhaW5pbmdfYWR2aWNlXCIsXCJtaXNzaW5nX2lzX3Vua25vd25cIixcInJlY29yZGVkX3RpbWVfbm90X2ludGVuc2l0eVwiXSxcInByb2ZpbGVcIjpcInByZXBhcmVkLWZvY3VzLXYxXCIsXCJyZXF1ZXN0ZWRfZm9jdXNcIjpcImRhaWx5X2NvbWJpbmVkXCIsXCJzeW50aGV0aWNfb25seVwiOnRydWV9Iiwicm9sZSI6InVzZXIifV0sIm1vZGVsIjoicXdlbjMuNTo0YiIsIm9wdGlvbnMiOnsibnVtX2N0eCI6MjA0OCwibnVtX3ByZWRpY3QiOjI1NiwibnVtX3RocmVhZCI6Mywic2VlZCI6NDIsInRlbXBlcmF0dXJlIjowfSwic3RyZWFtIjpmYWxzZSwidGhpbmsiOmZhbHNlfQ==",
+      "request_sha256": "b365a2c53626decc6e499073f4b60d04525c1383e7a362f7f3100cddc20cf274",
+      "received": {
+        "phase": "prepared_attempt_received",
+        "case": "unseen_opposing_sleep_up",
+        "attempt": 1,
+        "seconds": 67.841,
+        "status": 200,
+        "error_type": null,
+        "response_base64": "eyJtb2RlbCI6InF3ZW4zLjU6NGIiLCJjcmVhdGVkX2F0IjoiMjAyNi0xMC0wMlQxNToyNjowNS40MzMyODc0ODVaIiwibWVzc2FnZSI6eyJyb2xlIjoiYXNzaXN0YW50IiwiY29udGVudCI6IntcImZvY3VzX2lkc1wiOltcImYyXCJdfSJ9LCJkb25lIjp0cnVlLCJkb25lX3JlYXNvbiI6InN0b3AiLCJ0b3RhbF9kdXJhdGlvbiI6NjY4OTQzMjMwOTIsImxvYWRfZHVyYXRpb24iOjE4MjQyNTI5MDQxLCJwcm9tcHRfZXZhbF9jb3VudCI6NzczLCJwcm9tcHRfZXZhbF9jYWNoZWRfY291bnQiOjAsInByb21wdF9ldmFsX2R1cmF0aW9uIjo0NjAyMjIzMDAwMCwiZXZhbF9jb3VudCI6OCwiZXZhbF9kdXJhdGlvbiI6MjYwODQzODAwMH0=",
+        "response_sha256": "01d8f99c3ea08312a6ed472fcf1507e98ef97652c66b8dcd8b8057cd41b23825"
+      },
+      "result": {
+        "phase": "prepared_attempt_result",
+        "case": "unseen_opposing_sleep_up",
+        "attempt": 1,
+        "validity_flags": [],
+        "relevance_flags": [],
+        "accepted": true,
+        "raw_model_content": "{\"focus_ids\":[\"f2\"]}",
+        "rendering": {
+          "model_selected_code_rendered": true,
+          "focuses": [
+            {
+              "kind": "cross_metric_pattern",
+              "group_id": "g0",
+              "evidence_ids": [
+                "e0",
+                "e1",
+                "e2"
+              ],
+              "states": [
+                "increased",
+                "increased",
+                "decreased"
+              ],
+              "id": "f2",
+              "text": "Activity and wellness observations cover the same periods; no cause is established."
+            }
+          ]
+        },
+        "prompt_tokens": 773,
+        "output_tokens": 8,
+        "done_reason": "stop",
+        "load_duration": 18242529041,
+        "report_sha256_after_generation": "fdf672ca1c1f20d81a902de9f35ca36c3fdd9ebc965d0848c014eb1e2d37ba90"
+      },
+      "unload_verified": true
+    },
+    {
+      "phase": "prepared_attempt_started",
+      "case": "unseen_steady_with_hrv_drop",
+      "attempt": 1,
+      "request_base64": "eyJmb3JtYXQiOnsiYWRkaXRpb25hbFByb3BlcnRpZXMiOmZhbHNlLCJwcm9wZXJ0aWVzIjp7ImZvY3VzX2lkcyI6eyJpdGVtcyI6eyJlbnVtIjpbImYwIiwiZjEiLCJmMiJdLCJ0eXBlIjoic3RyaW5nIn0sIm1heEl0ZW1zIjoyLCJtaW5JdGVtcyI6MSwidHlwZSI6ImFycmF5In19LCJyZXF1aXJlZCI6WyJmb2N1c19pZHMiXSwidHlwZSI6Im9iamVjdCJ9LCJrZWVwX2FsaXZlIjoiMHMiLCJtZXNzYWdlcyI6W3siY29udGVudCI6IlNlbGVjdCBhIGRlc2NyaXB0aXZlIHJldmlldyBmb2N1cyBmcm9tIGEgc3ludGhldGljIGNvZGUtcHJlcGFyZWQgcGFja2V0LlxuVGhlIGFwcGxpY2F0aW9uIGFscmVhZHkgZ3JvdXBlZCBldmVyeSByZXF1aXJlZCBmYWN0IGFuZCB3aWxsIHNob3cgdGhlbSBhbGwsXG5pbmNsdWRpbmcgbWlzc2luZyBjb21wYXJpc29ucywgaW5kZXBlbmRlbnRseSBvZiB5b3VyIGFuc3dlci4gRG8gbm90IHJlY2FsY3VsYXRlLFxucmVncm91cCwgY29weSBmYWN0cywgaW52ZW50IHJlbGF0aW9uc2hpcHMsIG9yIGdlbmVyYXRlIHBlcnNvbmFsIHByb3NlLlxuU2VsZWN0IG9uZSBvciB0d28gY2FuZGlkYXRlIElEcyB0aGF0IGRpcmVjdGx5IGFuc3dlciB0aGUgcmVxdWVzdGVkIGZvY3VzLiBQcmVmZXJcbnRoZSBtb3N0IHJlbGV2YW50IGNhbmRpZGF0ZSwgbm90IHRoZSBmaXJzdCBJRC4gRG8gbm90IHNlbGVjdCB1bnJlbGF0ZWQgY2FuZGlkYXRlc1xubWVyZWx5IHRvIGNvdmVyIGZhY3RzOiBmYWN0dWFsIGNvdmVyYWdlIGlzIGFscmVhZHkgZ3VhcmFudGVlZCBieSBjb2RlLlxuZGFpbHlfY29tYmluZWQ6IGNob29zZSBhIGNvbmN1cnJlbnQgYWN0aXZpdHkvd2VsbG5lc3MgcGF0dGVybiB3aGVuIHN1cHBvcnRlZC5cbmFjdGl2aXR5X2JhbGFuY2U6IGNob29zZSB0aGUgc3BvcnQtbWl4IHBhdHRlcm4gd2hlbiBzdXBwb3J0ZWQuXG53ZWxsbmVzczogY2hvb3NlIHdlbGxuZXNzIHBhdHRlcm4gd2hlbiBzdXBwb3J0ZWQsIG9yIGl0cyBjb3ZlcmFnZSBnYXAgb3RoZXJ3aXNlLlxubWlzc2luZ193ZWxsbmVzczogY2hvb3NlIHRoZSB3ZWxsbmVzcyBjb3ZlcmFnZSBnYXAgd2hlbiBzdXBwbGllZC5cbkRvIG5vdCBpbmZlciBjYXVzZSwgcmVjb3ZlcnksIGlsbG5lc3MsIHJlYWRpbmVzcywgbWlzc2VkIHNlc3Npb25zLCBzYWZldHksXG5wcm9wcmlldGFyeSBHYXJtaW4gc2NvcmVzIG9yIHdvcmtvdXQgcHJlc2NyaXB0aW9ucyBmcm9tIGRlc2NyaXB0aXZlIGRpcmVjdGlvbnMuXG5SZXR1cm4gb25seSB7XCJmb2N1c19pZHNcIjpbXCJjYW5kaWRhdGUgSURcIl19LiBObyBvdGhlciBmaWVsZHMgb3IgdGV4dC5cbiIsInJvbGUiOiJzeXN0ZW0ifSx7ImNvbnRlbnQiOiJ7XCJjYW5kaWRhdGVzXCI6W3tcImV2aWRlbmNlX2lkc1wiOltcImUxXCIsXCJlMlwiXSxcImdyb3VwX2lkXCI6XCJnMFwiLFwiaWRcIjpcImYwXCIsXCJraW5kXCI6XCJ3ZWxsbmVzc19wYXR0ZXJuXCIsXCJzdGF0ZXNcIjpbXCJ1bmNoYW5nZWRcIixcImRlY3JlYXNlZFwiXX0se1wiZXZpZGVuY2VfaWRzXCI6W1wiZTBcIixcImUxXCIsXCJlMlwiXSxcImdyb3VwX2lkXCI6XCJnMFwiLFwiaWRcIjpcImYxXCIsXCJraW5kXCI6XCJjcm9zc19tZXRyaWNfcGF0dGVyblwiLFwic3RhdGVzXCI6W1widW5jaGFuZ2VkXCIsXCJ1bmNoYW5nZWRcIixcImRlY3JlYXNlZFwiXX0se1wiZXZpZGVuY2VfaWRzXCI6W1wiZTBcIl0sXCJncm91cF9pZFwiOlwiZzBcIixcImlkXCI6XCJmMlwiLFwia2luZFwiOlwiYWN0aXZpdHlfcGF0dGVyblwiLFwic3RhdGVzXCI6W1widW5jaGFuZ2VkXCJdfV0sXCJncm91cHNcIjpbe1wiZXZpZGVuY2VcIjpbe1wiY3VycmVudE5ld2VzdFwiOlwiMjAyMC0wMi0yOFwiLFwiY3VycmVudE9sZGVzdFwiOlwiMjAyMC0wMi0yMlwiLFwiY3VycmVudFZhbHVlXCI6NDIwMC4wLFwiZmxhZ3NcIjpbXSxcImlkXCI6XCJlMFwiLFwibWV0cmljXCI6XCJtb3ZpbmdUaW1lXCIsXCJwcmVwYXJlZFN0YXRlXCI6XCJ1bmNoYW5nZWRcIixcInByZXZpb3VzTmV3ZXN0XCI6XCIyMDIwLTAyLTIxXCIsXCJwcmV2aW91c09sZGVzdFwiOlwiMjAyMC0wMi0xNVwiLFwicHJldmlvdXNWYWx1ZVwiOjQyMDAuMCxcInNwb3J0XCI6XCJTd2ltXCIsXCJ1bml0XCI6XCJzZWNvbmRzXCJ9LHtcImN1cnJlbnROZXdlc3RcIjpcIjIwMjAtMDItMjhcIixcImN1cnJlbnRPbGRlc3RcIjpcIjIwMjAtMDItMjJcIixcImN1cnJlbnRWYWx1ZVwiOjI2NDAwLjAsXCJmbGFnc1wiOltcImluY29tcGxldGVfZGF0ZV9jb3ZlcmFnZVwiXSxcImlkXCI6XCJlMVwiLFwibWV0cmljXCI6XCJzbGVlcFNlY3NcIixcInByZXBhcmVkU3RhdGVcIjpcInVuY2hhbmdlZFwiLFwicHJldmlvdXNOZXdlc3RcIjpcIjIwMjAtMDItMjFcIixcInByZXZpb3VzT2xkZXN0XCI6XCIyMDIwLTAyLTE1XCIsXCJwcmV2aW91c1ZhbHVlXCI6MjY0MDAuMCxcInNwb3J0XCI6bnVsbCxcInVuaXRcIjpcInNlY29uZHNcIn0se1wiY3VycmVudE5ld2VzdFwiOlwiMjAyMC0wMi0yOFwiLFwiY3VycmVudE9sZGVzdFwiOlwiMjAyMC0wMi0yMlwiLFwiY3VycmVudFZhbHVlXCI6NDMuMCxcImZsYWdzXCI6W1wiaW5jb21wbGV0ZV9kYXRlX2NvdmVyYWdlXCJdLFwiaWRcIjpcImUyXCIsXCJtZXRyaWNcIjpcImhydlwiLFwicHJlcGFyZWRTdGF0ZVwiOlwiZGVjcmVhc2VkXCIsXCJwcmV2aW91c05ld2VzdFwiOlwiMjAyMC0wMi0yMVwiLFwicHJldmlvdXNPbGRlc3RcIjpcIjIwMjAtMDItMTVcIixcInByZXZpb3VzVmFsdWVcIjo1OC4wLFwic3BvcnRcIjpudWxsLFwidW5pdFwiOlwibXNcIn1dLFwiaWRcIjpcImcwXCIsXCJwZXJpb2RcIjpbXCIyMDIwLTAyLTE1XCIsXCIyMDIwLTAyLTIxXCIsXCIyMDIwLTAyLTIyXCIsXCIyMDIwLTAyLTI4XCJdLFwidW5hdmFpbGFibGVcIjpmYWxzZX1dLFwibGltaXRhdGlvbnNcIjpbXCJkZXNjcmlwdGl2ZV9ub3RfY2F1c2FsXCIsXCJub3RfcmVhZGluZXNzX29yX3RyYWluaW5nX2FkdmljZVwiLFwibWlzc2luZ19pc191bmtub3duXCIsXCJyZWNvcmRlZF90aW1lX25vdF9pbnRlbnNpdHlcIl0sXCJwcm9maWxlXCI6XCJwcmVwYXJlZC1mb2N1cy12MVwiLFwicmVxdWVzdGVkX2ZvY3VzXCI6XCJ3ZWxsbmVzc1wiLFwic3ludGhldGljX29ubHlcIjp0cnVlfSIsInJvbGUiOiJ1c2VyIn1dLCJtb2RlbCI6InF3ZW4zLjU6NGIiLCJvcHRpb25zIjp7Im51bV9jdHgiOjIwNDgsIm51bV9wcmVkaWN0IjoyNTYsIm51bV90aHJlYWQiOjMsInNlZWQiOjQyLCJ0ZW1wZXJhdHVyZSI6MH0sInN0cmVhbSI6ZmFsc2UsInRoaW5rIjpmYWxzZX0=",
+      "request_sha256": "12fdfcdf95df65c6b4c24b1d25a598e6f25b04ae88e8afa950dc7ffdf5d12b61",
+      "received": {
+        "phase": "prepared_attempt_received",
+        "case": "unseen_steady_with_hrv_drop",
+        "attempt": 1,
+        "seconds": 93.058,
+        "status": 200,
+        "error_type": null,
+        "response_base64": "eyJtb2RlbCI6InF3ZW4zLjU6NGIiLCJjcmVhdGVkX2F0IjoiMjAyNi0xMC0wMlQxNToyNzo0MS4wNzcwMzA5NzJaIiwibWVzc2FnZSI6eyJyb2xlIjoiYXNzaXN0YW50IiwiY29udGVudCI6IntcImZvY3VzX2lkc1wiOltcImYwXCJdfSJ9LCJkb25lIjp0cnVlLCJkb25lX3JlYXNvbiI6InN0b3AiLCJ0b3RhbF9kdXJhdGlvbiI6OTMwNTI1OTc4MjgsImxvYWRfZHVyYXRpb24iOjQ0MTIyNjk2MjI3LCJwcm9tcHRfZXZhbF9jb3VudCI6Nzc0LCJwcm9tcHRfZXZhbF9jYWNoZWRfY291bnQiOjAsInByb21wdF9ldmFsX2R1cmF0aW9uIjo0NjUwNzkzNjAwMCwiZXZhbF9jb3VudCI6OCwiZXZhbF9kdXJhdGlvbiI6MjQwNjUzMjAwMH0=",
+        "response_sha256": "be843c25bb2f016dda08d5f9d9a8aaeb166454b3bc19c94a20eef51ece56e41e"
+      },
+      "result": {
+        "phase": "prepared_attempt_result",
+        "case": "unseen_steady_with_hrv_drop",
+        "attempt": 1,
+        "validity_flags": [],
+        "relevance_flags": [],
+        "accepted": true,
+        "raw_model_content": "{\"focus_ids\":[\"f0\"]}",
+        "rendering": {
+          "model_selected_code_rendered": true,
+          "focuses": [
+            {
+              "kind": "wellness_pattern",
+              "group_id": "g0",
+              "evidence_ids": [
+                "e1",
+                "e2"
+              ],
+              "states": [
+                "unchanged",
+                "decreased"
+              ],
+              "id": "f0",
+              "text": "Observed wellness directions; no recovery or illness conclusion."
+            }
+          ]
+        },
+        "prompt_tokens": 774,
+        "output_tokens": 8,
+        "done_reason": "stop",
+        "load_duration": 44122696227,
+        "report_sha256_after_generation": "8d99fbc7720c5b8e882f01473ab154bf7dde15d47663800310fba3e111b7e642"
+      },
+      "unload_verified": true
+    },
+    {
+      "phase": "prepared_attempt_started",
+      "case": "unseen_two_sports_both_increase",
+      "attempt": 1,
+      "request_base64": "eyJmb3JtYXQiOnsiYWRkaXRpb25hbFByb3BlcnRpZXMiOmZhbHNlLCJwcm9wZXJ0aWVzIjp7ImZvY3VzX2lkcyI6eyJpdGVtcyI6eyJlbnVtIjpbImYwIiwiZjEiLCJmMiIsImYzIl0sInR5cGUiOiJzdHJpbmcifSwibWF4SXRlbXMiOjIsIm1pbkl0ZW1zIjoxLCJ0eXBlIjoiYXJyYXkifX0sInJlcXVpcmVkIjpbImZvY3VzX2lkcyJdLCJ0eXBlIjoib2JqZWN0In0sImtlZXBfYWxpdmUiOiIwcyIsIm1lc3NhZ2VzIjpbeyJjb250ZW50IjoiU2VsZWN0IGEgZGVzY3JpcHRpdmUgcmV2aWV3IGZvY3VzIGZyb20gYSBzeW50aGV0aWMgY29kZS1wcmVwYXJlZCBwYWNrZXQuXG5UaGUgYXBwbGljYXRpb24gYWxyZWFkeSBncm91cGVkIGV2ZXJ5IHJlcXVpcmVkIGZhY3QgYW5kIHdpbGwgc2hvdyB0aGVtIGFsbCxcbmluY2x1ZGluZyBtaXNzaW5nIGNvbXBhcmlzb25zLCBpbmRlcGVuZGVudGx5IG9mIHlvdXIgYW5zd2VyLiBEbyBub3QgcmVjYWxjdWxhdGUsXG5yZWdyb3VwLCBjb3B5IGZhY3RzLCBpbnZlbnQgcmVsYXRpb25zaGlwcywgb3IgZ2VuZXJhdGUgcGVyc29uYWwgcHJvc2UuXG5TZWxlY3Qgb25lIG9yIHR3byBjYW5kaWRhdGUgSURzIHRoYXQgZGlyZWN0bHkgYW5zd2VyIHRoZSByZXF1ZXN0ZWQgZm9jdXMuIFByZWZlclxudGhlIG1vc3QgcmVsZXZhbnQgY2FuZGlkYXRlLCBub3QgdGhlIGZpcnN0IElELiBEbyBub3Qgc2VsZWN0IHVucmVsYXRlZCBjYW5kaWRhdGVzXG5tZXJlbHkgdG8gY292ZXIgZmFjdHM6IGZhY3R1YWwgY292ZXJhZ2UgaXMgYWxyZWFkeSBndWFyYW50ZWVkIGJ5IGNvZGUuXG5kYWlseV9jb21iaW5lZDogY2hvb3NlIGEgY29uY3VycmVudCBhY3Rpdml0eS93ZWxsbmVzcyBwYXR0ZXJuIHdoZW4gc3VwcG9ydGVkLlxuYWN0aXZpdHlfYmFsYW5jZTogY2hvb3NlIHRoZSBzcG9ydC1taXggcGF0dGVybiB3aGVuIHN1cHBvcnRlZC5cbndlbGxuZXNzOiBjaG9vc2Ugd2VsbG5lc3MgcGF0dGVybiB3aGVuIHN1cHBvcnRlZCwgb3IgaXRzIGNvdmVyYWdlIGdhcCBvdGhlcndpc2UuXG5taXNzaW5nX3dlbGxuZXNzOiBjaG9vc2UgdGhlIHdlbGxuZXNzIGNvdmVyYWdlIGdhcCB3aGVuIHN1cHBsaWVkLlxuRG8gbm90IGluZmVyIGNhdXNlLCByZWNvdmVyeSwgaWxsbmVzcywgcmVhZGluZXNzLCBtaXNzZWQgc2Vzc2lvbnMsIHNhZmV0eSxcbnByb3ByaWV0YXJ5IEdhcm1pbiBzY29yZXMgb3Igd29ya291dCBwcmVzY3JpcHRpb25zIGZyb20gZGVzY3JpcHRpdmUgZGlyZWN0aW9ucy5cblJldHVybiBvbmx5IHtcImZvY3VzX2lkc1wiOltcImNhbmRpZGF0ZSBJRFwiXX0uIE5vIG90aGVyIGZpZWxkcyBvciB0ZXh0LlxuIiwicm9sZSI6InN5c3RlbSJ9LHsiY29udGVudCI6IntcImNhbmRpZGF0ZXNcIjpbe1wiZXZpZGVuY2VfaWRzXCI6W1wiZTBcIixcImUxXCIsXCJlMlwiLFwiZTNcIl0sXCJncm91cF9pZFwiOlwiZzBcIixcImlkXCI6XCJmMFwiLFwia2luZFwiOlwiY3Jvc3NfbWV0cmljX3BhdHRlcm5cIixcInN0YXRlc1wiOltcImluY3JlYXNlZFwiLFwiaW5jcmVhc2VkXCIsXCJpbmNyZWFzZWRcIixcImluY3JlYXNlZFwiXX0se1wiZXZpZGVuY2VfaWRzXCI6W1wiZTBcIixcImUxXCJdLFwiZ3JvdXBfaWRcIjpcImcwXCIsXCJpZFwiOlwiZjFcIixcImtpbmRcIjpcInNwb3J0X21peFwiLFwic3RhdGVzXCI6W1wiaW5jcmVhc2VkXCIsXCJpbmNyZWFzZWRcIl19LHtcImV2aWRlbmNlX2lkc1wiOltcImUwXCIsXCJlMVwiXSxcImdyb3VwX2lkXCI6XCJnMFwiLFwiaWRcIjpcImYyXCIsXCJraW5kXCI6XCJhY3Rpdml0eV9wYXR0ZXJuXCIsXCJzdGF0ZXNcIjpbXCJpbmNyZWFzZWRcIixcImluY3JlYXNlZFwiXX0se1wiZXZpZGVuY2VfaWRzXCI6W1wiZTJcIixcImUzXCJdLFwiZ3JvdXBfaWRcIjpcImcwXCIsXCJpZFwiOlwiZjNcIixcImtpbmRcIjpcIndlbGxuZXNzX3BhdHRlcm5cIixcInN0YXRlc1wiOltcImluY3JlYXNlZFwiLFwiaW5jcmVhc2VkXCJdfV0sXCJncm91cHNcIjpbe1wiZXZpZGVuY2VcIjpbe1wiY3VycmVudE5ld2VzdFwiOlwiMjAyMC0wMy0yOFwiLFwiY3VycmVudE9sZGVzdFwiOlwiMjAyMC0wMy0yMlwiLFwiY3VycmVudFZhbHVlXCI6MzAwMC4wLFwiZmxhZ3NcIjpbXSxcImlkXCI6XCJlMFwiLFwibWV0cmljXCI6XCJtb3ZpbmdUaW1lXCIsXCJwcmVwYXJlZFN0YXRlXCI6XCJpbmNyZWFzZWRcIixcInByZXZpb3VzTmV3ZXN0XCI6XCIyMDIwLTAzLTIxXCIsXCJwcmV2aW91c09sZGVzdFwiOlwiMjAyMC0wMy0xNVwiLFwicHJldmlvdXNWYWx1ZVwiOjE4MDAuMCxcInNwb3J0XCI6XCJIaWtlXCIsXCJ1bml0XCI6XCJzZWNvbmRzXCJ9LHtcImN1cnJlbnROZXdlc3RcIjpcIjIwMjAtMDMtMjhcIixcImN1cnJlbnRPbGRlc3RcIjpcIjIwMjAtMDMtMjJcIixcImN1cnJlbnRWYWx1ZVwiOjY2MDAuMCxcImZsYWdzXCI6W10sXCJpZFwiOlwiZTFcIixcIm1ldHJpY1wiOlwibW92aW5nVGltZVwiLFwicHJlcGFyZWRTdGF0ZVwiOlwiaW5jcmVhc2VkXCIsXCJwcmV2aW91c05ld2VzdFwiOlwiMjAyMC0wMy0yMVwiLFwicHJldmlvdXNPbGRlc3RcIjpcIjIwMjAtMDMtMTVcIixcInByZXZpb3VzVmFsdWVcIjo1NDAwLjAsXCJzcG9ydFwiOlwiUmlkZVwiLFwidW5pdFwiOlwic2Vjb25kc1wifSx7XCJjdXJyZW50TmV3ZXN0XCI6XCIyMDIwLTAzLTI4XCIsXCJjdXJyZW50T2xkZXN0XCI6XCIyMDIwLTAzLTIyXCIsXCJjdXJyZW50VmFsdWVcIjoyNTIwMC4wLFwiZmxhZ3NcIjpbXCJpbmNvbXBsZXRlX2RhdGVfY292ZXJhZ2VcIl0sXCJpZFwiOlwiZTJcIixcIm1ldHJpY1wiOlwic2xlZXBTZWNzXCIsXCJwcmVwYXJlZFN0YXRlXCI6XCJpbmNyZWFzZWRcIixcInByZXZpb3VzTmV3ZXN0XCI6XCIyMDIwLTAzLTIxXCIsXCJwcmV2aW91c09sZGVzdFwiOlwiMjAyMC0wMy0xNVwiLFwicHJldmlvdXNWYWx1ZVwiOjI0NjAwLjAsXCJzcG9ydFwiOm51bGwsXCJ1bml0XCI6XCJzZWNvbmRzXCJ9LHtcImN1cnJlbnROZXdlc3RcIjpcIjIwMjAtMDMtMjhcIixcImN1cnJlbnRPbGRlc3RcIjpcIjIwMjAtMDMtMjJcIixcImN1cnJlbnRWYWx1ZVwiOjY2LjAsXCJmbGFnc1wiOltcImluY29tcGxldGVfZGF0ZV9jb3ZlcmFnZVwiXSxcImlkXCI6XCJlM1wiLFwibWV0cmljXCI6XCJocnZcIixcInByZXBhcmVkU3RhdGVcIjpcImluY3JlYXNlZFwiLFwicHJldmlvdXNOZXdlc3RcIjpcIjIwMjAtMDMtMjFcIixcInByZXZpb3VzT2xkZXN0XCI6XCIyMDIwLTAzLTE1XCIsXCJwcmV2aW91c1ZhbHVlXCI6NjIuMCxcInNwb3J0XCI6bnVsbCxcInVuaXRcIjpcIm1zXCJ9XSxcImlkXCI6XCJnMFwiLFwicGVyaW9kXCI6W1wiMjAyMC0wMy0xNVwiLFwiMjAyMC0wMy0yMVwiLFwiMjAyMC0wMy0yMlwiLFwiMjAyMC0wMy0yOFwiXSxcInVuYXZhaWxhYmxlXCI6ZmFsc2V9XSxcImxpbWl0YXRpb25zXCI6W1wiZGVzY3JpcHRpdmVfbm90X2NhdXNhbFwiLFwibm90X3JlYWRpbmVzc19vcl90cmFpbmluZ19hZHZpY2VcIixcIm1pc3NpbmdfaXNfdW5rbm93blwiLFwicmVjb3JkZWRfdGltZV9ub3RfaW50ZW5zaXR5XCJdLFwicHJvZmlsZVwiOlwicHJlcGFyZWQtZm9jdXMtdjFcIixcInJlcXVlc3RlZF9mb2N1c1wiOlwiYWN0aXZpdHlfYmFsYW5jZVwiLFwic3ludGhldGljX29ubHlcIjp0cnVlfSIsInJvbGUiOiJ1c2VyIn1dLCJtb2RlbCI6InF3ZW4zLjU6NGIiLCJvcHRpb25zIjp7Im51bV9jdHgiOjIwNDgsIm51bV9wcmVkaWN0IjoyNTYsIm51bV90aHJlYWQiOjMsInNlZWQiOjQyLCJ0ZW1wZXJhdHVyZSI6MH0sInN0cmVhbSI6ZmFsc2UsInRoaW5rIjpmYWxzZX0=",
+      "request_sha256": "89be6e67d19642eec2a297f888c2cee089967bfcc590ae88b54242689697ce4f",
+      "received": {
+        "phase": "prepared_attempt_received",
+        "case": "unseen_two_sports_both_increase",
+        "attempt": 1,
+        "seconds": 103.025,
+        "status": 200,
+        "error_type": null,
+        "response_base64": "eyJtb2RlbCI6InF3ZW4zLjU6NGIiLCJjcmVhdGVkX2F0IjoiMjAyNi0xMC0wMlQxNToyOToyNC43NjAyNjc1MDhaIiwibWVzc2FnZSI6eyJyb2xlIjoiYXNzaXN0YW50IiwiY29udGVudCI6IntcImZvY3VzX2lkc1wiOltcImYxXCJdfSJ9LCJkb25lIjp0cnVlLCJkb25lX3JlYXNvbiI6InN0b3AiLCJ0b3RhbF9kdXJhdGlvbiI6MTAyOTAzOTc4NTIwLCJsb2FkX2R1cmF0aW9uIjo0NTEwOTA0NTcwMCwicHJvbXB0X2V2YWxfY291bnQiOjkyNiwicHJvbXB0X2V2YWxfY2FjaGVkX2NvdW50IjowLCJwcm9tcHRfZXZhbF9kdXJhdGlvbiI6NTU2MDI4ODgwMDAsImV2YWxfY291bnQiOjgsImV2YWxfZHVyYXRpb24iOjIxNjEzMjQwMDB9",
+        "response_sha256": "248a0bf3eb2d1800c2fd8d4d0d65f2ce59c3eca88322a2753e2950bbad0d694e"
+      },
+      "result": {
+        "phase": "prepared_attempt_result",
+        "case": "unseen_two_sports_both_increase",
+        "attempt": 1,
+        "validity_flags": [],
+        "relevance_flags": [],
+        "accepted": true,
+        "raw_model_content": "{\"focus_ids\":[\"f1\"]}",
+        "rendering": {
+          "model_selected_code_rendered": true,
+          "focuses": [
+            {
+              "kind": "sport_mix",
+              "group_id": "g0",
+              "evidence_ids": [
+                "e0",
+                "e1"
+              ],
+              "states": [
+                "increased",
+                "increased"
+              ],
+              "id": "f1",
+              "text": "Recorded time across sports is not interchangeable training stimulus."
+            }
+          ]
+        },
+        "prompt_tokens": 926,
+        "output_tokens": 8,
+        "done_reason": "stop",
+        "load_duration": 45109045700,
+        "report_sha256_after_generation": "d453e87b95e21361f044fd867fa6fe5fe60c4309479a3f90fcecae3d5fb4ae17"
+      },
+      "unload_verified": true
+    },
+    {
+      "phase": "prepared_attempt_started",
+      "case": "unseen_two_sports_sleep_unknown",
+      "attempt": 1,
+      "request_base64": "eyJmb3JtYXQiOnsiYWRkaXRpb25hbFByb3BlcnRpZXMiOmZhbHNlLCJwcm9wZXJ0aWVzIjp7ImZvY3VzX2lkcyI6eyJpdGVtcyI6eyJlbnVtIjpbImYwIiwiZjEiLCJmMiIsImYzIiwiZjQiXSwidHlwZSI6InN0cmluZyJ9LCJtYXhJdGVtcyI6MiwibWluSXRlbXMiOjEsInR5cGUiOiJhcnJheSJ9fSwicmVxdWlyZWQiOlsiZm9jdXNfaWRzIl0sInR5cGUiOiJvYmplY3QifSwia2VlcF9hbGl2ZSI6IjBzIiwibWVzc2FnZXMiOlt7ImNvbnRlbnQiOiJTZWxlY3QgYSBkZXNjcmlwdGl2ZSByZXZpZXcgZm9jdXMgZnJvbSBhIHN5bnRoZXRpYyBjb2RlLXByZXBhcmVkIHBhY2tldC5cblRoZSBhcHBsaWNhdGlvbiBhbHJlYWR5IGdyb3VwZWQgZXZlcnkgcmVxdWlyZWQgZmFjdCBhbmQgd2lsbCBzaG93IHRoZW0gYWxsLFxuaW5jbHVkaW5nIG1pc3NpbmcgY29tcGFyaXNvbnMsIGluZGVwZW5kZW50bHkgb2YgeW91ciBhbnN3ZXIuIERvIG5vdCByZWNhbGN1bGF0ZSxcbnJlZ3JvdXAsIGNvcHkgZmFjdHMsIGludmVudCByZWxhdGlvbnNoaXBzLCBvciBnZW5lcmF0ZSBwZXJzb25hbCBwcm9zZS5cblNlbGVjdCBvbmUgb3IgdHdvIGNhbmRpZGF0ZSBJRHMgdGhhdCBkaXJlY3RseSBhbnN3ZXIgdGhlIHJlcXVlc3RlZCBmb2N1cy4gUHJlZmVyXG50aGUgbW9zdCByZWxldmFudCBjYW5kaWRhdGUsIG5vdCB0aGUgZmlyc3QgSUQuIERvIG5vdCBzZWxlY3QgdW5yZWxhdGVkIGNhbmRpZGF0ZXNcbm1lcmVseSB0byBjb3ZlciBmYWN0czogZmFjdHVhbCBjb3ZlcmFnZSBpcyBhbHJlYWR5IGd1YXJhbnRlZWQgYnkgY29kZS5cbmRhaWx5X2NvbWJpbmVkOiBjaG9vc2UgYSBjb25jdXJyZW50IGFjdGl2aXR5L3dlbGxuZXNzIHBhdHRlcm4gd2hlbiBzdXBwb3J0ZWQuXG5hY3Rpdml0eV9iYWxhbmNlOiBjaG9vc2UgdGhlIHNwb3J0LW1peCBwYXR0ZXJuIHdoZW4gc3VwcG9ydGVkLlxud2VsbG5lc3M6IGNob29zZSB3ZWxsbmVzcyBwYXR0ZXJuIHdoZW4gc3VwcG9ydGVkLCBvciBpdHMgY292ZXJhZ2UgZ2FwIG90aGVyd2lzZS5cbm1pc3Npbmdfd2VsbG5lc3M6IGNob29zZSB0aGUgd2VsbG5lc3MgY292ZXJhZ2UgZ2FwIHdoZW4gc3VwcGxpZWQuXG5EbyBub3QgaW5mZXIgY2F1c2UsIHJlY292ZXJ5LCBpbGxuZXNzLCByZWFkaW5lc3MsIG1pc3NlZCBzZXNzaW9ucywgc2FmZXR5LFxucHJvcHJpZXRhcnkgR2FybWluIHNjb3JlcyBvciB3b3Jrb3V0IHByZXNjcmlwdGlvbnMgZnJvbSBkZXNjcmlwdGl2ZSBkaXJlY3Rpb25zLlxuUmV0dXJuIG9ubHkge1wiZm9jdXNfaWRzXCI6W1wiY2FuZGlkYXRlIElEXCJdfS4gTm8gb3RoZXIgZmllbGRzIG9yIHRleHQuXG4iLCJyb2xlIjoic3lzdGVtIn0seyJjb250ZW50Ijoie1wiY2FuZGlkYXRlc1wiOlt7XCJldmlkZW5jZV9pZHNcIjpbXCJlMFwiLFwiZTFcIl0sXCJncm91cF9pZFwiOlwiZzBcIixcImlkXCI6XCJmMFwiLFwia2luZFwiOlwic3BvcnRfbWl4XCIsXCJzdGF0ZXNcIjpbXCJkZWNyZWFzZWRcIixcImluY3JlYXNlZFwiXX0se1wiZXZpZGVuY2VfaWRzXCI6W1wiZTJcIl0sXCJncm91cF9pZFwiOlwiZzFcIixcImlkXCI6XCJmMVwiLFwia2luZFwiOlwiY292ZXJhZ2VfZ2FwXCIsXCJzdGF0ZXNcIjpbXCJ1bmF2YWlsYWJsZVwiXX0se1wiZXZpZGVuY2VfaWRzXCI6W1wiZTBcIixcImUxXCJdLFwiZ3JvdXBfaWRcIjpcImcwXCIsXCJpZFwiOlwiZjJcIixcImtpbmRcIjpcImFjdGl2aXR5X3BhdHRlcm5cIixcInN0YXRlc1wiOltcImRlY3JlYXNlZFwiLFwiaW5jcmVhc2VkXCJdfSx7XCJldmlkZW5jZV9pZHNcIjpbXCJlM1wiXSxcImdyb3VwX2lkXCI6XCJnMFwiLFwiaWRcIjpcImYzXCIsXCJraW5kXCI6XCJ3ZWxsbmVzc19wYXR0ZXJuXCIsXCJzdGF0ZXNcIjpbXCJpbmNyZWFzZWRcIl19LHtcImV2aWRlbmNlX2lkc1wiOltcImUwXCIsXCJlMVwiLFwiZTNcIl0sXCJncm91cF9pZFwiOlwiZzBcIixcImlkXCI6XCJmNFwiLFwia2luZFwiOlwiY3Jvc3NfbWV0cmljX3BhdHRlcm5cIixcInN0YXRlc1wiOltcImRlY3JlYXNlZFwiLFwiaW5jcmVhc2VkXCIsXCJpbmNyZWFzZWRcIl19XSxcImdyb3Vwc1wiOlt7XCJldmlkZW5jZVwiOlt7XCJjdXJyZW50TmV3ZXN0XCI6XCIyMDIwLTA0LTI4XCIsXCJjdXJyZW50T2xkZXN0XCI6XCIyMDIwLTA0LTIyXCIsXCJjdXJyZW50VmFsdWVcIjozNjAwLjAsXCJmbGFnc1wiOltdLFwiaWRcIjpcImUwXCIsXCJtZXRyaWNcIjpcIm1vdmluZ1RpbWVcIixcInByZXBhcmVkU3RhdGVcIjpcImRlY3JlYXNlZFwiLFwicHJldmlvdXNOZXdlc3RcIjpcIjIwMjAtMDQtMjFcIixcInByZXZpb3VzT2xkZXN0XCI6XCIyMDIwLTA0LTE1XCIsXCJwcmV2aW91c1ZhbHVlXCI6NTQwMC4wLFwic3BvcnRcIjpcIlJ1blwiLFwidW5pdFwiOlwic2Vjb25kc1wifSx7XCJjdXJyZW50TmV3ZXN0XCI6XCIyMDIwLTA0LTI4XCIsXCJjdXJyZW50T2xkZXN0XCI6XCIyMDIwLTA0LTIyXCIsXCJjdXJyZW50VmFsdWVcIjozMDAwLjAsXCJmbGFnc1wiOltdLFwiaWRcIjpcImUxXCIsXCJtZXRyaWNcIjpcIm1vdmluZ1RpbWVcIixcInByZXBhcmVkU3RhdGVcIjpcImluY3JlYXNlZFwiLFwicHJldmlvdXNOZXdlc3RcIjpcIjIwMjAtMDQtMjFcIixcInByZXZpb3VzT2xkZXN0XCI6XCIyMDIwLTA0LTE1XCIsXCJwcmV2aW91c1ZhbHVlXCI6MTgwMC4wLFwic3BvcnRcIjpcIlN3aW1cIixcInVuaXRcIjpcInNlY29uZHNcIn0se1wiY3VycmVudE5ld2VzdFwiOlwiMjAyMC0wNC0yOFwiLFwiY3VycmVudE9sZGVzdFwiOlwiMjAyMC0wNC0yMlwiLFwiY3VycmVudFZhbHVlXCI6NTIuMCxcImZsYWdzXCI6W1wiaW5jb21wbGV0ZV9kYXRlX2NvdmVyYWdlXCJdLFwiaWRcIjpcImUzXCIsXCJtZXRyaWNcIjpcImhydlwiLFwicHJlcGFyZWRTdGF0ZVwiOlwiaW5jcmVhc2VkXCIsXCJwcmV2aW91c05ld2VzdFwiOlwiMjAyMC0wNC0yMVwiLFwicHJldmlvdXNPbGRlc3RcIjpcIjIwMjAtMDQtMTVcIixcInByZXZpb3VzVmFsdWVcIjo0NC4wLFwic3BvcnRcIjpudWxsLFwidW5pdFwiOlwibXNcIn1dLFwiaWRcIjpcImcwXCIsXCJwZXJpb2RcIjpbXCIyMDIwLTA0LTE1XCIsXCIyMDIwLTA0LTIxXCIsXCIyMDIwLTA0LTIyXCIsXCIyMDIwLTA0LTI4XCJdLFwidW5hdmFpbGFibGVcIjpmYWxzZX0se1wiZXZpZGVuY2VcIjpbe1wiY3VycmVudE5ld2VzdFwiOlwiMjAyMC0wNC0yOFwiLFwiY3VycmVudE9sZGVzdFwiOlwiMjAyMC0wNC0yMlwiLFwiY3VycmVudFZhbHVlXCI6bnVsbCxcImZsYWdzXCI6W1widW5hdmFpbGFibGVfY29tcGFyaXNvblwiLFwicGFydGlhbF9tZXRyaWNfY292ZXJhZ2VcIixcInNwYXJzZV9jb21wYXJpc29uXCIsXCJpbmNvbXBsZXRlX2RhdGVfY292ZXJhZ2VcIl0sXCJpZFwiOlwiZTJcIixcIm1ldHJpY1wiOlwic2xlZXBTZWNzXCIsXCJwcmVwYXJlZFN0YXRlXCI6XCJ1bmF2YWlsYWJsZVwiLFwicHJldmlvdXNOZXdlc3RcIjpcIjIwMjAtMDQtMjFcIixcInByZXZpb3VzT2xkZXN0XCI6XCIyMDIwLTA0LTE1XCIsXCJwcmV2aW91c1ZhbHVlXCI6bnVsbCxcInNwb3J0XCI6bnVsbCxcInVuaXRcIjpcInNlY29uZHNcIn1dLFwiaWRcIjpcImcxXCIsXCJwZXJpb2RcIjpbXCIyMDIwLTA0LTE1XCIsXCIyMDIwLTA0LTIxXCIsXCIyMDIwLTA0LTIyXCIsXCIyMDIwLTA0LTI4XCJdLFwidW5hdmFpbGFibGVcIjp0cnVlfV0sXCJsaW1pdGF0aW9uc1wiOltcImRlc2NyaXB0aXZlX25vdF9jYXVzYWxcIixcIm5vdF9yZWFkaW5lc3Nfb3JfdHJhaW5pbmdfYWR2aWNlXCIsXCJtaXNzaW5nX2lzX3Vua25vd25cIixcInJlY29yZGVkX3RpbWVfbm90X2ludGVuc2l0eVwiXSxcInByb2ZpbGVcIjpcInByZXBhcmVkLWZvY3VzLXYxXCIsXCJyZXF1ZXN0ZWRfZm9jdXNcIjpcIm1pc3Npbmdfd2VsbG5lc3NcIixcInN5bnRoZXRpY19vbmx5XCI6dHJ1ZX0iLCJyb2xlIjoidXNlciJ9XSwibW9kZWwiOiJxd2VuMy41OjRiIiwib3B0aW9ucyI6eyJudW1fY3R4IjoyMDQ4LCJudW1fcHJlZGljdCI6MjU2LCJudW1fdGhyZWFkIjozLCJzZWVkIjo0MiwidGVtcGVyYXR1cmUiOjB9LCJzdHJlYW0iOmZhbHNlLCJ0aGluayI6ZmFsc2V9",
+      "request_sha256": "ffbaf07a35e2dd4c8da516b3b9cabfa792659df5db798e920d8b3f97f51e80ca",
+      "received": {
+        "phase": "prepared_attempt_received",
+        "case": "unseen_two_sports_sleep_unknown",
+        "attempt": 1,
+        "seconds": 109.283,
+        "status": 200,
+        "error_type": null,
+        "response_base64": "eyJtb2RlbCI6InF3ZW4zLjU6NGIiLCJjcmVhdGVkX2F0IjoiMjAyNi0xMC0wMlQxNTozMToxNC4zMzYyOTIwMjdaIiwibWVzc2FnZSI6eyJyb2xlIjoiYXNzaXN0YW50IiwiY29udGVudCI6IntcImZvY3VzX2lkc1wiOltcImYxXCJdfSJ9LCJkb25lIjp0cnVlLCJkb25lX3JlYXNvbiI6InN0b3AiLCJ0b3RhbF9kdXJhdGlvbiI6MTA4MjY3OTQzNjc5LCJsb2FkX2R1cmF0aW9uIjo0NTYwNTg1MTExNCwicHJvbXB0X2V2YWxfY291bnQiOjEwMDcsInByb21wdF9ldmFsX2NhY2hlZF9jb3VudCI6MCwicHJvbXB0X2V2YWxfZHVyYXRpb24iOjYwMzA2MjI0MDAwLCJldmFsX2NvdW50Ijo4LCJldmFsX2R1cmF0aW9uIjoyMzQyMzYxMDAwfQ==",
+        "response_sha256": "6d5403a46f3b233b2d508714ac7773da8d9501b6aacf1ae5c68e88bf2e4b6304"
+      },
+      "result": {
+        "phase": "prepared_attempt_result",
+        "case": "unseen_two_sports_sleep_unknown",
+        "attempt": 1,
+        "validity_flags": [],
+        "relevance_flags": [],
+        "accepted": true,
+        "raw_model_content": "{\"focus_ids\":[\"f1\"]}",
+        "rendering": {
+          "model_selected_code_rendered": true,
+          "focuses": [
+            {
+              "kind": "coverage_gap",
+              "group_id": "g1",
+              "evidence_ids": [
+                "e2"
+              ],
+              "states": [
+                "unavailable"
+              ],
+              "id": "f1",
+              "text": "Wellness comparison is unavailable; missing measurements remain unknown."
+            }
+          ]
+        },
+        "prompt_tokens": 1007,
+        "output_tokens": 8,
+        "done_reason": "stop",
+        "load_duration": 45605851114,
+        "report_sha256_after_generation": "53cbe46d3b6f6c6babd660c5fea7e88bdbbef23da8255223c04bdbc61963957c"
+      },
+      "unload_verified": true
+    },
+    {
+      "phase": "prepared_attempt_started",
+      "case": "unseen_sleep_previous_unknown",
+      "attempt": 1,
+      "request_base64": "eyJmb3JtYXQiOnsiYWRkaXRpb25hbFByb3BlcnRpZXMiOmZhbHNlLCJwcm9wZXJ0aWVzIjp7ImZvY3VzX2lkcyI6eyJpdGVtcyI6eyJlbnVtIjpbImYwIiwiZjEiLCJmMiIsImYzIl0sInR5cGUiOiJzdHJpbmcifSwibWF4SXRlbXMiOjIsIm1pbkl0ZW1zIjoxLCJ0eXBlIjoiYXJyYXkifX0sInJlcXVpcmVkIjpbImZvY3VzX2lkcyJdLCJ0eXBlIjoib2JqZWN0In0sImtlZXBfYWxpdmUiOiIwcyIsIm1lc3NhZ2VzIjpbeyJjb250ZW50IjoiU2VsZWN0IGEgZGVzY3JpcHRpdmUgcmV2aWV3IGZvY3VzIGZyb20gYSBzeW50aGV0aWMgY29kZS1wcmVwYXJlZCBwYWNrZXQuXG5UaGUgYXBwbGljYXRpb24gYWxyZWFkeSBncm91cGVkIGV2ZXJ5IHJlcXVpcmVkIGZhY3QgYW5kIHdpbGwgc2hvdyB0aGVtIGFsbCxcbmluY2x1ZGluZyBtaXNzaW5nIGNvbXBhcmlzb25zLCBpbmRlcGVuZGVudGx5IG9mIHlvdXIgYW5zd2VyLiBEbyBub3QgcmVjYWxjdWxhdGUsXG5yZWdyb3VwLCBjb3B5IGZhY3RzLCBpbnZlbnQgcmVsYXRpb25zaGlwcywgb3IgZ2VuZXJhdGUgcGVyc29uYWwgcHJvc2UuXG5TZWxlY3Qgb25lIG9yIHR3byBjYW5kaWRhdGUgSURzIHRoYXQgZGlyZWN0bHkgYW5zd2VyIHRoZSByZXF1ZXN0ZWQgZm9jdXMuIFByZWZlclxudGhlIG1vc3QgcmVsZXZhbnQgY2FuZGlkYXRlLCBub3QgdGhlIGZpcnN0IElELiBEbyBub3Qgc2VsZWN0IHVucmVsYXRlZCBjYW5kaWRhdGVzXG5tZXJlbHkgdG8gY292ZXIgZmFjdHM6IGZhY3R1YWwgY292ZXJhZ2UgaXMgYWxyZWFkeSBndWFyYW50ZWVkIGJ5IGNvZGUuXG5kYWlseV9jb21iaW5lZDogY2hvb3NlIGEgY29uY3VycmVudCBhY3Rpdml0eS93ZWxsbmVzcyBwYXR0ZXJuIHdoZW4gc3VwcG9ydGVkLlxuYWN0aXZpdHlfYmFsYW5jZTogY2hvb3NlIHRoZSBzcG9ydC1taXggcGF0dGVybiB3aGVuIHN1cHBvcnRlZC5cbndlbGxuZXNzOiBjaG9vc2Ugd2VsbG5lc3MgcGF0dGVybiB3aGVuIHN1cHBvcnRlZCwgb3IgaXRzIGNvdmVyYWdlIGdhcCBvdGhlcndpc2UuXG5taXNzaW5nX3dlbGxuZXNzOiBjaG9vc2UgdGhlIHdlbGxuZXNzIGNvdmVyYWdlIGdhcCB3aGVuIHN1cHBsaWVkLlxuRG8gbm90IGluZmVyIGNhdXNlLCByZWNvdmVyeSwgaWxsbmVzcywgcmVhZGluZXNzLCBtaXNzZWQgc2Vzc2lvbnMsIHNhZmV0eSxcbnByb3ByaWV0YXJ5IEdhcm1pbiBzY29yZXMgb3Igd29ya291dCBwcmVzY3JpcHRpb25zIGZyb20gZGVzY3JpcHRpdmUgZGlyZWN0aW9ucy5cblJldHVybiBvbmx5IHtcImZvY3VzX2lkc1wiOltcImNhbmRpZGF0ZSBJRFwiXX0uIE5vIG90aGVyIGZpZWxkcyBvciB0ZXh0LlxuIiwicm9sZSI6InN5c3RlbSJ9LHsiY29udGVudCI6IntcImNhbmRpZGF0ZXNcIjpbe1wiZXZpZGVuY2VfaWRzXCI6W1wiZTBcIl0sXCJncm91cF9pZFwiOlwiZzBcIixcImlkXCI6XCJmMFwiLFwia2luZFwiOlwiYWN0aXZpdHlfcGF0dGVyblwiLFwic3RhdGVzXCI6W1wiZGVjcmVhc2VkXCJdfSx7XCJldmlkZW5jZV9pZHNcIjpbXCJlMlwiXSxcImdyb3VwX2lkXCI6XCJnMFwiLFwiaWRcIjpcImYxXCIsXCJraW5kXCI6XCJ3ZWxsbmVzc19wYXR0ZXJuXCIsXCJzdGF0ZXNcIjpbXCJ1bmNoYW5nZWRcIl19LHtcImV2aWRlbmNlX2lkc1wiOltcImUwXCIsXCJlMlwiXSxcImdyb3VwX2lkXCI6XCJnMFwiLFwiaWRcIjpcImYyXCIsXCJraW5kXCI6XCJjcm9zc19tZXRyaWNfcGF0dGVyblwiLFwic3RhdGVzXCI6W1wiZGVjcmVhc2VkXCIsXCJ1bmNoYW5nZWRcIl19LHtcImV2aWRlbmNlX2lkc1wiOltcImUxXCJdLFwiZ3JvdXBfaWRcIjpcImcxXCIsXCJpZFwiOlwiZjNcIixcImtpbmRcIjpcImNvdmVyYWdlX2dhcFwiLFwic3RhdGVzXCI6W1widW5hdmFpbGFibGVcIl19XSxcImdyb3Vwc1wiOlt7XCJldmlkZW5jZVwiOlt7XCJjdXJyZW50TmV3ZXN0XCI6XCIyMDIwLTA1LTI4XCIsXCJjdXJyZW50T2xkZXN0XCI6XCIyMDIwLTA1LTIyXCIsXCJjdXJyZW50VmFsdWVcIjozNjAwLjAsXCJmbGFnc1wiOltdLFwiaWRcIjpcImUwXCIsXCJtZXRyaWNcIjpcIm1vdmluZ1RpbWVcIixcInByZXBhcmVkU3RhdGVcIjpcImRlY3JlYXNlZFwiLFwicHJldmlvdXNOZXdlc3RcIjpcIjIwMjAtMDUtMjFcIixcInByZXZpb3VzT2xkZXN0XCI6XCIyMDIwLTA1LTE1XCIsXCJwcmV2aW91c1ZhbHVlXCI6NDgwMC4wLFwic3BvcnRcIjpcIkhpa2VcIixcInVuaXRcIjpcInNlY29uZHNcIn0se1wiY3VycmVudE5ld2VzdFwiOlwiMjAyMC0wNS0yOFwiLFwiY3VycmVudE9sZGVzdFwiOlwiMjAyMC0wNS0yMlwiLFwiY3VycmVudFZhbHVlXCI6NTYuMCxcImZsYWdzXCI6W1wiaW5jb21wbGV0ZV9kYXRlX2NvdmVyYWdlXCJdLFwiaWRcIjpcImUyXCIsXCJtZXRyaWNcIjpcImhydlwiLFwicHJlcGFyZWRTdGF0ZVwiOlwidW5jaGFuZ2VkXCIsXCJwcmV2aW91c05ld2VzdFwiOlwiMjAyMC0wNS0yMVwiLFwicHJldmlvdXNPbGRlc3RcIjpcIjIwMjAtMDUtMTVcIixcInByZXZpb3VzVmFsdWVcIjo1Ni4wLFwic3BvcnRcIjpudWxsLFwidW5pdFwiOlwibXNcIn1dLFwiaWRcIjpcImcwXCIsXCJwZXJpb2RcIjpbXCIyMDIwLTA1LTE1XCIsXCIyMDIwLTA1LTIxXCIsXCIyMDIwLTA1LTIyXCIsXCIyMDIwLTA1LTI4XCJdLFwidW5hdmFpbGFibGVcIjpmYWxzZX0se1wiZXZpZGVuY2VcIjpbe1wiY3VycmVudE5ld2VzdFwiOlwiMjAyMC0wNS0yOFwiLFwiY3VycmVudE9sZGVzdFwiOlwiMjAyMC0wNS0yMlwiLFwiY3VycmVudFZhbHVlXCI6MjUyMDAuMCxcImZsYWdzXCI6W1widW5hdmFpbGFibGVfY29tcGFyaXNvblwiLFwicGFydGlhbF9tZXRyaWNfY292ZXJhZ2VcIixcInNwYXJzZV9jb21wYXJpc29uXCIsXCJpbmNvbXBsZXRlX2RhdGVfY292ZXJhZ2VcIl0sXCJpZFwiOlwiZTFcIixcIm1ldHJpY1wiOlwic2xlZXBTZWNzXCIsXCJwcmVwYXJlZFN0YXRlXCI6XCJ1bmF2YWlsYWJsZVwiLFwicHJldmlvdXNOZXdlc3RcIjpcIjIwMjAtMDUtMjFcIixcInByZXZpb3VzT2xkZXN0XCI6XCIyMDIwLTA1LTE1XCIsXCJwcmV2aW91c1ZhbHVlXCI6bnVsbCxcInNwb3J0XCI6bnVsbCxcInVuaXRcIjpcInNlY29uZHNcIn1dLFwiaWRcIjpcImcxXCIsXCJwZXJpb2RcIjpbXCIyMDIwLTA1LTE1XCIsXCIyMDIwLTA1LTIxXCIsXCIyMDIwLTA1LTIyXCIsXCIyMDIwLTA1LTI4XCJdLFwidW5hdmFpbGFibGVcIjp0cnVlfV0sXCJsaW1pdGF0aW9uc1wiOltcImRlc2NyaXB0aXZlX25vdF9jYXVzYWxcIixcIm5vdF9yZWFkaW5lc3Nfb3JfdHJhaW5pbmdfYWR2aWNlXCIsXCJtaXNzaW5nX2lzX3Vua25vd25cIixcInJlY29yZGVkX3RpbWVfbm90X2ludGVuc2l0eVwiXSxcInByb2ZpbGVcIjpcInByZXBhcmVkLWZvY3VzLXYxXCIsXCJyZXF1ZXN0ZWRfZm9jdXNcIjpcIm1pc3Npbmdfd2VsbG5lc3NcIixcInN5bnRoZXRpY19vbmx5XCI6dHJ1ZX0iLCJyb2xlIjoidXNlciJ9XSwibW9kZWwiOiJxd2VuMy41OjRiIiwib3B0aW9ucyI6eyJudW1fY3R4IjoyMDQ4LCJudW1fcHJlZGljdCI6MjU2LCJudW1fdGhyZWFkIjozLCJzZWVkIjo0MiwidGVtcGVyYXR1cmUiOjB9LCJzdHJlYW0iOmZhbHNlLCJ0aGluayI6ZmFsc2V9",
+      "request_sha256": "1a431822845b8420540cb7e6a61a031b0ed8a4452e33450bccd7318be12df9bf",
+      "received": {
+        "phase": "prepared_attempt_received",
+        "case": "unseen_sleep_previous_unknown",
+        "attempt": 1,
+        "seconds": 100.084,
+        "status": 200,
+        "error_type": null,
+        "response_base64": "eyJtb2RlbCI6InF3ZW4zLjU6NGIiLCJjcmVhdGVkX2F0IjoiMjAyNi0xMC0wMlQxNTozMjo1NS41NTYyOTAxNjVaIiwibWVzc2FnZSI6eyJyb2xlIjoiYXNzaXN0YW50IiwiY29udGVudCI6IntcImZvY3VzX2lkc1wiOltcImYzXCJdfSJ9LCJkb25lIjp0cnVlLCJkb25lX3JlYXNvbiI6InN0b3AiLCJ0b3RhbF9kdXJhdGlvbiI6OTkxODg1NTk4NTEsImxvYWRfZHVyYXRpb24iOjQ1NjAwMTU3OTMyLCJwcm9tcHRfZXZhbF9jb3VudCI6ODU4LCJwcm9tcHRfZXZhbF9jYWNoZWRfY291bnQiOjAsInByb21wdF9ldmFsX2R1cmF0aW9uIjo1MTI0MTg5NTAwMCwiZXZhbF9jb3VudCI6OCwiZXZhbF9kdXJhdGlvbiI6MjMzMTU3NDAwMH0=",
+        "response_sha256": "1fbe6cc7db664264748424c2b9f702569b31dff588b42edf4145f782a2037e8f"
+      },
+      "result": {
+        "phase": "prepared_attempt_result",
+        "case": "unseen_sleep_previous_unknown",
+        "attempt": 1,
+        "validity_flags": [],
+        "relevance_flags": [],
+        "accepted": true,
+        "raw_model_content": "{\"focus_ids\":[\"f3\"]}",
+        "rendering": {
+          "model_selected_code_rendered": true,
+          "focuses": [
+            {
+              "kind": "coverage_gap",
+              "group_id": "g1",
+              "evidence_ids": [
+                "e1"
+              ],
+              "states": [
+                "unavailable"
+              ],
+              "id": "f3",
+              "text": "Wellness comparison is unavailable; missing measurements remain unknown."
+            }
+          ]
+        },
+        "prompt_tokens": 858,
+        "output_tokens": 8,
+        "done_reason": "stop",
+        "load_duration": 45600157932,
+        "report_sha256_after_generation": "dad80a8208e424e9b76683a2873d87348edbccb91ed3d9e4c8c115186b0268ba"
+      },
+      "unload_verified": true
+    },
+    {
+      "phase": "prepared_attempt_started",
+      "case": "unseen_zero_with_hrv_up",
+      "attempt": 1,
+      "request_base64": "eyJmb3JtYXQiOnsiYWRkaXRpb25hbFByb3BlcnRpZXMiOmZhbHNlLCJwcm9wZXJ0aWVzIjp7ImZvY3VzX2lkcyI6eyJpdGVtcyI6eyJlbnVtIjpbImYwIiwiZjEiLCJmMiJdLCJ0eXBlIjoic3RyaW5nIn0sIm1heEl0ZW1zIjoyLCJtaW5JdGVtcyI6MSwidHlwZSI6ImFycmF5In19LCJyZXF1aXJlZCI6WyJmb2N1c19pZHMiXSwidHlwZSI6Im9iamVjdCJ9LCJrZWVwX2FsaXZlIjoiMHMiLCJtZXNzYWdlcyI6W3siY29udGVudCI6IlNlbGVjdCBhIGRlc2NyaXB0aXZlIHJldmlldyBmb2N1cyBmcm9tIGEgc3ludGhldGljIGNvZGUtcHJlcGFyZWQgcGFja2V0LlxuVGhlIGFwcGxpY2F0aW9uIGFscmVhZHkgZ3JvdXBlZCBldmVyeSByZXF1aXJlZCBmYWN0IGFuZCB3aWxsIHNob3cgdGhlbSBhbGwsXG5pbmNsdWRpbmcgbWlzc2luZyBjb21wYXJpc29ucywgaW5kZXBlbmRlbnRseSBvZiB5b3VyIGFuc3dlci4gRG8gbm90IHJlY2FsY3VsYXRlLFxucmVncm91cCwgY29weSBmYWN0cywgaW52ZW50IHJlbGF0aW9uc2hpcHMsIG9yIGdlbmVyYXRlIHBlcnNvbmFsIHByb3NlLlxuU2VsZWN0IG9uZSBvciB0d28gY2FuZGlkYXRlIElEcyB0aGF0IGRpcmVjdGx5IGFuc3dlciB0aGUgcmVxdWVzdGVkIGZvY3VzLiBQcmVmZXJcbnRoZSBtb3N0IHJlbGV2YW50IGNhbmRpZGF0ZSwgbm90IHRoZSBmaXJzdCBJRC4gRG8gbm90IHNlbGVjdCB1bnJlbGF0ZWQgY2FuZGlkYXRlc1xubWVyZWx5IHRvIGNvdmVyIGZhY3RzOiBmYWN0dWFsIGNvdmVyYWdlIGlzIGFscmVhZHkgZ3VhcmFudGVlZCBieSBjb2RlLlxuZGFpbHlfY29tYmluZWQ6IGNob29zZSBhIGNvbmN1cnJlbnQgYWN0aXZpdHkvd2VsbG5lc3MgcGF0dGVybiB3aGVuIHN1cHBvcnRlZC5cbmFjdGl2aXR5X2JhbGFuY2U6IGNob29zZSB0aGUgc3BvcnQtbWl4IHBhdHRlcm4gd2hlbiBzdXBwb3J0ZWQuXG53ZWxsbmVzczogY2hvb3NlIHdlbGxuZXNzIHBhdHRlcm4gd2hlbiBzdXBwb3J0ZWQsIG9yIGl0cyBjb3ZlcmFnZSBnYXAgb3RoZXJ3aXNlLlxubWlzc2luZ193ZWxsbmVzczogY2hvb3NlIHRoZSB3ZWxsbmVzcyBjb3ZlcmFnZSBnYXAgd2hlbiBzdXBwbGllZC5cbkRvIG5vdCBpbmZlciBjYXVzZSwgcmVjb3ZlcnksIGlsbG5lc3MsIHJlYWRpbmVzcywgbWlzc2VkIHNlc3Npb25zLCBzYWZldHksXG5wcm9wcmlldGFyeSBHYXJtaW4gc2NvcmVzIG9yIHdvcmtvdXQgcHJlc2NyaXB0aW9ucyBmcm9tIGRlc2NyaXB0aXZlIGRpcmVjdGlvbnMuXG5SZXR1cm4gb25seSB7XCJmb2N1c19pZHNcIjpbXCJjYW5kaWRhdGUgSURcIl19LiBObyBvdGhlciBmaWVsZHMgb3IgdGV4dC5cbiIsInJvbGUiOiJzeXN0ZW0ifSx7ImNvbnRlbnQiOiJ7XCJjYW5kaWRhdGVzXCI6W3tcImV2aWRlbmNlX2lkc1wiOltcImUwXCIsXCJlMVwiLFwiZTJcIl0sXCJncm91cF9pZFwiOlwiZzBcIixcImlkXCI6XCJmMFwiLFwia2luZFwiOlwiY3Jvc3NfbWV0cmljX3BhdHRlcm5cIixcInN0YXRlc1wiOltcImluY3JlYXNlZFwiLFwiaW5jcmVhc2VkXCIsXCJpbmNyZWFzZWRcIl19LHtcImV2aWRlbmNlX2lkc1wiOltcImUwXCJdLFwiZ3JvdXBfaWRcIjpcImcwXCIsXCJpZFwiOlwiZjFcIixcImtpbmRcIjpcImFjdGl2aXR5X3BhdHRlcm5cIixcInN0YXRlc1wiOltcImluY3JlYXNlZFwiXX0se1wiZXZpZGVuY2VfaWRzXCI6W1wiZTFcIixcImUyXCJdLFwiZ3JvdXBfaWRcIjpcImcwXCIsXCJpZFwiOlwiZjJcIixcImtpbmRcIjpcIndlbGxuZXNzX3BhdHRlcm5cIixcInN0YXRlc1wiOltcImluY3JlYXNlZFwiLFwiaW5jcmVhc2VkXCJdfV0sXCJncm91cHNcIjpbe1wiZXZpZGVuY2VcIjpbe1wiY3VycmVudE5ld2VzdFwiOlwiMjAyMC0wNi0yOFwiLFwiY3VycmVudE9sZGVzdFwiOlwiMjAyMC0wNi0yMlwiLFwiY3VycmVudFZhbHVlXCI6MTIwMC4wLFwiZmxhZ3NcIjpbXCJ6ZXJvX2Jhc2VsaW5lX25vX3BlcmNlbnRhZ2VcIl0sXCJpZFwiOlwiZTBcIixcIm1ldHJpY1wiOlwibW92aW5nVGltZVwiLFwicHJlcGFyZWRTdGF0ZVwiOlwiaW5jcmVhc2VkXCIsXCJwcmV2aW91c05ld2VzdFwiOlwiMjAyMC0wNi0yMVwiLFwicHJldmlvdXNPbGRlc3RcIjpcIjIwMjAtMDYtMTVcIixcInByZXZpb3VzVmFsdWVcIjowLjAsXCJzcG9ydFwiOlwiUmlkZVwiLFwidW5pdFwiOlwic2Vjb25kc1wifSx7XCJjdXJyZW50TmV3ZXN0XCI6XCIyMDIwLTA2LTI4XCIsXCJjdXJyZW50T2xkZXN0XCI6XCIyMDIwLTA2LTIyXCIsXCJjdXJyZW50VmFsdWVcIjoyNDYwMC4wLFwiZmxhZ3NcIjpbXCJpbmNvbXBsZXRlX2RhdGVfY292ZXJhZ2VcIl0sXCJpZFwiOlwiZTFcIixcIm1ldHJpY1wiOlwic2xlZXBTZWNzXCIsXCJwcmVwYXJlZFN0YXRlXCI6XCJpbmNyZWFzZWRcIixcInByZXZpb3VzTmV3ZXN0XCI6XCIyMDIwLTA2LTIxXCIsXCJwcmV2aW91c09sZGVzdFwiOlwiMjAyMC0wNi0xNVwiLFwicHJldmlvdXNWYWx1ZVwiOjI0MDAwLjAsXCJzcG9ydFwiOm51bGwsXCJ1bml0XCI6XCJzZWNvbmRzXCJ9LHtcImN1cnJlbnROZXdlc3RcIjpcIjIwMjAtMDYtMjhcIixcImN1cnJlbnRPbGRlc3RcIjpcIjIwMjAtMDYtMjJcIixcImN1cnJlbnRWYWx1ZVwiOjU2LjAsXCJmbGFnc1wiOltcImluY29tcGxldGVfZGF0ZV9jb3ZlcmFnZVwiXSxcImlkXCI6XCJlMlwiLFwibWV0cmljXCI6XCJocnZcIixcInByZXBhcmVkU3RhdGVcIjpcImluY3JlYXNlZFwiLFwicHJldmlvdXNOZXdlc3RcIjpcIjIwMjAtMDYtMjFcIixcInByZXZpb3VzT2xkZXN0XCI6XCIyMDIwLTA2LTE1XCIsXCJwcmV2aW91c1ZhbHVlXCI6NDguMCxcInNwb3J0XCI6bnVsbCxcInVuaXRcIjpcIm1zXCJ9XSxcImlkXCI6XCJnMFwiLFwicGVyaW9kXCI6W1wiMjAyMC0wNi0xNVwiLFwiMjAyMC0wNi0yMVwiLFwiMjAyMC0wNi0yMlwiLFwiMjAyMC0wNi0yOFwiXSxcInVuYXZhaWxhYmxlXCI6ZmFsc2V9XSxcImxpbWl0YXRpb25zXCI6W1wiZGVzY3JpcHRpdmVfbm90X2NhdXNhbFwiLFwibm90X3JlYWRpbmVzc19vcl90cmFpbmluZ19hZHZpY2VcIixcIm1pc3NpbmdfaXNfdW5rbm93blwiLFwicmVjb3JkZWRfdGltZV9ub3RfaW50ZW5zaXR5XCJdLFwicHJvZmlsZVwiOlwicHJlcGFyZWQtZm9jdXMtdjFcIixcInJlcXVlc3RlZF9mb2N1c1wiOlwiZGFpbHlfY29tYmluZWRcIixcInN5bnRoZXRpY19vbmx5XCI6dHJ1ZX0iLCJyb2xlIjoidXNlciJ9XSwibW9kZWwiOiJxd2VuMy41OjRiIiwib3B0aW9ucyI6eyJudW1fY3R4IjoyMDQ4LCJudW1fcHJlZGljdCI6MjU2LCJudW1fdGhyZWFkIjozLCJzZWVkIjo0MiwidGVtcGVyYXR1cmUiOjB9LCJzdHJlYW0iOmZhbHNlLCJ0aGluayI6ZmFsc2V9",
+      "request_sha256": "0bb6a7ad6444aa2bc8ee1419c0b3a862a295921333330658379b5a07f17db03f",
+      "received": {
+        "phase": "prepared_attempt_received",
+        "case": "unseen_zero_with_hrv_up",
+        "attempt": 1,
+        "seconds": 94.486,
+        "status": 200,
+        "error_type": null,
+        "response_base64": "eyJtb2RlbCI6InF3ZW4zLjU6NGIiLCJjcmVhdGVkX2F0IjoiMjAyNi0xMC0wMlQxNTozNDozMi4zNDkwNTQ3MTVaIiwibWVzc2FnZSI6eyJyb2xlIjoiYXNzaXN0YW50IiwiY29udGVudCI6IntcImZvY3VzX2lkc1wiOltcImYyXCJdfSJ9LCJkb25lIjp0cnVlLCJkb25lX3JlYXNvbiI6InN0b3AiLCJ0b3RhbF9kdXJhdGlvbiI6OTQ0MTAwOTg3MzksImxvYWRfZHVyYXRpb24iOjQ1ODUzMzgxMDQxLCJwcm9tcHRfZXZhbF9jb3VudCI6NzcyLCJwcm9tcHRfZXZhbF9jYWNoZWRfY291bnQiOjAsInByb21wdF9ldmFsX2R1cmF0aW9uIjo0NjM3NzcyMTAwMCwiZXZhbF9jb3VudCI6OCwiZXZhbF9kdXJhdGlvbiI6MjE2NDc0ODAwMH0=",
+        "response_sha256": "aa51f760959052c93fb865329d61553b96dfaf53b6b2ec336a3db2271f18f41c"
+      },
+      "result": {
+        "phase": "prepared_attempt_result",
+        "case": "unseen_zero_with_hrv_up",
+        "attempt": 1,
+        "validity_flags": [],
+        "relevance_flags": [
+          "requested_focus_not_answered"
+        ],
+        "accepted": false,
+        "raw_model_content": "{\"focus_ids\":[\"f2\"]}",
+        "rendering": null,
+        "prompt_tokens": 772,
+        "output_tokens": 8,
+        "done_reason": "stop",
+        "load_duration": 45853381041,
+        "report_sha256_after_generation": "9cfb899caeb1b12f99f1dc33ac2caf76cd05c7f46cc55e30be08514d519b421d"
+      },
+      "unload_verified": true
+    },
+    {
+      "phase": "prepared_attempt_started",
+      "case": "unseen_zero_with_hrv_up",
+      "attempt": 2,
+      "request_base64": "eyJmb3JtYXQiOnsiYWRkaXRpb25hbFByb3BlcnRpZXMiOmZhbHNlLCJwcm9wZXJ0aWVzIjp7ImZvY3VzX2lkcyI6eyJpdGVtcyI6eyJlbnVtIjpbImYwIiwiZjEiLCJmMiJdLCJ0eXBlIjoic3RyaW5nIn0sIm1heEl0ZW1zIjoyLCJtaW5JdGVtcyI6MSwidHlwZSI6ImFycmF5In19LCJyZXF1aXJlZCI6WyJmb2N1c19pZHMiXSwidHlwZSI6Im9iamVjdCJ9LCJrZWVwX2FsaXZlIjoiMHMiLCJtZXNzYWdlcyI6W3siY29udGVudCI6IlNlbGVjdCBhIGRlc2NyaXB0aXZlIHJldmlldyBmb2N1cyBmcm9tIGEgc3ludGhldGljIGNvZGUtcHJlcGFyZWQgcGFja2V0LlxuVGhlIGFwcGxpY2F0aW9uIGFscmVhZHkgZ3JvdXBlZCBldmVyeSByZXF1aXJlZCBmYWN0IGFuZCB3aWxsIHNob3cgdGhlbSBhbGwsXG5pbmNsdWRpbmcgbWlzc2luZyBjb21wYXJpc29ucywgaW5kZXBlbmRlbnRseSBvZiB5b3VyIGFuc3dlci4gRG8gbm90IHJlY2FsY3VsYXRlLFxucmVncm91cCwgY29weSBmYWN0cywgaW52ZW50IHJlbGF0aW9uc2hpcHMsIG9yIGdlbmVyYXRlIHBlcnNvbmFsIHByb3NlLlxuU2VsZWN0IG9uZSBvciB0d28gY2FuZGlkYXRlIElEcyB0aGF0IGRpcmVjdGx5IGFuc3dlciB0aGUgcmVxdWVzdGVkIGZvY3VzLiBQcmVmZXJcbnRoZSBtb3N0IHJlbGV2YW50IGNhbmRpZGF0ZSwgbm90IHRoZSBmaXJzdCBJRC4gRG8gbm90IHNlbGVjdCB1bnJlbGF0ZWQgY2FuZGlkYXRlc1xubWVyZWx5IHRvIGNvdmVyIGZhY3RzOiBmYWN0dWFsIGNvdmVyYWdlIGlzIGFscmVhZHkgZ3VhcmFudGVlZCBieSBjb2RlLlxuZGFpbHlfY29tYmluZWQ6IGNob29zZSBhIGNvbmN1cnJlbnQgYWN0aXZpdHkvd2VsbG5lc3MgcGF0dGVybiB3aGVuIHN1cHBvcnRlZC5cbmFjdGl2aXR5X2JhbGFuY2U6IGNob29zZSB0aGUgc3BvcnQtbWl4IHBhdHRlcm4gd2hlbiBzdXBwb3J0ZWQuXG53ZWxsbmVzczogY2hvb3NlIHdlbGxuZXNzIHBhdHRlcm4gd2hlbiBzdXBwb3J0ZWQsIG9yIGl0cyBjb3ZlcmFnZSBnYXAgb3RoZXJ3aXNlLlxubWlzc2luZ193ZWxsbmVzczogY2hvb3NlIHRoZSB3ZWxsbmVzcyBjb3ZlcmFnZSBnYXAgd2hlbiBzdXBwbGllZC5cbkRvIG5vdCBpbmZlciBjYXVzZSwgcmVjb3ZlcnksIGlsbG5lc3MsIHJlYWRpbmVzcywgbWlzc2VkIHNlc3Npb25zLCBzYWZldHksXG5wcm9wcmlldGFyeSBHYXJtaW4gc2NvcmVzIG9yIHdvcmtvdXQgcHJlc2NyaXB0aW9ucyBmcm9tIGRlc2NyaXB0aXZlIGRpcmVjdGlvbnMuXG5SZXR1cm4gb25seSB7XCJmb2N1c19pZHNcIjpbXCJjYW5kaWRhdGUgSURcIl19LiBObyBvdGhlciBmaWVsZHMgb3IgdGV4dC5cbiIsInJvbGUiOiJzeXN0ZW0ifSx7ImNvbnRlbnQiOiJ7XCJjYW5kaWRhdGVzXCI6W3tcImV2aWRlbmNlX2lkc1wiOltcImUwXCIsXCJlMVwiLFwiZTJcIl0sXCJncm91cF9pZFwiOlwiZzBcIixcImlkXCI6XCJmMFwiLFwia2luZFwiOlwiY3Jvc3NfbWV0cmljX3BhdHRlcm5cIixcInN0YXRlc1wiOltcImluY3JlYXNlZFwiLFwiaW5jcmVhc2VkXCIsXCJpbmNyZWFzZWRcIl19LHtcImV2aWRlbmNlX2lkc1wiOltcImUwXCJdLFwiZ3JvdXBfaWRcIjpcImcwXCIsXCJpZFwiOlwiZjFcIixcImtpbmRcIjpcImFjdGl2aXR5X3BhdHRlcm5cIixcInN0YXRlc1wiOltcImluY3JlYXNlZFwiXX0se1wiZXZpZGVuY2VfaWRzXCI6W1wiZTFcIixcImUyXCJdLFwiZ3JvdXBfaWRcIjpcImcwXCIsXCJpZFwiOlwiZjJcIixcImtpbmRcIjpcIndlbGxuZXNzX3BhdHRlcm5cIixcInN0YXRlc1wiOltcImluY3JlYXNlZFwiLFwiaW5jcmVhc2VkXCJdfV0sXCJncm91cHNcIjpbe1wiZXZpZGVuY2VcIjpbe1wiY3VycmVudE5ld2VzdFwiOlwiMjAyMC0wNi0yOFwiLFwiY3VycmVudE9sZGVzdFwiOlwiMjAyMC0wNi0yMlwiLFwiY3VycmVudFZhbHVlXCI6MTIwMC4wLFwiZmxhZ3NcIjpbXCJ6ZXJvX2Jhc2VsaW5lX25vX3BlcmNlbnRhZ2VcIl0sXCJpZFwiOlwiZTBcIixcIm1ldHJpY1wiOlwibW92aW5nVGltZVwiLFwicHJlcGFyZWRTdGF0ZVwiOlwiaW5jcmVhc2VkXCIsXCJwcmV2aW91c05ld2VzdFwiOlwiMjAyMC0wNi0yMVwiLFwicHJldmlvdXNPbGRlc3RcIjpcIjIwMjAtMDYtMTVcIixcInByZXZpb3VzVmFsdWVcIjowLjAsXCJzcG9ydFwiOlwiUmlkZVwiLFwidW5pdFwiOlwic2Vjb25kc1wifSx7XCJjdXJyZW50TmV3ZXN0XCI6XCIyMDIwLTA2LTI4XCIsXCJjdXJyZW50T2xkZXN0XCI6XCIyMDIwLTA2LTIyXCIsXCJjdXJyZW50VmFsdWVcIjoyNDYwMC4wLFwiZmxhZ3NcIjpbXCJpbmNvbXBsZXRlX2RhdGVfY292ZXJhZ2VcIl0sXCJpZFwiOlwiZTFcIixcIm1ldHJpY1wiOlwic2xlZXBTZWNzXCIsXCJwcmVwYXJlZFN0YXRlXCI6XCJpbmNyZWFzZWRcIixcInByZXZpb3VzTmV3ZXN0XCI6XCIyMDIwLTA2LTIxXCIsXCJwcmV2aW91c09sZGVzdFwiOlwiMjAyMC0wNi0xNVwiLFwicHJldmlvdXNWYWx1ZVwiOjI0MDAwLjAsXCJzcG9ydFwiOm51bGwsXCJ1bml0XCI6XCJzZWNvbmRzXCJ9LHtcImN1cnJlbnROZXdlc3RcIjpcIjIwMjAtMDYtMjhcIixcImN1cnJlbnRPbGRlc3RcIjpcIjIwMjAtMDYtMjJcIixcImN1cnJlbnRWYWx1ZVwiOjU2LjAsXCJmbGFnc1wiOltcImluY29tcGxldGVfZGF0ZV9jb3ZlcmFnZVwiXSxcImlkXCI6XCJlMlwiLFwibWV0cmljXCI6XCJocnZcIixcInByZXBhcmVkU3RhdGVcIjpcImluY3JlYXNlZFwiLFwicHJldmlvdXNOZXdlc3RcIjpcIjIwMjAtMDYtMjFcIixcInByZXZpb3VzT2xkZXN0XCI6XCIyMDIwLTA2LTE1XCIsXCJwcmV2aW91c1ZhbHVlXCI6NDguMCxcInNwb3J0XCI6bnVsbCxcInVuaXRcIjpcIm1zXCJ9XSxcImlkXCI6XCJnMFwiLFwicGVyaW9kXCI6W1wiMjAyMC0wNi0xNVwiLFwiMjAyMC0wNi0yMVwiLFwiMjAyMC0wNi0yMlwiLFwiMjAyMC0wNi0yOFwiXSxcInVuYXZhaWxhYmxlXCI6ZmFsc2V9XSxcImxpbWl0YXRpb25zXCI6W1wiZGVzY3JpcHRpdmVfbm90X2NhdXNhbFwiLFwibm90X3JlYWRpbmVzc19vcl90cmFpbmluZ19hZHZpY2VcIixcIm1pc3NpbmdfaXNfdW5rbm93blwiLFwicmVjb3JkZWRfdGltZV9ub3RfaW50ZW5zaXR5XCJdLFwicHJvZmlsZVwiOlwicHJlcGFyZWQtZm9jdXMtdjFcIixcInJlcXVlc3RlZF9mb2N1c1wiOlwiZGFpbHlfY29tYmluZWRcIixcInN5bnRoZXRpY19vbmx5XCI6dHJ1ZX0iLCJyb2xlIjoidXNlciJ9LHsiY29udGVudCI6IlByZXZpb3VzIGF0dGVtcHQgd2FzIHJlamVjdGVkOiByZXF1ZXN0ZWRfZm9jdXNfbm90X2Fuc3dlcmVkLiBSZXR1cm4gYSBuZXcgY29tcGxldGUgZm9jdXMgc2VsZWN0aW9uIGZvciB0aGUgU0FNRSBwYWNrZXQgYW5kIHJlcXVlc3RlZCBmb2N1cy4iLCJyb2xlIjoidXNlciJ9XSwibW9kZWwiOiJxd2VuMy41OjRiIiwib3B0aW9ucyI6eyJudW1fY3R4IjoyMDQ4LCJudW1fcHJlZGljdCI6MjU2LCJudW1fdGhyZWFkIjozLCJzZWVkIjo0MiwidGVtcGVyYXR1cmUiOjB9LCJzdHJlYW0iOmZhbHNlLCJ0aGluayI6ZmFsc2V9",
+      "request_sha256": "8ea4e97ca3623ab72adacd17fbd3e9c32d08ced4d978ea31a318a16092caa6ac",
+      "received": {
+        "phase": "prepared_attempt_received",
+        "case": "unseen_zero_with_hrv_up",
+        "attempt": 2,
+        "seconds": 96.588,
+        "status": 200,
+        "error_type": null,
+        "response_base64": "eyJtb2RlbCI6InF3ZW4zLjU6NGIiLCJjcmVhdGVkX2F0IjoiMjAyNi0xMC0wMlQxNTozNjowOC4zMzM4MTU5MDZaIiwibWVzc2FnZSI6eyJyb2xlIjoiYXNzaXN0YW50IiwiY29udGVudCI6IntcImZvY3VzX2lkc1wiOltcImYyXCJdfSJ9LCJkb25lIjp0cnVlLCJkb25lX3JlYXNvbiI6InN0b3AiLCJ0b3RhbF9kdXJhdGlvbiI6OTU2MjE5ODE4NDYsImxvYWRfZHVyYXRpb24iOjQ1MzM0NDAzMjA4LCJwcm9tcHRfZXZhbF9jb3VudCI6ODAyLCJwcm9tcHRfZXZhbF9jYWNoZWRfY291bnQiOjAsInByb21wdF9ldmFsX2R1cmF0aW9uIjo0NzgyNzI0NDAwMCwiZXZhbF9jb3VudCI6OCwiZXZhbF9kdXJhdGlvbiI6MjQ0ODIzMzAwMH0=",
+        "response_sha256": "c7e177115a931fce445425dd3d472a82013cc2458150fd13241b182eb380670f"
+      },
+      "result": {
+        "phase": "prepared_attempt_result",
+        "case": "unseen_zero_with_hrv_up",
+        "attempt": 2,
+        "validity_flags": [],
+        "relevance_flags": [
+          "requested_focus_not_answered"
+        ],
+        "accepted": false,
+        "raw_model_content": "{\"focus_ids\":[\"f2\"]}",
+        "rendering": null,
+        "prompt_tokens": 802,
+        "output_tokens": 8,
+        "done_reason": "stop",
+        "load_duration": 45334403208,
+        "report_sha256_after_generation": "9cfb899caeb1b12f99f1dc33ac2caf76cd05c7f46cc55e30be08514d519b421d"
+      },
+      "unload_verified": true
+    }
+  ],
+  "prepared_cases": [
+    {
+      "case": "unseen_opposing_sleep_up",
+      "packet": {
+        "profile": "prepared-focus-v1",
+        "synthetic_only": true,
+        "requested_focus": "daily_combined",
+        "groups": [
+          {
+            "id": "g0",
+            "period": [
+              "2020-01-15",
+              "2020-01-21",
+              "2020-01-22",
+              "2020-01-28"
+            ],
+            "unavailable": false,
+            "evidence": [
+              {
+                "currentNewest": "2020-01-28",
+                "currentOldest": "2020-01-22",
+                "currentValue": 4800.0,
+                "flags": [],
+                "id": "e0",
+                "metric": "movingTime",
+                "preparedState": "increased",
+                "previousNewest": "2020-01-21",
+                "previousOldest": "2020-01-15",
+                "previousValue": 3000.0,
+                "sport": "Run",
+                "unit": "seconds"
+              },
+              {
+                "currentNewest": "2020-01-28",
+                "currentOldest": "2020-01-22",
+                "currentValue": 26000.0,
+                "flags": [
+                  "incomplete_date_coverage"
+                ],
+                "id": "e1",
+                "metric": "sleepSecs",
+                "preparedState": "increased",
+                "previousNewest": "2020-01-21",
+                "previousOldest": "2020-01-15",
+                "previousValue": 22000.0,
+                "sport": null,
+                "unit": "seconds"
+              },
+              {
+                "currentNewest": "2020-01-28",
+                "currentOldest": "2020-01-22",
+                "currentValue": 45.0,
+                "flags": [
+                  "incomplete_date_coverage"
+                ],
+                "id": "e2",
+                "metric": "hrv",
+                "preparedState": "decreased",
+                "previousNewest": "2020-01-21",
+                "previousOldest": "2020-01-15",
+                "previousValue": 60.0,
+                "sport": null,
+                "unit": "ms"
+              }
+            ]
+          }
+        ],
+        "candidates": [
+          {
+            "kind": "activity_pattern",
+            "group_id": "g0",
+            "evidence_ids": [
+              "e0"
+            ],
+            "states": [
+              "increased"
+            ],
+            "id": "f0"
+          },
+          {
+            "kind": "wellness_pattern",
+            "group_id": "g0",
+            "evidence_ids": [
+              "e1",
+              "e2"
+            ],
+            "states": [
+              "increased",
+              "decreased"
+            ],
+            "id": "f1"
+          },
+          {
+            "kind": "cross_metric_pattern",
+            "group_id": "g0",
+            "evidence_ids": [
+              "e0",
+              "e1",
+              "e2"
+            ],
+            "states": [
+              "increased",
+              "increased",
+              "decreased"
+            ],
+            "id": "f2"
+          }
+        ],
+        "limitations": [
+          "descriptive_not_causal",
+          "not_readiness_or_training_advice",
+          "missing_is_unknown",
+          "recorded_time_not_intensity"
+        ]
+      },
+      "packet_sha256": "98968b796a95462433a64163f606f9d519d68df230cd11bc74062304fe66b312",
+      "source_packet": {
+        "evidence": [
+          {
+            "id": "e0",
+            "sport": "Run",
+            "metric": "movingTime",
+            "unit": "seconds",
+            "previousOldest": "2020-01-15",
+            "previousNewest": "2020-01-21",
+            "currentOldest": "2020-01-22",
+            "currentNewest": "2020-01-28",
+            "previousValue": 3000.0,
+            "currentValue": 4800.0,
+            "preparedState": "increased",
+            "flags": []
+          },
+          {
+            "id": "e1",
+            "sport": null,
+            "metric": "sleepSecs",
+            "unit": "seconds",
+            "previousOldest": "2020-01-15",
+            "previousNewest": "2020-01-21",
+            "currentOldest": "2020-01-22",
+            "currentNewest": "2020-01-28",
+            "previousValue": 22000.0,
+            "currentValue": 26000.0,
+            "preparedState": "increased",
+            "flags": [
+              "incomplete_date_coverage"
+            ]
+          },
+          {
+            "id": "e2",
+            "sport": null,
+            "metric": "hrv",
+            "unit": "ms",
+            "previousOldest": "2020-01-15",
+            "previousNewest": "2020-01-21",
+            "currentOldest": "2020-01-22",
+            "currentNewest": "2020-01-28",
+            "previousValue": 60.0,
+            "currentValue": 45.0,
+            "preparedState": "decreased",
+            "flags": [
+              "incomplete_date_coverage"
+            ]
+          }
+        ]
+      },
+      "factual_rendering": {
+        "application_generated": true,
+        "facts": [
+          {
+            "evidence_id": "e0",
+            "group_id": "g0",
+            "period": [
+              "2020-01-15",
+              "2020-01-21",
+              "2020-01-22",
+              "2020-01-28"
+            ],
+            "text": "Run movingTime: increased: 3000.0 to 4800.0 seconds",
+            "support": {
+              "currentNewest": "2020-01-28",
+              "currentOldest": "2020-01-22",
+              "currentValue": 4800.0,
+              "flags": [],
+              "id": "e0",
+              "metric": "movingTime",
+              "preparedState": "increased",
+              "previousNewest": "2020-01-21",
+              "previousOldest": "2020-01-15",
+              "previousValue": 3000.0,
+              "sport": "Run",
+              "unit": "seconds"
+            }
+          },
+          {
+            "evidence_id": "e1",
+            "group_id": "g0",
+            "period": [
+              "2020-01-15",
+              "2020-01-21",
+              "2020-01-22",
+              "2020-01-28"
+            ],
+            "text": "wellness sleepSecs: increased: 22000.0 to 26000.0 seconds",
+            "support": {
+              "currentNewest": "2020-01-28",
+              "currentOldest": "2020-01-22",
+              "currentValue": 26000.0,
+              "flags": [
+                "incomplete_date_coverage"
+              ],
+              "id": "e1",
+              "metric": "sleepSecs",
+              "preparedState": "increased",
+              "previousNewest": "2020-01-21",
+              "previousOldest": "2020-01-15",
+              "previousValue": 22000.0,
+              "sport": null,
+              "unit": "seconds"
+            }
+          },
+          {
+            "evidence_id": "e2",
+            "group_id": "g0",
+            "period": [
+              "2020-01-15",
+              "2020-01-21",
+              "2020-01-22",
+              "2020-01-28"
+            ],
+            "text": "wellness hrv: decreased: 60.0 to 45.0 ms",
+            "support": {
+              "currentNewest": "2020-01-28",
+              "currentOldest": "2020-01-22",
+              "currentValue": 45.0,
+              "flags": [
+                "incomplete_date_coverage"
+              ],
+              "id": "e2",
+              "metric": "hrv",
+              "preparedState": "decreased",
+              "previousNewest": "2020-01-21",
+              "previousOldest": "2020-01-15",
+              "previousValue": 60.0,
+              "sport": null,
+              "unit": "ms"
+            }
+          }
+        ],
+        "limitations": [
+          "descriptive_not_causal",
+          "not_readiness_or_training_advice",
+          "missing_is_unknown",
+          "recorded_time_not_intensity"
+        ]
+      },
+      "report_sha256": "fdf672ca1c1f20d81a902de9f35ca36c3fdd9ebc965d0848c014eb1e2d37ba90"
+    },
+    {
+      "case": "unseen_steady_with_hrv_drop",
+      "packet": {
+        "profile": "prepared-focus-v1",
+        "synthetic_only": true,
+        "requested_focus": "wellness",
+        "groups": [
+          {
+            "id": "g0",
+            "period": [
+              "2020-02-15",
+              "2020-02-21",
+              "2020-02-22",
+              "2020-02-28"
+            ],
+            "unavailable": false,
+            "evidence": [
+              {
+                "currentNewest": "2020-02-28",
+                "currentOldest": "2020-02-22",
+                "currentValue": 4200.0,
+                "flags": [],
+                "id": "e0",
+                "metric": "movingTime",
+                "preparedState": "unchanged",
+                "previousNewest": "2020-02-21",
+                "previousOldest": "2020-02-15",
+                "previousValue": 4200.0,
+                "sport": "Swim",
+                "unit": "seconds"
+              },
+              {
+                "currentNewest": "2020-02-28",
+                "currentOldest": "2020-02-22",
+                "currentValue": 26400.0,
+                "flags": [
+                  "incomplete_date_coverage"
+                ],
+                "id": "e1",
+                "metric": "sleepSecs",
+                "preparedState": "unchanged",
+                "previousNewest": "2020-02-21",
+                "previousOldest": "2020-02-15",
+                "previousValue": 26400.0,
+                "sport": null,
+                "unit": "seconds"
+              },
+              {
+                "currentNewest": "2020-02-28",
+                "currentOldest": "2020-02-22",
+                "currentValue": 43.0,
+                "flags": [
+                  "incomplete_date_coverage"
+                ],
+                "id": "e2",
+                "metric": "hrv",
+                "preparedState": "decreased",
+                "previousNewest": "2020-02-21",
+                "previousOldest": "2020-02-15",
+                "previousValue": 58.0,
+                "sport": null,
+                "unit": "ms"
+              }
+            ]
+          }
+        ],
+        "candidates": [
+          {
+            "kind": "wellness_pattern",
+            "group_id": "g0",
+            "evidence_ids": [
+              "e1",
+              "e2"
+            ],
+            "states": [
+              "unchanged",
+              "decreased"
+            ],
+            "id": "f0"
+          },
+          {
+            "kind": "cross_metric_pattern",
+            "group_id": "g0",
+            "evidence_ids": [
+              "e0",
+              "e1",
+              "e2"
+            ],
+            "states": [
+              "unchanged",
+              "unchanged",
+              "decreased"
+            ],
+            "id": "f1"
+          },
+          {
+            "kind": "activity_pattern",
+            "group_id": "g0",
+            "evidence_ids": [
+              "e0"
+            ],
+            "states": [
+              "unchanged"
+            ],
+            "id": "f2"
+          }
+        ],
+        "limitations": [
+          "descriptive_not_causal",
+          "not_readiness_or_training_advice",
+          "missing_is_unknown",
+          "recorded_time_not_intensity"
+        ]
+      },
+      "packet_sha256": "7e1af8d87e986f94b9fb2d2543f55858e767b86e66eb3e6d3e8eaab087a507a5",
+      "source_packet": {
+        "evidence": [
+          {
+            "id": "e0",
+            "sport": "Swim",
+            "metric": "movingTime",
+            "unit": "seconds",
+            "previousOldest": "2020-02-15",
+            "previousNewest": "2020-02-21",
+            "currentOldest": "2020-02-22",
+            "currentNewest": "2020-02-28",
+            "previousValue": 4200.0,
+            "currentValue": 4200.0,
+            "preparedState": "unchanged",
+            "flags": []
+          },
+          {
+            "id": "e1",
+            "sport": null,
+            "metric": "sleepSecs",
+            "unit": "seconds",
+            "previousOldest": "2020-02-15",
+            "previousNewest": "2020-02-21",
+            "currentOldest": "2020-02-22",
+            "currentNewest": "2020-02-28",
+            "previousValue": 26400.0,
+            "currentValue": 26400.0,
+            "preparedState": "unchanged",
+            "flags": [
+              "incomplete_date_coverage"
+            ]
+          },
+          {
+            "id": "e2",
+            "sport": null,
+            "metric": "hrv",
+            "unit": "ms",
+            "previousOldest": "2020-02-15",
+            "previousNewest": "2020-02-21",
+            "currentOldest": "2020-02-22",
+            "currentNewest": "2020-02-28",
+            "previousValue": 58.0,
+            "currentValue": 43.0,
+            "preparedState": "decreased",
+            "flags": [
+              "incomplete_date_coverage"
+            ]
+          }
+        ]
+      },
+      "factual_rendering": {
+        "application_generated": true,
+        "facts": [
+          {
+            "evidence_id": "e0",
+            "group_id": "g0",
+            "period": [
+              "2020-02-15",
+              "2020-02-21",
+              "2020-02-22",
+              "2020-02-28"
+            ],
+            "text": "Swim movingTime: unchanged: 4200.0 to 4200.0 seconds",
+            "support": {
+              "currentNewest": "2020-02-28",
+              "currentOldest": "2020-02-22",
+              "currentValue": 4200.0,
+              "flags": [],
+              "id": "e0",
+              "metric": "movingTime",
+              "preparedState": "unchanged",
+              "previousNewest": "2020-02-21",
+              "previousOldest": "2020-02-15",
+              "previousValue": 4200.0,
+              "sport": "Swim",
+              "unit": "seconds"
+            }
+          },
+          {
+            "evidence_id": "e1",
+            "group_id": "g0",
+            "period": [
+              "2020-02-15",
+              "2020-02-21",
+              "2020-02-22",
+              "2020-02-28"
+            ],
+            "text": "wellness sleepSecs: unchanged: 26400.0 to 26400.0 seconds",
+            "support": {
+              "currentNewest": "2020-02-28",
+              "currentOldest": "2020-02-22",
+              "currentValue": 26400.0,
+              "flags": [
+                "incomplete_date_coverage"
+              ],
+              "id": "e1",
+              "metric": "sleepSecs",
+              "preparedState": "unchanged",
+              "previousNewest": "2020-02-21",
+              "previousOldest": "2020-02-15",
+              "previousValue": 26400.0,
+              "sport": null,
+              "unit": "seconds"
+            }
+          },
+          {
+            "evidence_id": "e2",
+            "group_id": "g0",
+            "period": [
+              "2020-02-15",
+              "2020-02-21",
+              "2020-02-22",
+              "2020-02-28"
+            ],
+            "text": "wellness hrv: decreased: 58.0 to 43.0 ms",
+            "support": {
+              "currentNewest": "2020-02-28",
+              "currentOldest": "2020-02-22",
+              "currentValue": 43.0,
+              "flags": [
+                "incomplete_date_coverage"
+              ],
+              "id": "e2",
+              "metric": "hrv",
+              "preparedState": "decreased",
+              "previousNewest": "2020-02-21",
+              "previousOldest": "2020-02-15",
+              "previousValue": 58.0,
+              "sport": null,
+              "unit": "ms"
+            }
+          }
+        ],
+        "limitations": [
+          "descriptive_not_causal",
+          "not_readiness_or_training_advice",
+          "missing_is_unknown",
+          "recorded_time_not_intensity"
+        ]
+      },
+      "report_sha256": "8d99fbc7720c5b8e882f01473ab154bf7dde15d47663800310fba3e111b7e642"
+    },
+    {
+      "case": "unseen_two_sports_both_increase",
+      "packet": {
+        "profile": "prepared-focus-v1",
+        "synthetic_only": true,
+        "requested_focus": "activity_balance",
+        "groups": [
+          {
+            "id": "g0",
+            "period": [
+              "2020-03-15",
+              "2020-03-21",
+              "2020-03-22",
+              "2020-03-28"
+            ],
+            "unavailable": false,
+            "evidence": [
+              {
+                "currentNewest": "2020-03-28",
+                "currentOldest": "2020-03-22",
+                "currentValue": 3000.0,
+                "flags": [],
+                "id": "e0",
+                "metric": "movingTime",
+                "preparedState": "increased",
+                "previousNewest": "2020-03-21",
+                "previousOldest": "2020-03-15",
+                "previousValue": 1800.0,
+                "sport": "Hike",
+                "unit": "seconds"
+              },
+              {
+                "currentNewest": "2020-03-28",
+                "currentOldest": "2020-03-22",
+                "currentValue": 6600.0,
+                "flags": [],
+                "id": "e1",
+                "metric": "movingTime",
+                "preparedState": "increased",
+                "previousNewest": "2020-03-21",
+                "previousOldest": "2020-03-15",
+                "previousValue": 5400.0,
+                "sport": "Ride",
+                "unit": "seconds"
+              },
+              {
+                "currentNewest": "2020-03-28",
+                "currentOldest": "2020-03-22",
+                "currentValue": 25200.0,
+                "flags": [
+                  "incomplete_date_coverage"
+                ],
+                "id": "e2",
+                "metric": "sleepSecs",
+                "preparedState": "increased",
+                "previousNewest": "2020-03-21",
+                "previousOldest": "2020-03-15",
+                "previousValue": 24600.0,
+                "sport": null,
+                "unit": "seconds"
+              },
+              {
+                "currentNewest": "2020-03-28",
+                "currentOldest": "2020-03-22",
+                "currentValue": 66.0,
+                "flags": [
+                  "incomplete_date_coverage"
+                ],
+                "id": "e3",
+                "metric": "hrv",
+                "preparedState": "increased",
+                "previousNewest": "2020-03-21",
+                "previousOldest": "2020-03-15",
+                "previousValue": 62.0,
+                "sport": null,
+                "unit": "ms"
+              }
+            ]
+          }
+        ],
+        "candidates": [
+          {
+            "kind": "cross_metric_pattern",
+            "group_id": "g0",
+            "evidence_ids": [
+              "e0",
+              "e1",
+              "e2",
+              "e3"
+            ],
+            "states": [
+              "increased",
+              "increased",
+              "increased",
+              "increased"
+            ],
+            "id": "f0"
+          },
+          {
+            "kind": "sport_mix",
+            "group_id": "g0",
+            "evidence_ids": [
+              "e0",
+              "e1"
+            ],
+            "states": [
+              "increased",
+              "increased"
+            ],
+            "id": "f1"
+          },
+          {
+            "kind": "activity_pattern",
+            "group_id": "g0",
+            "evidence_ids": [
+              "e0",
+              "e1"
+            ],
+            "states": [
+              "increased",
+              "increased"
+            ],
+            "id": "f2"
+          },
+          {
+            "kind": "wellness_pattern",
+            "group_id": "g0",
+            "evidence_ids": [
+              "e2",
+              "e3"
+            ],
+            "states": [
+              "increased",
+              "increased"
+            ],
+            "id": "f3"
+          }
+        ],
+        "limitations": [
+          "descriptive_not_causal",
+          "not_readiness_or_training_advice",
+          "missing_is_unknown",
+          "recorded_time_not_intensity"
+        ]
+      },
+      "packet_sha256": "f3a61283804b26eb4c5c35765c257f9c1d40e0b5b6b2a0ae734614f2f5dc68cd",
+      "source_packet": {
+        "evidence": [
+          {
+            "id": "e0",
+            "sport": "Hike",
+            "metric": "movingTime",
+            "unit": "seconds",
+            "previousOldest": "2020-03-15",
+            "previousNewest": "2020-03-21",
+            "currentOldest": "2020-03-22",
+            "currentNewest": "2020-03-28",
+            "previousValue": 1800.0,
+            "currentValue": 3000.0,
+            "preparedState": "increased",
+            "flags": []
+          },
+          {
+            "id": "e1",
+            "sport": "Ride",
+            "metric": "movingTime",
+            "unit": "seconds",
+            "previousOldest": "2020-03-15",
+            "previousNewest": "2020-03-21",
+            "currentOldest": "2020-03-22",
+            "currentNewest": "2020-03-28",
+            "previousValue": 5400.0,
+            "currentValue": 6600.0,
+            "preparedState": "increased",
+            "flags": []
+          },
+          {
+            "id": "e2",
+            "sport": null,
+            "metric": "sleepSecs",
+            "unit": "seconds",
+            "previousOldest": "2020-03-15",
+            "previousNewest": "2020-03-21",
+            "currentOldest": "2020-03-22",
+            "currentNewest": "2020-03-28",
+            "previousValue": 24600.0,
+            "currentValue": 25200.0,
+            "preparedState": "increased",
+            "flags": [
+              "incomplete_date_coverage"
+            ]
+          },
+          {
+            "id": "e3",
+            "sport": null,
+            "metric": "hrv",
+            "unit": "ms",
+            "previousOldest": "2020-03-15",
+            "previousNewest": "2020-03-21",
+            "currentOldest": "2020-03-22",
+            "currentNewest": "2020-03-28",
+            "previousValue": 62.0,
+            "currentValue": 66.0,
+            "preparedState": "increased",
+            "flags": [
+              "incomplete_date_coverage"
+            ]
+          }
+        ]
+      },
+      "factual_rendering": {
+        "application_generated": true,
+        "facts": [
+          {
+            "evidence_id": "e0",
+            "group_id": "g0",
+            "period": [
+              "2020-03-15",
+              "2020-03-21",
+              "2020-03-22",
+              "2020-03-28"
+            ],
+            "text": "Hike movingTime: increased: 1800.0 to 3000.0 seconds",
+            "support": {
+              "currentNewest": "2020-03-28",
+              "currentOldest": "2020-03-22",
+              "currentValue": 3000.0,
+              "flags": [],
+              "id": "e0",
+              "metric": "movingTime",
+              "preparedState": "increased",
+              "previousNewest": "2020-03-21",
+              "previousOldest": "2020-03-15",
+              "previousValue": 1800.0,
+              "sport": "Hike",
+              "unit": "seconds"
+            }
+          },
+          {
+            "evidence_id": "e1",
+            "group_id": "g0",
+            "period": [
+              "2020-03-15",
+              "2020-03-21",
+              "2020-03-22",
+              "2020-03-28"
+            ],
+            "text": "Ride movingTime: increased: 5400.0 to 6600.0 seconds",
+            "support": {
+              "currentNewest": "2020-03-28",
+              "currentOldest": "2020-03-22",
+              "currentValue": 6600.0,
+              "flags": [],
+              "id": "e1",
+              "metric": "movingTime",
+              "preparedState": "increased",
+              "previousNewest": "2020-03-21",
+              "previousOldest": "2020-03-15",
+              "previousValue": 5400.0,
+              "sport": "Ride",
+              "unit": "seconds"
+            }
+          },
+          {
+            "evidence_id": "e2",
+            "group_id": "g0",
+            "period": [
+              "2020-03-15",
+              "2020-03-21",
+              "2020-03-22",
+              "2020-03-28"
+            ],
+            "text": "wellness sleepSecs: increased: 24600.0 to 25200.0 seconds",
+            "support": {
+              "currentNewest": "2020-03-28",
+              "currentOldest": "2020-03-22",
+              "currentValue": 25200.0,
+              "flags": [
+                "incomplete_date_coverage"
+              ],
+              "id": "e2",
+              "metric": "sleepSecs",
+              "preparedState": "increased",
+              "previousNewest": "2020-03-21",
+              "previousOldest": "2020-03-15",
+              "previousValue": 24600.0,
+              "sport": null,
+              "unit": "seconds"
+            }
+          },
+          {
+            "evidence_id": "e3",
+            "group_id": "g0",
+            "period": [
+              "2020-03-15",
+              "2020-03-21",
+              "2020-03-22",
+              "2020-03-28"
+            ],
+            "text": "wellness hrv: increased: 62.0 to 66.0 ms",
+            "support": {
+              "currentNewest": "2020-03-28",
+              "currentOldest": "2020-03-22",
+              "currentValue": 66.0,
+              "flags": [
+                "incomplete_date_coverage"
+              ],
+              "id": "e3",
+              "metric": "hrv",
+              "preparedState": "increased",
+              "previousNewest": "2020-03-21",
+              "previousOldest": "2020-03-15",
+              "previousValue": 62.0,
+              "sport": null,
+              "unit": "ms"
+            }
+          }
+        ],
+        "limitations": [
+          "descriptive_not_causal",
+          "not_readiness_or_training_advice",
+          "missing_is_unknown",
+          "recorded_time_not_intensity"
+        ]
+      },
+      "report_sha256": "d453e87b95e21361f044fd867fa6fe5fe60c4309479a3f90fcecae3d5fb4ae17"
+    },
+    {
+      "case": "unseen_two_sports_sleep_unknown",
+      "packet": {
+        "profile": "prepared-focus-v1",
+        "synthetic_only": true,
+        "requested_focus": "missing_wellness",
+        "groups": [
+          {
+            "id": "g0",
+            "period": [
+              "2020-04-15",
+              "2020-04-21",
+              "2020-04-22",
+              "2020-04-28"
+            ],
+            "unavailable": false,
+            "evidence": [
+              {
+                "currentNewest": "2020-04-28",
+                "currentOldest": "2020-04-22",
+                "currentValue": 3600.0,
+                "flags": [],
+                "id": "e0",
+                "metric": "movingTime",
+                "preparedState": "decreased",
+                "previousNewest": "2020-04-21",
+                "previousOldest": "2020-04-15",
+                "previousValue": 5400.0,
+                "sport": "Run",
+                "unit": "seconds"
+              },
+              {
+                "currentNewest": "2020-04-28",
+                "currentOldest": "2020-04-22",
+                "currentValue": 3000.0,
+                "flags": [],
+                "id": "e1",
+                "metric": "movingTime",
+                "preparedState": "increased",
+                "previousNewest": "2020-04-21",
+                "previousOldest": "2020-04-15",
+                "previousValue": 1800.0,
+                "sport": "Swim",
+                "unit": "seconds"
+              },
+              {
+                "currentNewest": "2020-04-28",
+                "currentOldest": "2020-04-22",
+                "currentValue": 52.0,
+                "flags": [
+                  "incomplete_date_coverage"
+                ],
+                "id": "e3",
+                "metric": "hrv",
+                "preparedState": "increased",
+                "previousNewest": "2020-04-21",
+                "previousOldest": "2020-04-15",
+                "previousValue": 44.0,
+                "sport": null,
+                "unit": "ms"
+              }
+            ]
+          },
+          {
+            "id": "g1",
+            "period": [
+              "2020-04-15",
+              "2020-04-21",
+              "2020-04-22",
+              "2020-04-28"
+            ],
+            "unavailable": true,
+            "evidence": [
+              {
+                "currentNewest": "2020-04-28",
+                "currentOldest": "2020-04-22",
+                "currentValue": null,
+                "flags": [
+                  "unavailable_comparison",
+                  "partial_metric_coverage",
+                  "sparse_comparison",
+                  "incomplete_date_coverage"
+                ],
+                "id": "e2",
+                "metric": "sleepSecs",
+                "preparedState": "unavailable",
+                "previousNewest": "2020-04-21",
+                "previousOldest": "2020-04-15",
+                "previousValue": null,
+                "sport": null,
+                "unit": "seconds"
+              }
+            ]
+          }
+        ],
+        "candidates": [
+          {
+            "kind": "sport_mix",
+            "group_id": "g0",
+            "evidence_ids": [
+              "e0",
+              "e1"
+            ],
+            "states": [
+              "decreased",
+              "increased"
+            ],
+            "id": "f0"
+          },
+          {
+            "kind": "coverage_gap",
+            "group_id": "g1",
+            "evidence_ids": [
+              "e2"
+            ],
+            "states": [
+              "unavailable"
+            ],
+            "id": "f1"
+          },
+          {
+            "kind": "activity_pattern",
+            "group_id": "g0",
+            "evidence_ids": [
+              "e0",
+              "e1"
+            ],
+            "states": [
+              "decreased",
+              "increased"
+            ],
+            "id": "f2"
+          },
+          {
+            "kind": "wellness_pattern",
+            "group_id": "g0",
+            "evidence_ids": [
+              "e3"
+            ],
+            "states": [
+              "increased"
+            ],
+            "id": "f3"
+          },
+          {
+            "kind": "cross_metric_pattern",
+            "group_id": "g0",
+            "evidence_ids": [
+              "e0",
+              "e1",
+              "e3"
+            ],
+            "states": [
+              "decreased",
+              "increased",
+              "increased"
+            ],
+            "id": "f4"
+          }
+        ],
+        "limitations": [
+          "descriptive_not_causal",
+          "not_readiness_or_training_advice",
+          "missing_is_unknown",
+          "recorded_time_not_intensity"
+        ]
+      },
+      "packet_sha256": "a7b6e15ad8787acd2d4b5591140d8004dc715603d6288686bf2988727a7a52ae",
+      "source_packet": {
+        "evidence": [
+          {
+            "id": "e0",
+            "sport": "Run",
+            "metric": "movingTime",
+            "unit": "seconds",
+            "previousOldest": "2020-04-15",
+            "previousNewest": "2020-04-21",
+            "currentOldest": "2020-04-22",
+            "currentNewest": "2020-04-28",
+            "previousValue": 5400.0,
+            "currentValue": 3600.0,
+            "preparedState": "decreased",
+            "flags": []
+          },
+          {
+            "id": "e1",
+            "sport": "Swim",
+            "metric": "movingTime",
+            "unit": "seconds",
+            "previousOldest": "2020-04-15",
+            "previousNewest": "2020-04-21",
+            "currentOldest": "2020-04-22",
+            "currentNewest": "2020-04-28",
+            "previousValue": 1800.0,
+            "currentValue": 3000.0,
+            "preparedState": "increased",
+            "flags": []
+          },
+          {
+            "id": "e2",
+            "sport": null,
+            "metric": "sleepSecs",
+            "unit": "seconds",
+            "previousOldest": "2020-04-15",
+            "previousNewest": "2020-04-21",
+            "currentOldest": "2020-04-22",
+            "currentNewest": "2020-04-28",
+            "previousValue": null,
+            "currentValue": null,
+            "preparedState": "unavailable",
+            "flags": [
+              "unavailable_comparison",
+              "partial_metric_coverage",
+              "sparse_comparison",
+              "incomplete_date_coverage"
+            ]
+          },
+          {
+            "id": "e3",
+            "sport": null,
+            "metric": "hrv",
+            "unit": "ms",
+            "previousOldest": "2020-04-15",
+            "previousNewest": "2020-04-21",
+            "currentOldest": "2020-04-22",
+            "currentNewest": "2020-04-28",
+            "previousValue": 44.0,
+            "currentValue": 52.0,
+            "preparedState": "increased",
+            "flags": [
+              "incomplete_date_coverage"
+            ]
+          }
+        ]
+      },
+      "factual_rendering": {
+        "application_generated": true,
+        "facts": [
+          {
+            "evidence_id": "e0",
+            "group_id": "g0",
+            "period": [
+              "2020-04-15",
+              "2020-04-21",
+              "2020-04-22",
+              "2020-04-28"
+            ],
+            "text": "Run movingTime: decreased: 5400.0 to 3600.0 seconds",
+            "support": {
+              "currentNewest": "2020-04-28",
+              "currentOldest": "2020-04-22",
+              "currentValue": 3600.0,
+              "flags": [],
+              "id": "e0",
+              "metric": "movingTime",
+              "preparedState": "decreased",
+              "previousNewest": "2020-04-21",
+              "previousOldest": "2020-04-15",
+              "previousValue": 5400.0,
+              "sport": "Run",
+              "unit": "seconds"
+            }
+          },
+          {
+            "evidence_id": "e1",
+            "group_id": "g0",
+            "period": [
+              "2020-04-15",
+              "2020-04-21",
+              "2020-04-22",
+              "2020-04-28"
+            ],
+            "text": "Swim movingTime: increased: 1800.0 to 3000.0 seconds",
+            "support": {
+              "currentNewest": "2020-04-28",
+              "currentOldest": "2020-04-22",
+              "currentValue": 3000.0,
+              "flags": [],
+              "id": "e1",
+              "metric": "movingTime",
+              "preparedState": "increased",
+              "previousNewest": "2020-04-21",
+              "previousOldest": "2020-04-15",
+              "previousValue": 1800.0,
+              "sport": "Swim",
+              "unit": "seconds"
+            }
+          },
+          {
+            "evidence_id": "e3",
+            "group_id": "g0",
+            "period": [
+              "2020-04-15",
+              "2020-04-21",
+              "2020-04-22",
+              "2020-04-28"
+            ],
+            "text": "wellness hrv: increased: 44.0 to 52.0 ms",
+            "support": {
+              "currentNewest": "2020-04-28",
+              "currentOldest": "2020-04-22",
+              "currentValue": 52.0,
+              "flags": [
+                "incomplete_date_coverage"
+              ],
+              "id": "e3",
+              "metric": "hrv",
+              "preparedState": "increased",
+              "previousNewest": "2020-04-21",
+              "previousOldest": "2020-04-15",
+              "previousValue": 44.0,
+              "sport": null,
+              "unit": "ms"
+            }
+          },
+          {
+            "evidence_id": "e2",
+            "group_id": "g1",
+            "period": [
+              "2020-04-15",
+              "2020-04-21",
+              "2020-04-22",
+              "2020-04-28"
+            ],
+            "text": "wellness sleepSecs: comparison unavailable; missing is unknown, not zero",
+            "support": {
+              "currentNewest": "2020-04-28",
+              "currentOldest": "2020-04-22",
+              "currentValue": null,
+              "flags": [
+                "unavailable_comparison",
+                "partial_metric_coverage",
+                "sparse_comparison",
+                "incomplete_date_coverage"
+              ],
+              "id": "e2",
+              "metric": "sleepSecs",
+              "preparedState": "unavailable",
+              "previousNewest": "2020-04-21",
+              "previousOldest": "2020-04-15",
+              "previousValue": null,
+              "sport": null,
+              "unit": "seconds"
+            }
+          }
+        ],
+        "limitations": [
+          "descriptive_not_causal",
+          "not_readiness_or_training_advice",
+          "missing_is_unknown",
+          "recorded_time_not_intensity"
+        ]
+      },
+      "report_sha256": "53cbe46d3b6f6c6babd660c5fea7e88bdbbef23da8255223c04bdbc61963957c"
+    },
+    {
+      "case": "unseen_sleep_previous_unknown",
+      "packet": {
+        "profile": "prepared-focus-v1",
+        "synthetic_only": true,
+        "requested_focus": "missing_wellness",
+        "groups": [
+          {
+            "id": "g0",
+            "period": [
+              "2020-05-15",
+              "2020-05-21",
+              "2020-05-22",
+              "2020-05-28"
+            ],
+            "unavailable": false,
+            "evidence": [
+              {
+                "currentNewest": "2020-05-28",
+                "currentOldest": "2020-05-22",
+                "currentValue": 3600.0,
+                "flags": [],
+                "id": "e0",
+                "metric": "movingTime",
+                "preparedState": "decreased",
+                "previousNewest": "2020-05-21",
+                "previousOldest": "2020-05-15",
+                "previousValue": 4800.0,
+                "sport": "Hike",
+                "unit": "seconds"
+              },
+              {
+                "currentNewest": "2020-05-28",
+                "currentOldest": "2020-05-22",
+                "currentValue": 56.0,
+                "flags": [
+                  "incomplete_date_coverage"
+                ],
+                "id": "e2",
+                "metric": "hrv",
+                "preparedState": "unchanged",
+                "previousNewest": "2020-05-21",
+                "previousOldest": "2020-05-15",
+                "previousValue": 56.0,
+                "sport": null,
+                "unit": "ms"
+              }
+            ]
+          },
+          {
+            "id": "g1",
+            "period": [
+              "2020-05-15",
+              "2020-05-21",
+              "2020-05-22",
+              "2020-05-28"
+            ],
+            "unavailable": true,
+            "evidence": [
+              {
+                "currentNewest": "2020-05-28",
+                "currentOldest": "2020-05-22",
+                "currentValue": 25200.0,
+                "flags": [
+                  "unavailable_comparison",
+                  "partial_metric_coverage",
+                  "sparse_comparison",
+                  "incomplete_date_coverage"
+                ],
+                "id": "e1",
+                "metric": "sleepSecs",
+                "preparedState": "unavailable",
+                "previousNewest": "2020-05-21",
+                "previousOldest": "2020-05-15",
+                "previousValue": null,
+                "sport": null,
+                "unit": "seconds"
+              }
+            ]
+          }
+        ],
+        "candidates": [
+          {
+            "kind": "activity_pattern",
+            "group_id": "g0",
+            "evidence_ids": [
+              "e0"
+            ],
+            "states": [
+              "decreased"
+            ],
+            "id": "f0"
+          },
+          {
+            "kind": "wellness_pattern",
+            "group_id": "g0",
+            "evidence_ids": [
+              "e2"
+            ],
+            "states": [
+              "unchanged"
+            ],
+            "id": "f1"
+          },
+          {
+            "kind": "cross_metric_pattern",
+            "group_id": "g0",
+            "evidence_ids": [
+              "e0",
+              "e2"
+            ],
+            "states": [
+              "decreased",
+              "unchanged"
+            ],
+            "id": "f2"
+          },
+          {
+            "kind": "coverage_gap",
+            "group_id": "g1",
+            "evidence_ids": [
+              "e1"
+            ],
+            "states": [
+              "unavailable"
+            ],
+            "id": "f3"
+          }
+        ],
+        "limitations": [
+          "descriptive_not_causal",
+          "not_readiness_or_training_advice",
+          "missing_is_unknown",
+          "recorded_time_not_intensity"
+        ]
+      },
+      "packet_sha256": "eb8c5bb88e25419132ca6eb8f49a334c2c615fc5801ff574a150695b8660762b",
+      "source_packet": {
+        "evidence": [
+          {
+            "id": "e0",
+            "sport": "Hike",
+            "metric": "movingTime",
+            "unit": "seconds",
+            "previousOldest": "2020-05-15",
+            "previousNewest": "2020-05-21",
+            "currentOldest": "2020-05-22",
+            "currentNewest": "2020-05-28",
+            "previousValue": 4800.0,
+            "currentValue": 3600.0,
+            "preparedState": "decreased",
+            "flags": []
+          },
+          {
+            "id": "e1",
+            "sport": null,
+            "metric": "sleepSecs",
+            "unit": "seconds",
+            "previousOldest": "2020-05-15",
+            "previousNewest": "2020-05-21",
+            "currentOldest": "2020-05-22",
+            "currentNewest": "2020-05-28",
+            "previousValue": null,
+            "currentValue": 25200.0,
+            "preparedState": "unavailable",
+            "flags": [
+              "unavailable_comparison",
+              "partial_metric_coverage",
+              "sparse_comparison",
+              "incomplete_date_coverage"
+            ]
+          },
+          {
+            "id": "e2",
+            "sport": null,
+            "metric": "hrv",
+            "unit": "ms",
+            "previousOldest": "2020-05-15",
+            "previousNewest": "2020-05-21",
+            "currentOldest": "2020-05-22",
+            "currentNewest": "2020-05-28",
+            "previousValue": 56.0,
+            "currentValue": 56.0,
+            "preparedState": "unchanged",
+            "flags": [
+              "incomplete_date_coverage"
+            ]
+          }
+        ]
+      },
+      "factual_rendering": {
+        "application_generated": true,
+        "facts": [
+          {
+            "evidence_id": "e0",
+            "group_id": "g0",
+            "period": [
+              "2020-05-15",
+              "2020-05-21",
+              "2020-05-22",
+              "2020-05-28"
+            ],
+            "text": "Hike movingTime: decreased: 4800.0 to 3600.0 seconds",
+            "support": {
+              "currentNewest": "2020-05-28",
+              "currentOldest": "2020-05-22",
+              "currentValue": 3600.0,
+              "flags": [],
+              "id": "e0",
+              "metric": "movingTime",
+              "preparedState": "decreased",
+              "previousNewest": "2020-05-21",
+              "previousOldest": "2020-05-15",
+              "previousValue": 4800.0,
+              "sport": "Hike",
+              "unit": "seconds"
+            }
+          },
+          {
+            "evidence_id": "e2",
+            "group_id": "g0",
+            "period": [
+              "2020-05-15",
+              "2020-05-21",
+              "2020-05-22",
+              "2020-05-28"
+            ],
+            "text": "wellness hrv: unchanged: 56.0 to 56.0 ms",
+            "support": {
+              "currentNewest": "2020-05-28",
+              "currentOldest": "2020-05-22",
+              "currentValue": 56.0,
+              "flags": [
+                "incomplete_date_coverage"
+              ],
+              "id": "e2",
+              "metric": "hrv",
+              "preparedState": "unchanged",
+              "previousNewest": "2020-05-21",
+              "previousOldest": "2020-05-15",
+              "previousValue": 56.0,
+              "sport": null,
+              "unit": "ms"
+            }
+          },
+          {
+            "evidence_id": "e1",
+            "group_id": "g1",
+            "period": [
+              "2020-05-15",
+              "2020-05-21",
+              "2020-05-22",
+              "2020-05-28"
+            ],
+            "text": "wellness sleepSecs: comparison unavailable; missing is unknown, not zero",
+            "support": {
+              "currentNewest": "2020-05-28",
+              "currentOldest": "2020-05-22",
+              "currentValue": 25200.0,
+              "flags": [
+                "unavailable_comparison",
+                "partial_metric_coverage",
+                "sparse_comparison",
+                "incomplete_date_coverage"
+              ],
+              "id": "e1",
+              "metric": "sleepSecs",
+              "preparedState": "unavailable",
+              "previousNewest": "2020-05-21",
+              "previousOldest": "2020-05-15",
+              "previousValue": null,
+              "sport": null,
+              "unit": "seconds"
+            }
+          }
+        ],
+        "limitations": [
+          "descriptive_not_causal",
+          "not_readiness_or_training_advice",
+          "missing_is_unknown",
+          "recorded_time_not_intensity"
+        ]
+      },
+      "report_sha256": "dad80a8208e424e9b76683a2873d87348edbccb91ed3d9e4c8c115186b0268ba"
+    },
+    {
+      "case": "unseen_zero_with_hrv_up",
+      "packet": {
+        "profile": "prepared-focus-v1",
+        "synthetic_only": true,
+        "requested_focus": "daily_combined",
+        "groups": [
+          {
+            "id": "g0",
+            "period": [
+              "2020-06-15",
+              "2020-06-21",
+              "2020-06-22",
+              "2020-06-28"
+            ],
+            "unavailable": false,
+            "evidence": [
+              {
+                "currentNewest": "2020-06-28",
+                "currentOldest": "2020-06-22",
+                "currentValue": 1200.0,
+                "flags": [
+                  "zero_baseline_no_percentage"
+                ],
+                "id": "e0",
+                "metric": "movingTime",
+                "preparedState": "increased",
+                "previousNewest": "2020-06-21",
+                "previousOldest": "2020-06-15",
+                "previousValue": 0.0,
+                "sport": "Ride",
+                "unit": "seconds"
+              },
+              {
+                "currentNewest": "2020-06-28",
+                "currentOldest": "2020-06-22",
+                "currentValue": 24600.0,
+                "flags": [
+                  "incomplete_date_coverage"
+                ],
+                "id": "e1",
+                "metric": "sleepSecs",
+                "preparedState": "increased",
+                "previousNewest": "2020-06-21",
+                "previousOldest": "2020-06-15",
+                "previousValue": 24000.0,
+                "sport": null,
+                "unit": "seconds"
+              },
+              {
+                "currentNewest": "2020-06-28",
+                "currentOldest": "2020-06-22",
+                "currentValue": 56.0,
+                "flags": [
+                  "incomplete_date_coverage"
+                ],
+                "id": "e2",
+                "metric": "hrv",
+                "preparedState": "increased",
+                "previousNewest": "2020-06-21",
+                "previousOldest": "2020-06-15",
+                "previousValue": 48.0,
+                "sport": null,
+                "unit": "ms"
+              }
+            ]
+          }
+        ],
+        "candidates": [
+          {
+            "kind": "cross_metric_pattern",
+            "group_id": "g0",
+            "evidence_ids": [
+              "e0",
+              "e1",
+              "e2"
+            ],
+            "states": [
+              "increased",
+              "increased",
+              "increased"
+            ],
+            "id": "f0"
+          },
+          {
+            "kind": "activity_pattern",
+            "group_id": "g0",
+            "evidence_ids": [
+              "e0"
+            ],
+            "states": [
+              "increased"
+            ],
+            "id": "f1"
+          },
+          {
+            "kind": "wellness_pattern",
+            "group_id": "g0",
+            "evidence_ids": [
+              "e1",
+              "e2"
+            ],
+            "states": [
+              "increased",
+              "increased"
+            ],
+            "id": "f2"
+          }
+        ],
+        "limitations": [
+          "descriptive_not_causal",
+          "not_readiness_or_training_advice",
+          "missing_is_unknown",
+          "recorded_time_not_intensity"
+        ]
+      },
+      "packet_sha256": "e805d8a6d0f03e70f263aba07f797846f80c23a842fae0077545cfc0b81a5391",
+      "source_packet": {
+        "evidence": [
+          {
+            "id": "e0",
+            "sport": "Ride",
+            "metric": "movingTime",
+            "unit": "seconds",
+            "previousOldest": "2020-06-15",
+            "previousNewest": "2020-06-21",
+            "currentOldest": "2020-06-22",
+            "currentNewest": "2020-06-28",
+            "previousValue": 0.0,
+            "currentValue": 1200.0,
+            "preparedState": "increased",
+            "flags": [
+              "zero_baseline_no_percentage"
+            ]
+          },
+          {
+            "id": "e1",
+            "sport": null,
+            "metric": "sleepSecs",
+            "unit": "seconds",
+            "previousOldest": "2020-06-15",
+            "previousNewest": "2020-06-21",
+            "currentOldest": "2020-06-22",
+            "currentNewest": "2020-06-28",
+            "previousValue": 24000.0,
+            "currentValue": 24600.0,
+            "preparedState": "increased",
+            "flags": [
+              "incomplete_date_coverage"
+            ]
+          },
+          {
+            "id": "e2",
+            "sport": null,
+            "metric": "hrv",
+            "unit": "ms",
+            "previousOldest": "2020-06-15",
+            "previousNewest": "2020-06-21",
+            "currentOldest": "2020-06-22",
+            "currentNewest": "2020-06-28",
+            "previousValue": 48.0,
+            "currentValue": 56.0,
+            "preparedState": "increased",
+            "flags": [
+              "incomplete_date_coverage"
+            ]
+          }
+        ]
+      },
+      "factual_rendering": {
+        "application_generated": true,
+        "facts": [
+          {
+            "evidence_id": "e0",
+            "group_id": "g0",
+            "period": [
+              "2020-06-15",
+              "2020-06-21",
+              "2020-06-22",
+              "2020-06-28"
+            ],
+            "text": "Ride movingTime: increased: 0.0 to 1200.0 seconds",
+            "support": {
+              "currentNewest": "2020-06-28",
+              "currentOldest": "2020-06-22",
+              "currentValue": 1200.0,
+              "flags": [
+                "zero_baseline_no_percentage"
+              ],
+              "id": "e0",
+              "metric": "movingTime",
+              "preparedState": "increased",
+              "previousNewest": "2020-06-21",
+              "previousOldest": "2020-06-15",
+              "previousValue": 0.0,
+              "sport": "Ride",
+              "unit": "seconds"
+            }
+          },
+          {
+            "evidence_id": "e1",
+            "group_id": "g0",
+            "period": [
+              "2020-06-15",
+              "2020-06-21",
+              "2020-06-22",
+              "2020-06-28"
+            ],
+            "text": "wellness sleepSecs: increased: 24000.0 to 24600.0 seconds",
+            "support": {
+              "currentNewest": "2020-06-28",
+              "currentOldest": "2020-06-22",
+              "currentValue": 24600.0,
+              "flags": [
+                "incomplete_date_coverage"
+              ],
+              "id": "e1",
+              "metric": "sleepSecs",
+              "preparedState": "increased",
+              "previousNewest": "2020-06-21",
+              "previousOldest": "2020-06-15",
+              "previousValue": 24000.0,
+              "sport": null,
+              "unit": "seconds"
+            }
+          },
+          {
+            "evidence_id": "e2",
+            "group_id": "g0",
+            "period": [
+              "2020-06-15",
+              "2020-06-21",
+              "2020-06-22",
+              "2020-06-28"
+            ],
+            "text": "wellness hrv: increased: 48.0 to 56.0 ms",
+            "support": {
+              "currentNewest": "2020-06-28",
+              "currentOldest": "2020-06-22",
+              "currentValue": 56.0,
+              "flags": [
+                "incomplete_date_coverage"
+              ],
+              "id": "e2",
+              "metric": "hrv",
+              "preparedState": "increased",
+              "previousNewest": "2020-06-21",
+              "previousOldest": "2020-06-15",
+              "previousValue": 48.0,
+              "sport": null,
+              "unit": "ms"
+            }
+          }
+        ],
+        "limitations": [
+          "descriptive_not_causal",
+          "not_readiness_or_training_advice",
+          "missing_is_unknown",
+          "recorded_time_not_intensity"
+        ]
+      },
+      "report_sha256": "9cfb899caeb1b12f99f1dc33ac2caf76cd05c7f46cc55e30be08514d519b421d"
+    }
+  ],
+  "case_outcomes": [
+    {
+      "phase": "prepared_case_outcome",
+      "case": "unseen_opposing_sleep_up",
+      "accepted": true,
+      "final_attempt": 1,
+      "job_seconds": 68.421
+    },
+    {
+      "phase": "prepared_case_outcome",
+      "case": "unseen_steady_with_hrv_drop",
+      "accepted": true,
+      "final_attempt": 1,
+      "job_seconds": 93.569
+    },
+    {
+      "phase": "prepared_case_outcome",
+      "case": "unseen_two_sports_both_increase",
+      "accepted": true,
+      "final_attempt": 1,
+      "job_seconds": 103.838
+    },
+    {
+      "phase": "prepared_case_outcome",
+      "case": "unseen_two_sports_sleep_unknown",
+      "accepted": true,
+      "final_attempt": 1,
+      "job_seconds": 109.979
+    },
+    {
+      "phase": "prepared_case_outcome",
+      "case": "unseen_sleep_previous_unknown",
+      "accepted": true,
+      "final_attempt": 1,
+      "job_seconds": 100.689
+    },
+    {
+      "phase": "prepared_case_outcome",
+      "case": "unseen_zero_with_hrv_up",
+      "accepted": false,
+      "final_attempt": 2,
+      "job_seconds": 192.15
+    }
+  ],
+  "telemetry": {
+    "sample_count": 137,
+    "live_health_failures": 0,
+    "synthetic_health_failures": 0,
+    "maximum_temperature_c": 73.8,
+    "minimum_host_available_mib": 1770.3,
+    "ollama_lifetime_peak_mib": 5120.0,
+    "ollama_maximum_current_mib": 5117.1
+  },
+  "controls": {
+    "phase": "prepared_controls",
+    "history_unchanged": true,
+    "history_sha256_after": "e9bed2d53e19a5d7f85ef9b30406987e18eb1696eff33052edb385b88e506cc6",
+    "no_app_ai_calls": true,
+    "logout_verified": true
+  },
+  "staging_diagnostics": [
+    {
+      "phase": "prepared_staging_diagnostic",
+      "model": "qwen3.5:4b",
+      "success": true,
+      "http_status": 200,
+      "response_bytes": 20,
+      "response_sha256": "912d0c07da7bdb22cdae025b96da26d01523aaab7362edb28544e3949deb369d",
+      "error_class": null
+    }
+  ],
+  "log_scan_passed": true,
+  "failures": [],
+  "baseline_live_state": [
+    {
+      "name": "gtrainer-67cffc87b9-55zz8",
+      "uid": "cbc928b6-9084-47dc-8b43-1575d2f2c78b",
+      "image": "ghcr.io/blondacz/gtrainer@sha256:3ff83b81e129cb7dcb00747b1ff2badee4f10b0e5325419eefbb3ca85bdba568",
+      "image_id": "ghcr.io/blondacz/gtrainer@sha256:3ff83b81e129cb7dcb00747b1ff2badee4f10b0e5325419eefbb3ca85bdba568",
+      "ready": true,
+      "restarts": 0
+    }
+  ],
+  "cleanup": {
+    "phase": "prepared_cleanup",
+    "temporary_namespace_removed": true,
+    "final_live_state": [
+      {
+        "name": "gtrainer-67cffc87b9-55zz8",
+        "uid": "cbc928b6-9084-47dc-8b43-1575d2f2c78b",
+        "image": "ghcr.io/blondacz/gtrainer@sha256:3ff83b81e129cb7dcb00747b1ff2badee4f10b0e5325419eefbb3ca85bdba568",
+        "image_id": "ghcr.io/blondacz/gtrainer@sha256:3ff83b81e129cb7dcb00747b1ff2badee4f10b0e5325419eefbb3ca85bdba568",
+        "ready": true,
+        "restarts": 0
+      }
+    ],
+    "host_available_mib": 6210.2,
+    "temperature_c": 52.35
+  }
+}

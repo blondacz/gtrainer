@@ -72,6 +72,14 @@ application database into the inference service.
 
 ## Facts and immutable evidence
 
+The separately implemented [deterministic factual review](deterministic-factual-reviews.md)
+retains every app comparison and provides rule-selected focus without inference.
+Its read-only endpoint/UI and the subsequent
+[separate interpretation runtime](guarded-review-interpretation.md) do not alter
+the installed prototype packet, prompt, validator or zero-retry policy described
+below. The new profile defaults off and refuses live inference without a qualified
+resource/live-health guard; no production guard is wired by these changes.
+
 - The backend calculates metrics, arithmetic changes, direction, units, coverage,
   missing inputs, dates, and provenance before inference. The LLM does no
   bookkeeping or arithmetic.
@@ -143,6 +151,68 @@ analysis/selection in local storage, renders supplied HTML, or retries with a
 different provider.
 
 ## Resources and qualification remain open
+
+The subsequently authorized [published-app synthetic Pi test](guarded-app-ministral-test.md)
+accepted **0/8 real Ministral responses**. Both sparse-input gates made no model
+call. Whole-response rejection worked, but a final runner log-decoding failure
+left the sensitive-log scan and sustained telemetry export incomplete. This
+exact integration is not usable or resource-qualified; the earlier 8/10 typed
+retest is not its acceptance rate. No default, production model service, or live
+promotion was enabled.
+
+The later [Granite 4.2 3B exact-app test](guarded-app-granite42-test.md) completed
+the procedure, including retained telemetry and final controls, but again
+accepted **0/8** real responses. Calls took 44.485–60.041 seconds; measured
+Ollama lifetime peak was 4664.3 MiB, with concurrent synthetic chart-data access
+available. Incomplete/invalid cross-metric selections were rejected whole.
+This finite resource result does not qualify long-term production headroom or
+make the unchanged prompt/model usable. No inference service or default is enabled.
+
+The unchanged-app Qwen3 4B Instruct-2507 baseline also accepted 0/8. A separately
+authorized [skill-style prompt experiment](skill-style-prompt-experiment.md)
+improved four comparable development-fixture pairs from 0/4 to 2/4, but stopped
+partway through after a request crossed midnight and correctly triggered stale
+report rejection. The experimental transport changed only system instructions;
+the app contract stayed unchanged. Semantic errors, 83–97-second instruction-card
+latency and a 5120 MiB cgroup lifetime peak still prevent qualification. These
+partial results and the separately labeled hosted Luna reference do not enable
+a default, a production skill system or hosted transfer of actual health data.
+An explicitly approved fresh full rerun subsequently completed: original
+instructions accepted 0/6 and the unchanged card 3/6, with final controls/log/
+history/cleanup checks passing. B still took 83–98 seconds and reached the same
+cgroup lifetime peak; 50% development-fixture acceptance does not qualify it.
+The approved [revised-card comparison on fresh structural variants](revised-card-unseen-experiment.md)
+then accepted 1/6 with v1 versus 4/6 with v2. V2 still omitted mandatory evidence
+in two complete responses; those were rejected whole. Its 73–91-second latency
+and 5120 MiB cgroup lifetime peak also remain limitations. Controls and cleanup
+passed, but no model default, live service or production prompt change is enabled.
+The later [code-prepared focus experiment](code-prepared-review-experiment.md)
+rendered complete facts independently of model selections. Qwen3 answered 4/6
+requested focuses; two bounded corrections repeated the same irrelevant choices.
+This new benchmark-only output contract is not installed-app acceptance. Qwen3.5
+failed during model staging before any inference, with no new OOM established;
+its quality remains untested in this protocol. Both owned cleanup checks passed.
+The subsequently approved diagnostic rerun staged successfully and accepted 5/6
+requested focuses under that same prepared-focus protocol, unchanged after one
+corrective attempt. Peak remained 5120 MiB with no observed OOM/restart; all
+controls and cleanup passed. This qualifies task 7.2's experimental procedure,
+not the production prototype or coaching. The earlier staging failure remains
+unexplained; no cap increase, default selection or live inference is enabled.
+The later [fresh prepared-review suite](fresh-prepared-review-experiment.md)
+stopped on a controller `kubectl get pod` timeout during its fifth case. It
+finalized four cases (2/4 relevant) and retained five first-pass selections
+(2/5 relevant); one corrective response is unrecorded and no full-suite score is
+claimed. Owned cleanup/live-state checks passed, but final controls/sparse gates
+were not reached. This does not establish a new model timeout/OOM or qualify
+production inference; the frozen partial evidence is retained unchanged.
+After separately approved capture fixes and restarts, the unchanged fresh suite
+completed with durable Pi-side evidence: **5/10 first-pass and final relevant
+reviews**, despite all 15 responses passing the closed contract. Five corrections
+repeated unsuitable selections. Both sparse gates and final controls/cleanup passed;
+peak again reached 5120 MiB with no observed restart or health/guard failure.
+This demonstrates complete benchmark capture, not reliable focus relevance,
+sustained-resource qualification or accepted production rendering. Earlier partial
+captures remain separate, live AI stays off and no further run is authorized.
 
 The request retains the benchmark settings: 2048-token context, 256 output
 tokens, three CPU threads, temperature 0, seed 42, and thinking off. HTTP requests

@@ -11,6 +11,7 @@ const connectionLabels: Record<Connection, string> = {
 
 export function App() {
   const [connection, setConnection] = useState<Connection>('checking')
+  const [authenticated, setAuthenticated] = useState(false)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -33,22 +34,23 @@ export function App() {
   }, [])
 
   return (
-    <main>
+    <main className={authenticated ? 'dashboard-main' : 'login-main'}>
       <header>
         <p className="eyebrow">Your private training & health journal</p>
         <h1>GTrainer</h1>
-        <p className="intro">A clearer view of your activity, recovery, and upcoming events.</p>
+        {!authenticated && <p className="intro">A clearer view of your activity and health trends, and upcoming events.</p>}
       </header>
-      <section className="panel" aria-labelledby="setup-heading">
+      {!authenticated && <section className="panel" aria-labelledby="setup-heading">
         <h2 id="setup-heading">Foundation in progress</h2>
-        <p>Private access, read-only import, factual charts, and guarded experimental local observations are available. Manual events are still being built.</p>
+        <p>Private access, read-only imports, factual tiles, guarded review controls and manual events. Production AI remains gated.</p>
         <p>No personal data is bundled with this app. Sign in to read and review your private imported history.</p>
         <p role="status" className={`connection ${connection}`}>
           <span aria-hidden="true" className="dot" />{connectionLabels[connection]}
         </p>
-      </section>
-      <SessionPanel />
-      <p className="footnote">No data is sent to a model unless you explicitly select a configured local model and request analysis. No hosted fallback.</p>
+      </section>}
+      <SessionPanel onAuthenticatedChange={setAuthenticated} />
+      <p className="footnote">{authenticated ? 'Optional AI needs explicit model selection and a request or enabled schedule; runtime guards apply. No hosted fallback.' :
+        'No data is sent to a model unless you explicitly select a configured local model and request analysis or enable review schedules. Runtime qualification guards still apply. No hosted fallback.'}</p>
     </main>
   )
 }
