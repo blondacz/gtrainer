@@ -31,6 +31,93 @@ See proposal.md for motivation. The Kotlin/Ktor and React foundation now impleme
 11. **Treat latency as a background budget, not a real-time qualification gate.** The application serves factual data while analysis runs. Time budgets include model loading, checks and at most one corrective retry, with separate bounded per-call and total-job deadlines. A five-minute target and ten-minute maximum are provisional tunable starting points, not agreed fixed limits or changes to the installed prototype's 120/130-second bounds. Correctness and resource safety take priority over speed. All review levels use identical safety validation; thorough is not guaranteed precision. Keep the three-core/5 GiB model cap and stop on OOM, restart or host/live-health guard failure. Test Qwen3 4B Instruct and pinned Qwen3.5 4B using synthetic inputs; any future hardware/cap change needs separate approval and a separately labeled run.
 12. **Automatic reviews require explicit enablement.** Default inference and schedules remain off; enabling schedules requires an explicit model/configuration choice and does not authorize hosted health transfer. Disable/pause or model-selection changes invalidate pending work and prevent stale in-flight publication. Future scheduled local selection persistence, if implemented, must be explicit and documented; the current memory-only prototype remains off after restart. Show next scheduled check (conditional on changed data), next due review, pending event conditions, queued reasons/start estimate, running state and last successful snapshot coverage. Do not invent a next event-trigger time or guarantee an exact start behind running work.
 
+## Pending local-model qualification plan
+
+The user chose local qualification planning after source-review PR #21. This
+section authorizes recording the plan only, not implementing a runner, calling a
+model, changing live configuration, transferring health data, merging, publishing
+an image, promoting a release or deploying. No local model is qualified or selected
+by this plan. Earlier benchmark results remain unchanged and separate.
+
+### Gate 1: Establish the intended usefulness
+
+The current `review-focus-app-v1` model chooses candidate IDs whose supported facts,
+text and relevant-focus set are already computed by code. Compare its intended
+contribution against that deterministic baseline before spending another inference
+budget. Reproducing the rule-selected IDs demonstrates instruction following, not
+physiological reasoning, coaching or added value over code. A relevance pass alone
+must not complete task 4.6 or be presented as useful unrestricted interpretation.
+If richer descriptive interpretation is needed, design a separately named contract
+and independently checkable claims first; do not broaden this contract or silently
+replace the installed prototype. If no useful model contribution is established,
+retain the factual view and keep optional AI off.
+
+### Gate 2: Freeze a separately approved exact-app trial
+
+Before any launch, prepare and independently check a manifest binding the app
+commit/build, `review-focus-app-v1` prompt, adapter/options, validator, synthetic
+records, packet/report hashes, expected relevance rubric, runtime/model artifact,
+guards and scoring. Do not reuse earlier observed cases as a fresh holdout or tune
+the prompt, cases or rubric after viewing results. Keep this application trial
+distinct from `prepared-focus-v1` and the installed `/api/analysis` prototype.
+
+The proposed candidate is the previously pinned Qwen3.5 4B manifest
+`2a654d98e6fba55d452b7043684e9b57a947e393bbffa62485a7aac05ee4eefd`
+with Ollama `0.35.0`; this is a candidate for approval, not a default selection.
+Its earlier fresh benchmark remained **5/10 relevant**, with all 15 outputs
+structurally valid and no corrective rescue. The app uses a separate contract, so
+earlier benchmark scores cannot qualify it or be pooled with a new result.
+
+Proposed bounded trial:
+
+- Twenty fresh usable synthetic cases: five each for daily-combined, wellness,
+  activity-balance and missing-wellness. Include opposing/unchanged directions,
+  zero baselines, incomplete coverage and candidate-position variation. Keep the
+  independent expected-kind rubric outside the model packet.
+- Additional sparse/no-relevant-candidate and oversized-input controls must make
+  no provider call. Incompatible-period tests must not create a same-period
+  association or silently merge evidence.
+- At most twenty inference calls, one per usable case, with corrective attempts
+  disabled. Retain the app defaults of **120000 ms per attempt / 130000 ms per
+  job**, including loading, pre/postflight and validation. Preserve three cores,
+  **5 GiB**, 2048 context, 256 output tokens, temperature zero, seed 42, thinking
+  off and unload after each call. Do not change the installed prototype limits.
+- Use only an isolated synthetic app/store and owned model resources, without
+  production credentials, actual records, manual personal events or notes. No
+  source reads, hosted transfer, model substitution or automatic retry.
+- Freeze resource/live-health freshness and responsiveness thresholds before
+  launch. Stop on OOM, restart, unreadable/stale telemetry or failed host/app health;
+  mark unfinished cases unknown, preserve received bytes independently of control
+  failures, and clean up only resources owned by the trial.
+
+The proposed sample gate requires **20/20 structurally valid and relevant
+first-pass responses**, correct no-call controls, unchanged synthetic history and
+no unsupported interpretation rendered. Whole-response validation remains
+mandatory; no output repair, fragment salvage, pooling with previous runs or
+rescoring after failures. Independently replay every original response and retain
+bindings, rejections, latency, resource/control evidence and cleanup outcome.
+Passing is a limited exact-app sample result, not statistical assurance of general
+reliability, a medical/sport-safety claim or production qualification. Failure
+keeps AI off and requires a new decision rather than a silent rerun or larger cap.
+
+### Gate 3: Qualify production operation separately
+
+A future production resource/live-health guard must first pass synthetic fault
+tests for stale/missing telemetry, OOM/restarts, identity changes, cancellation and
+unavailable live health, failing closed before sending or accepting output. Its
+absence must continue to block normal runtime inference. Subsequent sustained
+synthetic Pi qualification must separately cover concurrent chart responsiveness,
+shared-slot/queue behaviour, invalidation, restart recovery and bounded background
+budgets without adding calls to the twenty-call trial above.
+
+Private networking, least-privilege runtime access, schema-compatible encrypted
+backup/restore and rollback, and accepted hardware/UI rendering remain release
+gates. Model switching must leave stored history untouched. Any image publication,
+promotion, live migration, actual-data end-to-end verification, user model
+selection or schedule re-arming requires its own applicable approval. Keep tasks
+4.4/4.6/4.8/6.1 unfinished until their original criteria are met; hosted consent
+task 4.5 also remains unfinished and is not removed by the local-only direction.
+
 ## Later-phase planning requirements (not implemented in phase one)
 
 ### Phase 2: Calendar commitments and travel context

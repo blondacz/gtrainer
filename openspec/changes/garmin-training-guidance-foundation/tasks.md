@@ -184,3 +184,31 @@ The user subsequently approved committing/pushing this tested source for PR revi
 only. Nothing is promoted, deployed, migrated live or used for real inference.
 Tasks 4.4/4.5/4.6/4.8/6.1 retain their original acceptance
 requirements and remain unfinished.
+
+### Pending local qualification planning
+
+Source review was committed as `99b527a96458946255a767fe3fde22d3cbe2fe0e`
+and pushed to [PR #21](https://github.com/blondacz/gtrainer/pull/21).
+CI run **37073228601** passed tests/build and release provenance; image publication
+and promotion were skipped. PR auto-merge is not enabled. PR #20 remains separate
+and untouched. Synthetic browser checks of the committed build verify overview,
+review request and paged preset identity/coverage views at 1000×700 and 390×844;
+390×575 preserves accessible review-control scrolling without clipping or
+horizontal overflow. Tile text is white; the page remains white with neutral text.
+
+The user chose **local qualification planning** and approved recording the pending
+plan in [design.md](design.md#pending-local-model-qualification-plan). Start with
+the usefulness gate against code-owned deterministic selection; a focus-selection
+pass is not proof of useful health reasoning. The proposed, not authorized,
+exact-app trial freezes twenty fresh synthetic cases, the separate app contract,
+pinned candidate, rubric and guards; it permits no more than twenty first-pass
+calls, no corrections, unchanged three-core/5 GiB limits and the existing
+120/130-second app defaults. All twenty responses must pass structural/relevance
+checks for the sample gate; original attempts and failures remain independently
+replayable. Production guard, sustained operation, private networking, compatible
+restore/rollback and actual-data release verification remain separate gates.
+
+This planning approval does **not** authorize runner implementation, a model run,
+model/provider selection, health-data transfer, merging, image publication,
+deployment or live migration. No experiment occurred. Progress remains **28/33**;
+tasks 4.4/4.5/4.6/4.8/6.1 stay unchecked with their original acceptance criteria.
