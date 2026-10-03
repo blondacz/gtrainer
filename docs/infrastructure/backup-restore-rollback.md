@@ -15,8 +15,9 @@ Never repair a rollout by deleting the persistent volume.
 
 All changes to `main` use passing protected PRs. Software/build changes publish
 and propose a tested ARM64 digest. Deployment/docs-only pushes still run checks
-but do not republish current software: otherwise a Git rollback would immediately
-be undone by a new automatic release of that same current software. An explicit
+but do not republish current software or propose it again after a rollback.
+Promotion PRs require an explicit manual merge; passing checks or approving a
+workflow run alone does not deploy them. An explicit
 main `workflow_dispatch` is the deliberate rebuild/retry path. Bot-created
 promotion PR workflows may require the operator's GitHub approval.
 

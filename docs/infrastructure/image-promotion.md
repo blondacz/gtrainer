@@ -1,7 +1,9 @@
-# Protected automated image promotion
+# Protected image promotion with manual merge
 
-Status: task 2.4 verified. GitHub workflow approval remains an operator gate;
-merge and Flux deployment proceed automatically after required checks pass.
+Status: task 2.4's original automated path was verified. As agreed on 2026-10-03,
+CI now creates and tests promotion PRs without enabling auto-merge. The operator
+explicitly merges a release after checks and backup/restore preparation; Flux then
+deploys it. Approving a workflow run alone no longer authorizes a release merge.
 
 ## Release path
 
@@ -24,7 +26,7 @@ merge and Flux deployment proceed automatically after required checks pass.
    during the build, it refuses to propose an obsolete release.
 5. It creates a candidate branch/PR changing only the image line in
    `deploy/gtrainer/deployment.yaml` and `deploy/gtrainer/release.json`, explicitly
-   dispatches checks on that branch, and enables squash auto-merge. It never
+    dispatches checks on that branch, and leaves it awaiting manual merge. It never
    pushes directly to `main` or force-updates an existing PR.
 6. GitHub requires passing **Tests and build** and **Verify release provenance**
    checks from the verified GitHub Actions integration (ID 15368), an up-to-date
@@ -32,7 +34,10 @@ merge and Flux deployment proceed automatically after required checks pass.
    including no administrator bypass. As a single-maintainer project, there is
    no required second-person review: protection is from enforced checks, not a
    claim of independent human approval.
-7. After merge, Flux reads `main` outbound and applies the new immutable image.
+7. The operator verifies release readiness, including a fresh compatible backup
+   and installed restore helper before a schema-changing release, then explicitly
+   merges the promotion PR. Passing checks alone does not merge it.
+8. After merge, Flux reads `main` outbound and applies the new immutable image.
    CI does not perform or observe the cluster rollout itself. Operator SSH
    verification confirms the expected digest and private access boundary.
 
@@ -41,13 +46,14 @@ merge and Flux deployment proceed automatically after required checks pass.
 The operator's existing authenticated GitHub CLI has repository administration
 access. Use it outside CI to:
 
-- Enable repository auto-merge and workflow PR creation. Although GitHub exposes
+- Enable workflow PR creation. Repository auto-merge is not required by this
+  workflow and is never enabled on its new promotion PRs. Although GitHub exposes
   PR creation/approval as one setting, this workflow never submits approval
   reviews and grants no bypass.
 - Create the ruleset from `.github/promotion-ruleset.json`. Do not silently
   replace an existing ruleset; inspect any conflicts first.
 - Create `image-promotion` with protected-branches-only deployment policy, no
-  secrets, and no required reviewer (automatic promotion after tests).
+  secrets, and no required reviewer (the release decision is the manual PR merge).
 
 Thereafter, normal code/document changes also use PRs rather than direct main
 pushes. Do not use `[skip ci]` on a PR requiring checks. Automation-created PR
@@ -82,6 +88,9 @@ Network isolation, single-user authentication, and data/backup handling remain
 independent requirements. Public software publication is not public-data consent.
 
 ## Live evidence (2026-09-30)
+
+Historical evidence of the original auto-merge policy follows; the manual-merge
+policy above supersedes that behaviour for new releases.
 
 - Ruleset `24276050` is active on `main`, has both required Actions checks,
   and the operator API confirms `bypass_actors: []`. The image-promotion

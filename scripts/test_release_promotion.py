@@ -1,3 +1,4 @@
+import base64
 import copy
 import io
 import json
@@ -7,7 +8,7 @@ from unittest.mock import patch
 import zipfile
 
 from github_release import artifact_evidence, successful_publication
-from promote_image import validate_protection
+from promote_image import main as promote_image, validate_protection
 from release_evidence import ReleaseError, image_from_deployment, replace_image, validate_evidence
 from verify_release import main as verify_release
 
@@ -21,6 +22,35 @@ def sample():
 
 
 class ReleasePromotion(unittest.TestCase):
+    def test_promotion_creates_checked_candidate_without_merging_or_enabling_auto_merge(self):
+        evidence = sample()
+        protection = json.loads((ROOT / '.github/promotion-ruleset.json').read_text())
+        responses = [
+            [{'name': 'Protected main', 'id': 1}], protection,
+            {'object': {'sha': evidence['source_sha']}},
+            {'content': base64.b64encode((ROOT / 'deploy/gtrainer/deployment.yaml').read_bytes()).decode()},
+            {'tree': {'sha': 'base-tree'}}, {'sha': 'candidate-tree'},
+            {'sha': 'candidate-commit'}, {},
+            {'node_id': 'candidate-pr', 'html_url': 'https://example.invalid/pr/1'}, {},
+        ]
+        env = {'GITHUB_REPOSITORY': evidence['repository'], 'GITHUB_REF': 'refs/heads/main',
+               'GITHUB_SHA': evidence['source_sha'], 'GITHUB_RUN_ID': str(evidence['run_id']),
+               'IMAGE': evidence['image']}
+        with patch.dict('os.environ', env, clear=True), \
+             patch('promote_image.api', side_effect=responses) as api, \
+             patch('promote_image.successful_publication') as publication, \
+             patch('promote_image.artifact_evidence') as artifact:
+            promote_image()
+        publication.assert_called_once_with(evidence)
+        artifact.assert_called_once_with(evidence)
+        self.assertEqual(api.call_count, len(responses))
+        writes = [call for call in api.call_args_list if len(call.args) > 1 and call.args[1] == 'POST']
+        prefix = 'repos/blondacz/gtrainer'
+        self.assertEqual([call.args[0] for call in writes], [prefix + path for path in
+                         ('/git/trees', '/git/commits', '/git/refs', '/pulls', '/actions/workflows/build.yml/dispatches')])
+        self.assertIn('Manual release approval required', writes[-2].args[2]['body'])
+        self.assertTrue(writes[-1].args[2]['ref'].startswith('promote/'))
+
     def test_only_exact_public_identity_fields_and_digest_are_allowed(self):
         self.assertEqual(validate_evidence(sample()), sample())
         for field, value in [('image', 'ghcr.io/blondacz/gtrainer:latest'),
