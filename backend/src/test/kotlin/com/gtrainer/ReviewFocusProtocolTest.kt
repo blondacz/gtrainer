@@ -2,8 +2,6 @@ package com.gtrainer
 
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
-import java.nio.file.Files
-import java.nio.file.Path
 import java.time.LocalDate
 import kotlin.test.*
 
@@ -221,7 +219,7 @@ class ReviewFocusProtocolTest {
         assertNull(ReviewFocusProtocol.validate(raw, base).reason)
     }
 
-    @Test fun `schema is closed focus IDs only and separate from frozen legacy and benchmark contracts`() {
+    @Test fun `schema is closed focus IDs only and separate from frozen legacy contract`() {
         val packet = snapshot().packet
         val expected = buildJsonObject {
             put("type", "object"); put("additionalProperties", false)
@@ -242,9 +240,5 @@ class ReviewFocusProtocolTest {
         rejected(validClaims(), snapshot(), "invalid_shape")
         assertEquals("9e544322e7eb0c976dbcef4c2973b3b0859fb5e5505701d3f76c549ca558e314", AnalysisClaims.hash(AnalysisClaims.system))
         assertNotEquals(AnalysisClaims.system, ReviewFocusProtocol.system)
-        val benchmark = generateSequence(Path.of("").toAbsolutePath()) { it.parent }
-            .map { it.resolve("benchmarks/ollama/prepared_review.py") }.first { Files.isRegularFile(it) }
-        assertEquals("309dc4e72611f094d6fdc1b9baef81f24c5a213cbfcece9baa7053501946f93d",
-            AnalysisClaims.hash(Files.readString(benchmark)))
     }
 }

@@ -32,12 +32,13 @@ class ReviewQueueServiceTest {
     }
 
     private class Fixture(val path: Path, val clock: ReviewTestClock, val model: SyntheticReviewModel,
-                          val scope: CoroutineScope, private val guard: (suspend () -> Boolean)?, private val gate: Mutex) {
+                          val scope: CoroutineScope, private val guard: (suspend () -> Boolean)?, private val gate: Mutex,
+                          private val executionPolicy: ReviewExecutionPolicy) {
         var store = HistoryStore(path)
         var reviews = newReviews()
         var queue = ReviewQueueService(store, reviews, clock)
         var scheduler = ReviewScheduler(store, reviews, clock, durableQueue = true)
-        private fun newReviews() = ReviewInterpretationService(listOf(model), ReviewExecutionPolicy(100, 1000, true), guard, gate)
+        private fun newReviews() = ReviewInterpretationService(listOf(model), executionPolicy, guard, gate)
         fun seed(history: HistoryResponse = analysisHistory()) {
             store.begin("activities", clock.instant())
             store.completeActivities(ReadResult(ReadStatus.SUCCESS, history.activities), clock.instant())
@@ -67,13 +68,14 @@ class ReviewQueueServiceTest {
     }
 
     private fun fixture(model: SyntheticReviewModel = SyntheticReviewModel(), guard: (suspend () -> Boolean)? = { true },
-                        gate: Mutex = Mutex(), test: suspend Fixture.() -> Unit) = runBlocking {
+                         gate: Mutex = Mutex(), executionPolicy: ReviewExecutionPolicy = ReviewExecutionPolicy(100, 1000, true),
+                         test: suspend Fixture.() -> Unit) = runBlocking {
         coroutineScope {
             val directory = Files.createTempDirectory("gtrainer-synthetic-review-queue-")
             val workerJob = SupervisorJob(coroutineContext[Job])
             val workerScope = CoroutineScope(coroutineContext + workerJob)
             val fixture = Fixture(directory.resolve("synthetic.sqlite3"),
-                ReviewTestClock(Instant.parse("2020-06-02T10:00:00Z")), model, workerScope, guard, gate)
+                ReviewTestClock(Instant.parse("2020-06-02T10:00:00Z")), model, workerScope, guard, gate, executionPolicy)
             try { fixture.test() } finally {
                 fixture.queue.close(); fixture.reviews.close()
                 workerJob.cancelAndJoin()
@@ -525,10 +527,15 @@ class ReviewQueueServiceTest {
         }
         val prototype = AnalysisService(listOf(SyntheticAnalysisModel()))
         try {
-            fixture(model, gate = prototype.inferenceGate()) {
-                seed(); reviews.select(reviewSelection()); configure(configuration())
+            // This tests cancellation, not expiry. Keep the attempt alive across
+            // the competing prototype request even on a busy container builder.
+            val cancellationBudget = ReviewExecutionPolicy(30_000, 30_000)
+            fixture(model, gate = prototype.inferenceGate(), executionPolicy = cancellationBudget) {
+                seed(); reviews.select(reviewSelection())
+                configure(configuration().let { config -> config.copy(presets = config.presets.map { it.copy(budget = cancellationBudget) }) })
                 request(); queue.pump(scope)
                 withTimeout(5000) { started.await() }
+                delay(150) // Exceeds the old incidental 100 ms timeout.
                 val report = analysisReport()
                 val selected = prototype.select(syntheticModelOption.id)
                 assertEquals("analysis_busy", prototype.analyze(analysisRequest(report, selected), report) { report }.reason)

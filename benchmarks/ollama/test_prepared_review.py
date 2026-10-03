@@ -1,6 +1,7 @@
 import ast
 import base64
 import copy
+import hashlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
@@ -19,6 +20,13 @@ import test_app_prompt_experiment as oracle
 
 
 class PreparedReviewTest(unittest.TestCase):
+    def test_frozen_benchmark_contract_source_is_unchanged(self):
+        # Benchmark files are intentionally excluded from the application image.
+        # Check their frozen identity here, not from the standalone Kotlin build.
+        source = (Path(__file__).parent / 'prepared_review.py').read_bytes()
+        self.assertEqual(hashlib.sha256(source).hexdigest(),
+                         '309dc4e72611f094d6fdc1b9baef81f24c5a213cbfcece9baa7053501946f93d')
+
     def packet(self, index=0):
         return oracle.PromptExperimentTest().fixture_oracle(app_unseen_fixtures.cases()[index])
 
