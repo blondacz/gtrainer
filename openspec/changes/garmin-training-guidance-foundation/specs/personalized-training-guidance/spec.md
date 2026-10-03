@@ -37,7 +37,7 @@ The system MUST let the user request a plain-language summary connecting trends 
 
 #### Scenario: Model invents a missing score
 - **WHEN** the model describes a Garmin fitness age that the source did not provide
-- **THEN** the system rejects or removes that claim and does not label an invented value as Garmin data
+- **THEN** the system rejects the whole model response without salvaging fragments and does not label an invented value as Garmin data
 
 #### Scenario: Model cannot make a grounded summary
 - **WHEN** the model is unavailable or returns an unsupported or unusable summary
@@ -57,3 +57,66 @@ The system MUST let the user select a supported AI model without tying the trend
 #### Scenario: Hosted model has no consent
 - **WHEN** the selected model would send personal data outside the local environment and consent has not been granted
 - **THEN** the system sends nothing, explains the transfer, and asks the user to decide
+
+### Requirement: Factual grouping is independent of model interpretation
+The system MUST compute required comparisons, coverage, directions and complete evidence groups before inference. It MUST keep incompatible periods separate and unavailable comparisons explicit, and MUST be able to render the factual groups without model output. Model interpretation MUST be separately labeled and checked against the exact supplied snapshot; invalid output MUST be rejected whole, not repaired by filling omissions. Unrestricted personal prose MUST NOT be considered validated merely because schema, keywords or evidence IDs pass checks.
+
+#### Scenario: Model interpretation fails
+- **WHEN** the prepared facts include activity, sleep and unavailable HRV but the model returns an invalid interpretation
+- **THEN** the system withholds the whole interpretation while its independently prepared factual groups still cover all three metrics
+
+#### Scenario: Comparison periods differ
+- **WHEN** supplied activity and wellness comparisons refer to different periods
+- **THEN** code keeps their factual groups separate and validation rejects an interpretation presenting them as the same-period association
+
+### Requirement: Review presets separate purpose from thoroughness
+The system MUST offer switchable editable daily-combined, after-activity and weekly descriptive review presets. It MUST distinguish review type, scope, interim/thorough level and trigger, and MUST allow users to assign supported triggers and schedules to presets without writing a rules language. Both levels MUST use the same factual/safety validation; neither MUST imply guaranteed precision, recovery clearance or plan changes.
+
+#### Scenario: User assigns sleep arrival to a review
+- **WHEN** the user enables a supported sleep-arrival trigger for a daily-combined thorough preset
+- **THEN** code queues that type, scope and level without asking a model to route the event
+
+#### Scenario: User requests an interim review now
+- **WHEN** a thorough review is scheduled for the evening and the user requests a current interim review
+- **THEN** the future schedule does not suppress the immediate review
+
+### Requirement: Background review triggers are configurable and opt-in
+The system MUST keep automatic inference disabled until explicitly enabled with a selected model. It MUST support configurable changed-data time checks, local-time daily/weekly schedules, settled new sleep/wellness or activity arrivals, and optional new/changed-record count or daily-step threshold triggers where usable source data exists. Duplicate unchanged imports MUST NOT trigger work or count as new events. Thresholds MUST trigger once per configured period. Schedules MUST retain an explicit time zone and handle daylight-saving transitions without duplicate occurrence execution; travel MUST NOT silently change it. Scheduled inference MUST NOT bypass hosted-transfer consent.
+
+#### Scenario: Two-hour check finds no changes
+- **WHEN** an enabled periodic check runs and the relevant input is unchanged
+- **THEN** it starts no model analysis
+
+#### Scenario: Steps are unsupported
+- **WHEN** a user configures a daily-step threshold but the source lacks verified usable daily steps
+- **THEN** the rule is shown as unavailable and no step count is invented
+
+#### Scenario: Threshold remains exceeded
+- **WHEN** later syncs still report above the already-triggered daily threshold
+- **THEN** they do not create repeated threshold reviews for that day
+
+### Requirement: Review queue coalesces obsolete pending work
+The system MUST run at most one analysis at a time and retain at most one pending job for each review type, scope and compatible execution window. Matching new requests MUST merge reasons, use the latest snapshot at execution start, and keep the highest requested level. Different scopes MUST remain separate. Configurable debounce, cooldown and maximum deferral MUST prevent import bursts or continuous updates from causing thrashing or starvation. Disable/pause/model changes MUST invalidate pending work and prevent obsolete in-flight publication. New data MUST NOT cause repeated cancellation of running analysis or make an older result appear current.
+
+#### Scenario: Sleep and HRV arrive close together
+- **WHEN** both arrivals target the same pending daily review within its settling window
+- **THEN** the system queues one job covering the latest available snapshot and retains both reasons
+
+#### Scenario: Monthly and daily reviews are pending
+- **WHEN** newer data updates the daily review request
+- **THEN** the unrelated monthly review is not cancelled
+
+#### Scenario: Continuous updates arrive
+- **WHEN** relevant imports keep arriving during debounce
+- **THEN** the configured maximum deferral still permits a job to start with a fixed snapshot
+
+### Requirement: Background analysis has bounded independently validated attempts
+The system MUST expose configurable bounded per-call and total-job budgets suitable for day/week background reviews, including model loading and validation. It MAY make at most one corrective attempt for a rejected semantic/structural response using bounded validator feedback and the same immutable evidence; that response MUST independently pass the same validator. Timeout, OOM, restart, cancellation, changed evidence/model or host/live-health guard failure MUST NOT cause corrective retries or silent provider fallback. Resource limits MUST remain explicit and charts MUST remain usable throughout.
+
+#### Scenario: First response fails evidence validation
+- **WHEN** a review allows a corrective attempt and its first response is rejected within the remaining job budget
+- **THEN** the system may request one new response, counts both attempts and accepts only an independently valid final response without patching the first
+
+#### Scenario: Model exceeds its memory cap
+- **WHEN** a model is OOM-killed during analysis
+- **THEN** the job fails without automatic retry, larger memory allocation or hosted transfer, while factual views remain available

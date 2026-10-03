@@ -5,6 +5,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.nio.file.Files
 import java.nio.file.Path
+import java.security.MessageDigest
 import java.sql.Connection
 import java.sql.DriverManager
 import java.time.Instant
@@ -31,8 +32,9 @@ data class HistoryResponse(val activities: List<ActivityRecord>, val wellness: L
     override fun toString(): String = "HistoryResponse([REDACTED])"
 }
 
-class HistoryStore(path: Path) : AutoCloseable {
+class HistoryStore(path: Path) : AutoCloseable, ManualEventRepository {
     private val connection: Connection
+    private val scheduleJson = Json { encodeDefaults = true }
 
     init {
         require(!Files.isSymbolicLink(path)) { "Database must be an app-owned file" }
@@ -52,7 +54,7 @@ class HistoryStore(path: Path) : AutoCloseable {
                 statement.execute("PRAGMA synchronous=FULL")
                 statement.execute("PRAGMA secure_delete=ON")
                 val version = statement.executeQuery("PRAGMA user_version").use { result -> result.next(); result.getInt(1) }
-                require(version in 0..1) { "Database schema is not compatible with this app" }
+                require(version in 0..2) { "Database schema is not compatible with this app" }
                 if (version == 0) transaction {
                     statement.execute("CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_utc TEXT NOT NULL)")
                     statement.execute("CREATE TABLE activities (source TEXT NOT NULL, source_id TEXT NOT NULL, observed_date TEXT NOT NULL, record_json TEXT NOT NULL, PRIMARY KEY(source,source_id))")
@@ -66,6 +68,16 @@ class HistoryStore(path: Path) : AutoCloseable {
                     }
                     statement.execute("PRAGMA user_version=1")
                 }
+                if (version < 2) transaction {
+                    statement.execute("CREATE TABLE review_schedule (singleton INTEGER PRIMARY KEY CHECK(singleton=1), state_json TEXT NOT NULL)")
+                    statement.execute("CREATE TABLE review_import_changes (revision INTEGER PRIMARY KEY AUTOINCREMENT, category TEXT NOT NULL, observed_date TEXT NOT NULL, received_utc TEXT NOT NULL, identity_sha256 TEXT NOT NULL, sport TEXT, sleep_changed INTEGER NOT NULL, sleep_available INTEGER NOT NULL)")
+                    saveInitialReviewStateLocked()
+                    connection.prepareStatement("INSERT INTO schema_migrations VALUES (2,?)").use {
+                        it.setString(1, Instant.now().toString()); it.executeUpdate()
+                    }
+                    statement.execute("PRAGMA user_version=2")
+                }
+                reviewScheduleStateLocked() // Missing or corrupt scheduler state must fail closed.
                 statement.executeUpdate("UPDATE sync_status SET read_status='INTERRUPTED' WHERE read_status='RUNNING'")
             }
             // JDBC creates the file; restrict it explicitly instead of relying
@@ -117,14 +129,43 @@ class HistoryStore(path: Path) : AutoCloseable {
                          records: List<Pair<Triple<String, String, String>, String>>) = transaction {
         val table = categoryTable(category)
         if (status == ReadStatus.SUCCESS) {
-            connection.prepareStatement("INSERT INTO $table(source,source_id,observed_date,record_json) VALUES (?,?,?,?) ON CONFLICT(source,source_id) DO UPDATE SET observed_date=excluded.observed_date,record_json=excluded.record_json").use { insert ->
-                for ((identity, json) in records) {
-                    require(identity.first.matches(Regex("[a-zA-Z0-9_.-]{1,64}")) && identity.second.length in 1..128)
-                    LocalDate.parse(identity.third)
-                    insert.setString(1, identity.first); insert.setString(2, identity.second)
-                    insert.setString(3, identity.third); insert.setString(4, json); insert.addBatch()
+            // Validate every input, even a duplicate overwritten later in this batch.
+            for ((identity, _) in records) {
+                require(identity.first.matches(Regex("[a-zA-Z0-9_.-]{1,64}")) && identity.second.length in 1..128)
+                LocalDate.parse(identity.third)
+            }
+            val finalRecords = records.associateBy { it.first.first to it.first.second }.values
+            connection.prepareStatement("SELECT record_json FROM $table WHERE source=? AND source_id=?").use { select ->
+                connection.prepareStatement("INSERT INTO $table(source,source_id,observed_date,record_json) VALUES (?,?,?,?) ON CONFLICT(source,source_id) DO UPDATE SET observed_date=excluded.observed_date,record_json=excluded.record_json").use { insert ->
+                    for ((identity, json) in finalRecords) {
+                        select.setString(1, identity.first); select.setString(2, identity.second)
+                        val previous = select.executeQuery().use { if (it.next()) it.getString(1) else null }
+                        val changed: Boolean
+                        val sport: String?
+                        val sleepChanged: Boolean
+                        val sleepAvailable: Boolean
+                        if (category == "activities") {
+                            val current = Json.decodeFromString<ActivityRecord>(json)
+                            changed = previous == null || current != Json.decodeFromString<ActivityRecord>(previous)
+                            sport = current.sport
+                            sleepChanged = false
+                            sleepAvailable = false
+                        } else {
+                            val current = Json.decodeFromString<WellnessRecord>(json)
+                            val old = previous?.let { Json.decodeFromString<WellnessRecord>(it) }
+                            changed = current != old
+                            sport = null
+                            sleepChanged = listOf("sleepSecs", "sleepScore").any { key ->
+                                current.measurements[key]?.let { it != old?.measurements?.get(key) } == true
+                            }
+                            sleepAvailable = listOf("sleepSecs", "sleepScore").any { it in current.measurements }
+                        }
+                        if (!changed) continue
+                        insert.setString(1, identity.first); insert.setString(2, identity.second)
+                        insert.setString(3, identity.third); insert.setString(4, json); insert.executeUpdate()
+                        appendReviewChangeLocked(category, identity, at, sport, sleepChanged, sleepAvailable)
+                    }
                 }
-                insert.executeBatch()
             }
         }
         // Failed/empty source reads never silently remove previously imported
@@ -133,6 +174,131 @@ class HistoryStore(path: Path) : AutoCloseable {
             it.setString(1, status.name); it.setInt(2, rejected); it.setInt(3, incomplete)
             it.setString(4, status.name); it.setString(5, at.toString()); it.setString(6, category); it.executeUpdate()
         }
+    }
+
+    private fun appendReviewChangeLocked(category: String, identity: Triple<String, String, String>, at: Instant,
+                                          sport: String?, sleepChanged: Boolean, sleepAvailable: Boolean) {
+        // JSON array encoding is unambiguous even when opaque IDs contain delimiters.
+        val tuple = Json.encodeToString(listOf(identity.first, identity.second))
+        val digest = MessageDigest.getInstance("SHA-256").digest(tuple.toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it.toInt() and 0xff) }
+        connection.prepareStatement("INSERT INTO review_import_changes(category,observed_date,received_utc,identity_sha256,sport,sleep_changed,sleep_available) VALUES (?,?,?,?,?,?,?)").use {
+            it.setString(1, category); it.setString(2, identity.third); it.setString(3, at.toString())
+            it.setString(4, digest); it.setString(5, sport); it.setInt(6, if (sleepChanged) 1 else 0)
+            it.setInt(7, if (sleepAvailable) 1 else 0); it.executeUpdate()
+        }
+    }
+
+    private fun latestReviewRevisionLocked(): Long = connection.createStatement().use { statement ->
+        statement.executeQuery("SELECT coalesce(max(revision),0) FROM review_import_changes").use {
+            check(it.next()); it.getLong(1)
+        }
+    }
+
+    private fun reviewScheduleStateLocked(): ReviewSchedulerState = try {
+        connection.createStatement().use { statement ->
+            statement.executeQuery("SELECT singleton,state_json FROM review_schedule").use {
+                check(it.next() && it.getInt(1) == 1)
+                val state = scheduleJson.decodeFromString<ReviewSchedulerState>(it.getString(2))
+                check(!it.next() && state.version >= 0 && state.cursor >= 0)
+                state
+            }
+        }
+    } catch (_: Exception) {
+        throw IllegalStateException("Review schedule persistence failed; contents withheld")
+    }
+
+    private fun saveInitialReviewStateLocked() {
+        connection.prepareStatement("INSERT INTO review_schedule(singleton,state_json) VALUES (1,?)").use {
+            it.setString(1, scheduleJson.encodeToString(ReviewSchedulerState())); it.executeUpdate()
+        }
+    }
+
+    private fun saveReviewStateLocked(state: ReviewSchedulerState) {
+        connection.prepareStatement("UPDATE review_schedule SET state_json=? WHERE singleton=1").use {
+            it.setString(1, scheduleJson.encodeToString(state)); check(it.executeUpdate() == 1)
+        }
+    }
+
+    @Synchronized
+    fun reviewScheduleState(): ReviewSchedulerState = reviewScheduleStateLocked()
+
+    @Synchronized
+    fun updateReviewSchedule(expectedVersion: Long, configuration: ReviewScheduleConfiguration, at: Instant,
+                             modelId: String?, modelVersion: Long?): ReviewSchedulerState = transaction {
+        val previous = reviewScheduleStateLocked()
+        if (previous.version != expectedVersion) throw ReviewScheduleConflict()
+        val state = ReviewSchedulerState(configuration, Math.addExact(previous.version, 1), latestReviewRevisionLocked(),
+            modelVersion, modelId, if (modelId != null && modelVersion != null) at.toString() else null,
+            queue = ReviewQueueRules.invalidate(previous.queue, "review_configuration_changed", at))
+        saveReviewStateLocked(state)
+        state
+    }
+
+    @Synchronized
+    fun evaluateReviewSchedule(evaluate: (ReviewSchedulerState, List<ImportedReviewChange>, Long,
+                                         (LocalDate, LocalDate) -> HistoryResponse) -> Pair<ReviewSchedulerState, ReviewScheduleStatus>): ReviewScheduleStatus = transaction {
+        val state = reviewScheduleStateLocked()
+        val latestRevision = latestReviewRevisionLocked()
+        val changes = connection.prepareStatement("SELECT revision,category,observed_date,received_utc,identity_sha256,sport,sleep_changed,sleep_available FROM review_import_changes WHERE revision>? ORDER BY revision LIMIT 50001").use {
+            it.setLong(1, state.cursor)
+            it.executeQuery().use { rows -> buildList {
+                while (rows.next()) {
+                    if (size == 50_000) throw TrendSizeLimit()
+                    add(ImportedReviewChange(rows.getLong(1), rows.getString(2), rows.getString(3), rows.getString(4),
+                         rows.getString(5), rows.getString(6), rows.getInt(7) != 0, rows.getInt(8) != 0))
+                }
+            } }
+        }
+        val (updated, status) = evaluate(state, changes, latestRevision) { oldest, newest -> history(oldest, newest, 50_000) }
+        saveReviewStateLocked(updated)
+        status
+    }
+
+    @Synchronized
+    internal fun <T> updateReviewQueue(operation: (ReviewSchedulerState) -> Pair<ReviewSchedulerState, T>): T = transaction {
+        val (state, result) = operation(reviewScheduleStateLocked())
+        saveReviewStateLocked(state)
+        result
+    }
+
+    @Synchronized
+    internal fun reviewJobReport(job: ReviewQueueJob, today: LocalDate, latestAllowedDate: LocalDate = today): TrendReport {
+        val range = TrendRange(LocalDate.parse(job.intent.oldest), LocalDate.parse(job.intent.newest))
+        val records = history(range.previous().oldest, range.newest, 50_000)
+        val selected = if (job.intent.scope.kind != "activity") records else records.copy(activities = records.activities.filter { activity ->
+            AnalysisClaims.hash(Json.encodeToString(listOf(activity.source, activity.sourceRecordId))) == job.intent.activitySha256
+        })
+        return Trends.report(selected, range, job.intent.scope.sport, today, statuses(today), latestAllowedDate)
+    }
+
+    @Synchronized
+    override fun events(): List<ManualEvent> = connection.createStatement().use { statement ->
+        statement.executeQuery("SELECT id,start_date,end_date,sport,goal,notes FROM events ORDER BY start_date,end_date,id LIMIT 1001").use { rows ->
+            buildList {
+                while (rows.next()) {
+                    require(size < 1000) { "Event list exceeds bound" }
+                    add(ManualEvent(rows.getString(1), rows.getString(2), rows.getString(3), rows.getString(4), rows.getString(5), rows.getString(6)))
+                }
+            }
+        }
+    }
+
+    @Synchronized
+    override fun saveEvent(event: ManualEvent) = transaction {
+        connection.prepareStatement("SELECT count(*) FROM events WHERE id<>?").use {
+            it.setString(1, event.id); it.executeQuery().use { rows -> check(rows.next()); require(rows.getInt(1) < 1000) { "Event capacity reached" } }
+        }
+        connection.prepareStatement("INSERT INTO events(id,start_date,end_date,sport,goal,notes) VALUES (?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET start_date=excluded.start_date,end_date=excluded.end_date,sport=excluded.sport,goal=excluded.goal,notes=excluded.notes").use {
+            it.setString(1, event.id); it.setString(2, event.startDate); it.setString(3, event.endDate)
+            it.setString(4, event.sport); it.setString(5, event.goal); it.setString(6, event.notes); it.executeUpdate()
+        }
+        Unit
+    }
+
+    @Synchronized
+    override fun deleteEvent(id: String): Boolean = connection.prepareStatement("DELETE FROM events WHERE id=?").use {
+        it.setString(1, id); it.executeUpdate() > 0
     }
 
     private fun categoryTable(category: String): String {
@@ -182,11 +348,14 @@ class HistoryStore(path: Path) : AutoCloseable {
     @Synchronized
     fun removeImports() {
         transaction {
+            val state = reviewScheduleStateLocked()
             connection.createStatement().use {
                 it.executeUpdate("DELETE FROM activities")
                 it.executeUpdate("DELETE FROM wellness")
                 it.executeUpdate("DELETE FROM sync_status")
+                it.executeUpdate("DELETE FROM review_import_changes")
             }
+            saveReviewStateLocked(ReviewSchedulerState(configuration = state.configuration, version = Math.addExact(state.version, 1)))
         }
         connection.createStatement().use { it.execute("PRAGMA wal_checkpoint(TRUNCATE)") }
         // Events are a separate app-owned table and are deliberately untouched.

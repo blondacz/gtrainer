@@ -44,6 +44,64 @@ describe('factual private trends', () => {
   beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2020-06-02T12:00:00Z')) })
   afterEach(() => vi.useRealTimers())
 
+  it('compact tabs page metrics and every evidence record without initiating model work', async () => {
+    const fetchMock = vi.fn(async (path: string) => response(fixture(path)))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<TrendPanel compact csrfToken={'s'.repeat(43)} />)
+    const select = await screen.findByLabelText('Metric / sport')
+    fireEvent.change(select, { target: { value: '3' } })
+    expect(screen.getByText('71 kg')).toBeInTheDocument()
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    const card = screen.getByRole('region', { name: 'Weight' })
+    fireEvent.click(within(card).getByRole('button', { name: 'evidence' }))
+    expect(within(card).getByText(/synthetic-evidence-0/)).toBeInTheDocument()
+    expect(within(card).queryByText(/synthetic-evidence-1/)).not.toBeInTheDocument()
+    fireEvent.click(within(card).getByRole('button', { name: 'Next record' }))
+    expect(within(card).getByText(/synthetic-evidence-1/)).toBeInTheDocument()
+    expect(within(card).getByRole('button', { name: 'Next record' })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'period' }))
+    expect(screen.getByLabelText('Trend first date')).toBeInTheDocument()
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock.mock.calls.every(([path]) => path.startsWith('/api/trends?'))).toBe(true)
+  })
+
+  it('compact coverage retains unavailable Garmin labels and failures while every metric stays reachable', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (path: string) => response(fixture(path, true))))
+    render(<TrendPanel compact />)
+    const select = await screen.findByLabelText('Metric / sport')
+    expect(within(select).getAllByRole('option')).toHaveLength(5)
+    fireEvent.change(select, { target: { value: '3' } })
+    expect(screen.getByRole('region', { name: 'VO2 max' })).toHaveTextContent('unavailable')
+    fireEvent.click(screen.getByRole('button', { name: 'coverage' }))
+    let coverage = ''
+    for (;;) {
+      coverage += document.querySelector('.private-text')!.textContent
+      const next = screen.queryByRole('button', { name: 'Next coverage' })
+      if (!next || next.hasAttribute('disabled')) break
+      fireEvent.click(next)
+    }
+    expect(coverage).toContain('Garmin fitness age: unavailable')
+    expect(coverage).toContain('Garmin endurance score: unavailable')
+    expect(coverage).toContain('Garmin training status: unavailable')
+    expect(coverage).toContain('Garmin-to-Intervals.icu freshness is unverified')
+    expect(coverage).toContain('Missing imports do not prove missed activity')
+  })
+
+  it('compact metrics remain independently usable through a prototype model API failure', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (path: string) => path === '/api/models' ? { ok: false, status: 503 } :
+      { ...response(fixture(path)), headers: new Headers({ 'X-Evidence-Report-Sha256': 'a'.repeat(64) }) }))
+    render(<TrendPanel compact csrfToken={'s'.repeat(43)} />)
+    await screen.findByLabelText('Metric / sport')
+    fireEvent.click(screen.getByRole('button', { name: 'Experimental AI prototype' }))
+    await screen.findByText(/AI analysis unavailable. Reconnect/)
+    expect(screen.getByRole('button', { name: /Generate observations/ })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'metrics' }))
+    fireEvent.change(screen.getByLabelText('Metric / sport'), { target: { value: '3' } })
+    expect(screen.getByText('71 kg')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: /Weight/ })).toBeInTheDocument()
+  })
+
   it('shows observed totals and health units, source evidence, unavailable scores, and no AI transfer', async () => {
     const fetchMock = vi.fn(async (path: string) => response(fixture(path)))
     vi.stubGlobal('fetch', fetchMock)

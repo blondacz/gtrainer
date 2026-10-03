@@ -35,6 +35,7 @@ class AnalysisApiTest {
                 assertEquals(HttpStatusCode.Unauthorized, client.get("/api/models").status)
                 assertEquals(HttpStatusCode.Unauthorized, client.put("/api/models").status)
                 assertEquals(HttpStatusCode.Unauthorized, client.post("/api/analysis").status)
+                assertEquals(HttpStatusCode.Unauthorized, client.get("/api/review-facts?oldest=2020-06-01&newest=2020-06-02").status)
                 val login = client.post("/api/login") { header(HttpHeaders.Origin, origin); setBody("""{"password":"$SYNTHETIC_PASSWORD"}""") }
                 val cookie = login.headers[HttpHeaders.SetCookie]!!.substringBefore(';')
                 val csrf = Json.parseToJsonElement(login.bodyAsText()).jsonObject["csrfToken"]!!.jsonPrimitive.content
@@ -64,6 +65,29 @@ class AnalysisApiTest {
                 val report = Json.decodeFromString<TrendReport>(reportBody)
                 assertEquals(AnalysisClaims.hash(reportBody), reportResponse.headers["X-Evidence-Report-Sha256"])
                 val request = analysisRequest(report, Json.decodeFromString<ModelStatus>(selected.bodyAsText()))
+                val factualPath = "/api/review-facts?oldest=2020-06-01&newest=2020-06-02&evidenceReportSha256=${request.evidenceReportSha256}"
+                suspend fun facts(path: String = factualPath) = client.get(path) { header(HttpHeaders.Cookie, cookie) }
+                val factual = facts()
+                assertEquals(HttpStatusCode.OK, factual.status)
+                assertEquals("no-store", factual.headers[HttpHeaders.CacheControl])
+                assertEquals(request.evidenceReportSha256, factual.headers["X-Evidence-Report-Sha256"])
+                val prepared = Json.decodeFromString<FactualReview>(factual.bodyAsText())
+                val rawFactual = Json.parseToJsonElement(factual.bodyAsText()).jsonObject
+                assertEquals("factual-review-v1", rawFactual.getValue("profile").jsonPrimitive.content)
+                assertTrue(rawFactual.getValue("applicationGenerated").jsonPrimitive.boolean)
+                assertTrue(prepared.applicationGenerated)
+                assertEquals("factual-review-v1", prepared.profile)
+                assertEquals(report.comparisons.size, prepared.groups.sumOf { it.facts.size })
+                assertFalse(factual.bodyAsText().contains("sourceRecordId"))
+                assertFalse(factual.bodyAsText().contains(SYNTHETIC_PASSWORD))
+                assertEquals(0, model.calls)
+                assertEquals(HttpStatusCode.BadRequest, facts(factualPath.substringBefore("&evidenceReportSha256")).status)
+                assertEquals(HttpStatusCode.BadRequest, facts(factualPath + "&focus=training_plan").status)
+                assertEquals(HttpStatusCode.BadRequest, facts(factualPath.replace(request.evidenceReportSha256, "bad")).status)
+                val changed = facts(factualPath.replace(request.evidenceReportSha256, "b".repeat(64)))
+                assertEquals(HttpStatusCode.Conflict, changed.status)
+                assertEquals("evidence_changed", Json.decodeFromString<ApiError>(changed.bodyAsText()).error)
+                assertFalse(changed.bodyAsText().contains("supportingMetrics"))
                 suspend fun post(body: String) = client.post("/api/analysis") {
                     header(HttpHeaders.Cookie, cookie); header(HttpHeaders.Origin, origin); header("X-CSRF-Token", csrf)
                     contentType(ContentType.Application.Json); setBody(body)
@@ -83,6 +107,8 @@ class AnalysisApiTest {
                 assertFalse(result.bodyAsText().contains(SYNTHETIC_PASSWORD))
                 assertFalse(result.bodyAsText().contains("synthetic-analysis-"))
                 assertEquals(1, model.calls)
+                assertEquals(factual.bodyAsText(), facts().bodyAsText())
+                assertEquals(1, model.calls)
                 assertEquals(reportBody, client.get(trendPath) { header(HttpHeaders.Cookie, cookie) }.bodyAsText())
                 assertEquals(2, source.calls) // Model changes and generation never read or modify upstream/storage.
                 assertEquals(HttpStatusCode.BadRequest, client.put("/api/models") {
@@ -91,6 +117,7 @@ class AnalysisApiTest {
                 }.status)
                 client.post("/api/logout") { header(HttpHeaders.Cookie, cookie); header(HttpHeaders.Origin, origin); header("X-CSRF-Token", csrf) }
                 assertEquals(HttpStatusCode.Unauthorized, post(Json.encodeToString(request)).status)
+                assertEquals(HttpStatusCode.Unauthorized, facts().status)
             }
         } finally {
             history.close()
@@ -126,6 +153,11 @@ class AnalysisApiTest {
                     } }
                     withTimeout(5000) { started.await() }
                     assertEquals(HttpStatusCode.OK, withTimeout(5000) { client.get(trendPath) { header(HttpHeaders.Cookie, cookie) } }.status)
+                    val facts = withTimeout(5000) { client.get("/api/review-facts?oldest=2020-06-01&newest=2020-06-02&evidenceReportSha256=${request.evidenceReportSha256}") {
+                        header(HttpHeaders.Cookie, cookie)
+                    } }
+                    assertEquals(HttpStatusCode.OK, facts.status)
+                    assertEquals(report.comparisons.size, Json.decodeFromString<FactualReview>(facts.bodyAsText()).groups.sumOf { it.facts.size })
                     assertEquals(HttpStatusCode.OK, client.get("/healthz").status)
                     client.post("/api/logout") { header(HttpHeaders.Cookie, cookie); header(HttpHeaders.Origin, origin); header("X-CSRF-Token", csrf) }
                     release.complete(Unit)

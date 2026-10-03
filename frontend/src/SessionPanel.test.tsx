@@ -6,6 +6,35 @@ const csrf = 'a'.repeat(43)
 const syntheticPassword = 'synthetic-test-password-not-a-real-credential'
 
 describe('private access', () => {
+  it('mounts only the selected section and keeps writes and model calls off during navigation', async () => {
+    const fetchMock = vi.fn(async (path: string) => {
+      if (path === '/api/session') return { ok: true, json: async () => ({ authenticated: true, csrfToken: csrf, intervalsConfigured: false }) }
+      if (path === '/api/events') return { ok: true, status: 200, json: async () => ({ events: [], nextUpcoming: null, ongoing: [], evaluatedOn: '2020-06-02' }) }
+      return { ok: false, status: 503 }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const authenticated = vi.fn()
+    render(<SessionPanel onAuthenticatedChange={authenticated} />)
+    await screen.findByRole('heading', { name: 'Overview' })
+    expect(authenticated).toHaveBeenLastCalledWith(true)
+    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.queryByRole('heading', { name: 'Historical trends' })).not.toBeInTheDocument()
+    expect(fetchMock.mock.calls.some(([path]) => path === '/api/review-models')).toBe(false)
+    fireEvent.click(screen.getByRole('tab', { name: 'Events' }))
+    await screen.findByText('No manual events yet.')
+    expect(screen.queryByRole('heading', { name: 'Overview' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('tab', { name: 'Reviews' }))
+    await screen.findByRole('heading', { name: /Review controls/ })
+    expect(screen.queryByRole('heading', { name: 'Manual events' })).not.toBeInTheDocument()
+    expect(fetchMock.mock.calls.some(([path]) => path === '/api/review-now' || path === '/api/analysis' || path === '/api/sync')).toBe(false)
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Reviews' }), { key: 'Home' })
+    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveFocus()
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Overview' }), { key: 'ArrowRight' })
+    expect(screen.getByRole('tab', { name: 'Trends' })).toHaveFocus()
+    await screen.findByText(/History unavailable/)
+    expect(screen.queryByRole('heading', { name: /Review controls/ })).not.toBeInTheDocument()
+  })
+
   it('signs in and signs out without browser-storage credentials', async () => {
     // Import-status effects and logout can overlap: mock by endpoint rather
     // than assuming a particular scheduling order across operating systems.

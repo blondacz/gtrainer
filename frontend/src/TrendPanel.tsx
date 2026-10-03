@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AnalysisPanel } from './AnalysisPanel'
+import { FactualReviewPanel } from './FactualReviewPanel'
+import { TextPages } from './TilePrimitives'
 
 export type ObservedValue = {
   source: string; sourceRecordId: string; category: string; field: string; date: string; value: number; unit: string
@@ -11,7 +13,7 @@ export type MetricSeries = {
 }
 type Period = { oldest: string; newest: string; days: number; activityRecords: number; wellnessRecords: number
   sports: { sport: string; metrics: MetricSeries[] }[]; wellness: MetricSeries[]; flags: string[] }
-type Comparison = { sport: string | null; key: string; label: string; unit: string; currentValue: number | null
+export type Comparison = { sport: string | null; key: string; label: string; unit: string; currentValue: number | null
   previousValue: number | null; absoluteChange: number | null; percentChange: number | null; currentSamples: number; previousSamples: number; flags: string[] }
 export type TrendReport = { evaluatedOnUtc: string; selectedSport: string | null; availableSports: string[]; current: Period; previous: Period
   comparisons: Comparison[]; sourceStatus: { category: string; readStatus: string; latestObservedDate: string | null; latestObservedAgeDays: number | null }[]
@@ -27,7 +29,7 @@ const strings = (value: unknown): value is string[] => Array.isArray(value) && v
 const validDate = (value: unknown): value is string => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) &&
   Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value
 
-function reportFrom(value: unknown): TrendReport {
+export function reportFrom(value: unknown): TrendReport {
   if (typeof value !== 'object' || value === null) throw new Error('Invalid private response')
   const report = value as TrendReport
   function metric(series: MetricSeries): boolean {
@@ -98,11 +100,31 @@ function ObservedChart({ series, oldest, newest }: { series: MetricSeries; oldes
   </figure>
 }
 
-function MetricCard({ series, comparison, oldest, newest }: { series: MetricSeries; comparison?: Comparison; oldest: string; newest: string }) {
+function MetricCard({ series, comparison, oldest, newest, compact = false }: { series: MetricSeries; comparison?: Comparison; oldest: string; newest: string; compact?: boolean }) {
   const [evidence, setEvidence] = useState(false)
   const [page, setPage] = useState(0)
   const size = 25
   const slice = series.points.slice(page * size, (page + 1) * size)
+  const [view, setView] = useState('chart')
+  const point = series.points[Math.min(page, Math.max(0, series.points.length - 1))]
+  if (compact) return <section className={`dashboard-tile metric-detail ${series.aggregation === 'sum' ? 'activity' : 'wellness'}`} aria-label={series.label}>
+    <h3>{series.label}</h3>
+    <nav className="section-tabs" aria-label="Metric detail sections">{['chart', 'comparison', 'evidence'].map(name =>
+      <button key={name} type="button" aria-pressed={view === name} onClick={() => { setView(name); setPage(0) }}>{name}</button>)}</nav>
+    {view === 'chart' && <><p className="tile-value">{display(series.value, series.unit)}</p>
+      <p>{series.aggregation === 'mean' ? 'Mean of populated records' : 'Observed total'} · {series.sampleCount} records · {oldest}–{newest}</p>
+      <ObservedChart series={series} oldest={oldest} newest={newest} /></>}
+    {view === 'comparison' && <TextPages label="Comparison" text={`Previous: ${display(comparison?.previousValue ?? null, series.unit)}. ` +
+      `Current: ${display(series.value, series.unit)}. Arithmetic change: ${display(comparison?.absoluteChange ?? null, series.unit)}. ` +
+      `Percent change: ${comparison?.percentChange == null ? 'unavailable (including zero baseline)' : `${number.format(comparison.percentChange)}%`}; ${comparison?.previousSamples ?? 'unknown'} previous / ${series.sampleCount} current records. ` +
+      `${series.sampleCount} populated records across ${series.observedDays}/${series.periodDays} dates; ${series.missingRecordValues} missing and ${series.rejectedValues} rejected values. ` +
+      `Flags: ${comparison?.flags.join(', ') || 'none'}. Means weight each populated record equally, not each date. Missing records do not prove inactivity or illness. No significance, cause or prescription is inferred.`} />}
+    {view === 'evidence' && <>{point ? <><TextPages key={`${series.key}-${page}`} label="Evidence details" text={`${point.date}: ${point.value} ${point.unit}. Source: ${point.source}; record: ${point.sourceRecordId}. ` +
+      `Metric origin: ${point.upstreamSource ?? 'unknown'}; record labels: ${point.recordOrigins.join(', ') || 'unknown'}. ` +
+      `Time context: ${point.timeContext}; zone: ${point.timeZone ?? 'unknown'}; instant: ${point.startInstant ?? 'unknown'}.`} />
+      <nav className="tile-pagination" aria-label="Evidence records"><button className="secondary" disabled={!page} onClick={() => setPage(page - 1)}>Previous record</button>
+        <span>{page + 1}/{series.points.length}</span><button className="secondary" disabled={page + 1 >= series.points.length} onClick={() => setPage(page + 1)}>Next record</button></nav></> : <p>No populated source evidence. Missing is not zero.</p>}</>}
+  </section>
   return <section className="metric-card" aria-label={series.label}>
     <h4>{series.label}</h4>
     <p className="metric-value">{series.aggregation === 'mean' ? 'Mean of measured records: ' : 'Observed total: '}{display(series.value, series.unit)}</p>
@@ -133,7 +155,7 @@ function MetricCard({ series, comparison, oldest, newest }: { series: MetricSeri
   </section>
 }
 
-export function TrendPanel({ revision = 0, csrfToken }: { revision?: number; csrfToken?: string }) {
+export function TrendPanel({ revision = 0, csrfToken, compact = false }: { revision?: number; csrfToken?: string; compact?: boolean }) {
   const today = new Date().toISOString().slice(0, 10)
   const earlier = new Date(Date.now() - 27 * 86400000).toISOString().slice(0, 10)
   const [oldest, setOldest] = useState(earlier)
@@ -146,6 +168,8 @@ export function TrendPanel({ revision = 0, csrfToken }: { revision?: number; csr
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(true)
   const [digest, setDigest] = useState<string | null>(null)
+  const [view, setView] = useState('metrics')
+  const [metric, setMetric] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -189,9 +213,12 @@ export function TrendPanel({ revision = 0, csrfToken }: { revision?: number; csr
 
   return <section className="panel" aria-labelledby="trends-heading">
     <h2 id="trends-heading">Historical trends</h2>
-    <p>Factual imported records, not AI analysis. Recorded activity time is not Garmin intensity minutes.
+    {compact && <nav className="section-tabs" aria-label="Trend sections">{['metrics', 'period', 'facts', 'prototype', 'coverage'].map(name =>
+      <button type="button" key={name} aria-pressed={view === name} onClick={() => setView(name)}>{name === 'prototype' ? 'Experimental AI prototype' : name}</button>)}</nav>}
+    {!compact && <p>Factual imported records, not AI analysis. Recorded activity time is not Garmin intensity minutes.
       Loading charts makes no upstream read or model call. Experimental observations below require a separate request.</p>
-    <form onSubmit={selectPeriod}>
+    }
+    {(!compact || view === 'period') && <form className="compact-form" onSubmit={selectPeriod}>
       <label htmlFor="trend-oldest">Trend first date</label><input id="trend-oldest" type="date" required value={oldest} onChange={event => setOldest(event.target.value)} />
       <label htmlFor="trend-newest">Trend last date</label><input id="trend-newest" type="date" required max={today} value={newest} onChange={event => setNewest(event.target.value)} />
       <label htmlFor="trend-sport">Activity sport</label><select id="trend-sport" value={sport} onChange={event => setSport(event.target.value)}>
@@ -199,10 +226,29 @@ export function TrendPanel({ revision = 0, csrfToken }: { revision?: number; csr
         {sport && !availableSports.includes(sport) && <option value={sport}>{sport} (no records in range)</option>}
       </select>
       <button type="submit">Show period / refresh</button>
-    </form>
+    </form>}
     {busy && <p aria-live="polite">Loading private history…</p>}
     {message && <p aria-live="polite">{message}</p>}
-    {report && loaded?.query === query && loaded.revision === revision && <div key={`${query.refresh}-${revision}`}>
+    {compact && report && loaded?.query === query && loaded.revision === revision && <div key={`${query.refresh}-${revision}`}>
+      {view === 'metrics' && (() => {
+        const cards = [...report.current.sports.flatMap(group => group.metrics.map(series => ({ series, sport: group.sport }))),
+          ...report.current.wellness.map(series => ({ series, sport: null }))]
+        const selected = Math.min(metric, cards.length - 1)
+        const card = cards[selected]
+        return card ? <><label htmlFor="compact-metric">Metric / sport</label><select id="compact-metric" value={selected} onChange={event => setMetric(Number(event.target.value))}>
+          {cards.map((item, index) => <option key={`${item.sport}-${item.series.key}`} value={index}>{item.sport ?? 'Wellness'} · {item.series.label}</option>)}</select>
+          <MetricCard key={`${card.sport}-${card.series.key}`} compact series={card.series} oldest={report.current.oldest} newest={report.current.newest}
+            comparison={report.comparisons.find(item => item.sport === card.sport && item.key === card.series.key)} /></> : <p>No imported metrics in this range. Missing imports do not prove inactivity.</p>
+      })()}
+      {view === 'facts' && <FactualReviewPanel compact report={report} digest={digest} />}
+      {view === 'prototype' && (csrfToken ? <AnalysisPanel compact csrfToken={csrfToken} report={report} digest={digest} /> : <p>No authorized model controls.</p>)}
+      {view === 'coverage' && <TextPages label="Coverage" text={`Selected ${report.current.oldest}–${report.current.newest}; previous ${report.previous.oldest}–${report.previous.newest}. ` +
+        `${report.current.activityRecords} imported activities and ${report.current.wellnessRecords} wellness records. Current coverage flags: ${report.current.flags.join(', ') || 'none'}; previous: ${report.previous.flags.join(', ') || 'none'}. ${report.dateBasis}. ` +
+        `Recorded moving/elapsed time is not Garmin intensity minutes. Missing imports do not prove missed activity. ` +
+        report.sourceStatus.map(status => `${status.category}: ${status.readStatus}, latest stored date ${status.latestObservedDate ?? 'unknown'}, age ${status.latestObservedAgeDays ?? 'unknown'} days. Garmin-to-Intervals.icu freshness is unverified. `).join('') +
+        report.unavailable.map(item => `${item.label}: unavailable; ${item.reason} `).join('')} />}
+    </div>}
+    {!compact && report && loaded?.query === query && loaded.revision === revision && <div key={`${query.refresh}-${revision}`}>
       <p>Selected: {report.current.oldest}–{report.current.newest} ({report.current.days} dates).
         {' '}Compared with preceding equal-length period: {report.previous.oldest}–{report.previous.newest}.</p>
       <p>{report.dateBasis} Wellness includes all sports. Means weight each populated source record equally, not each date.
@@ -225,6 +271,7 @@ export function TrendPanel({ revision = 0, csrfToken }: { revision?: number; csr
         oldest={report.current.oldest} newest={report.current.newest} comparison={report.comparisons.find(item => item.sport === null && item.key === series.key)} />)}</div>
       <h3>Unavailable Garmin scores</h3>
       <ul>{report.unavailable.map(metric => <li key={metric.key}>{metric.label}: unavailable. {metric.reason}</li>)}</ul>
+      <FactualReviewPanel report={report} digest={digest} />
       {csrfToken ? <AnalysisPanel csrfToken={csrfToken} report={report} digest={digest} /> :
         <p>AI analysis unavailable: no usable model is selected. Charts remain independent of inference; no hosted fallback.</p>}
     </div>}

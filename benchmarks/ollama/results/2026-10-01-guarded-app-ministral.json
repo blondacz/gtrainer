@@ -1,0 +1,66 @@
+{
+  "synthetic_only": true,
+  "app_image": "ghcr.io/blondacz/gtrainer@sha256:90b7144514c27b2fc10e8498b8789ca8f42722fe3fd365ba891ad36169ff5448",
+  "app_revision": "f6d879a7293ca0f07d218d31f8fe96e9fa0cc6f3",
+  "ollama_image": "ollama/ollama@sha256:0d7a1b2e50d33428f0117535a25933fa61f8868f383c8e1d07823889412c8084",
+  "model_digest": "f04aa1c738f64e13c625b82ae92504fc0260fa6723b509ed1ece0fa188179b1d",
+  "source_jsonl_sha256": "b52bacc79f37c925d331d49daa4074b4415704d273c44d5034fa368b74ab86eb",
+  "operator_source_sha256": {
+    "app_fixtures": "cafb951e9a1db76bbd9e88d35d14975eba2dd0429c6ad85935d596648ea3f6e0",
+    "app_capture_proxy": "70ca05841471bea53ecc28c86013e72f4f877b74621891aaedc43022d71d8766",
+    "run_app_on_pi": "21abf61a5b5d86b4e85423ebb554d801d02903fb5d8b72fdfb1ac0efc259ff2a"
+  },
+  "retention": "Parsed actual claim objects below omit original whitespace; original hashes refer to retained private synthetic JSONL, not this normalized JSON. Full report/packet/transport replay passed on that original file. Later runner logging/export fixes were not rerun on hardware.",
+  "complete": false,
+  "completed_app_requests": 10,
+  "real_inference_attempts": 8,
+  "distinct_usable_cases": 6,
+  "accepted": 0,
+  "input_gates_without_inference": 2,
+  "cleanup_verified": true,
+  "live_image_unchanged": true,
+  "live_ready_after_cleanup": true,
+  "live_restarts_before_and_after": 0,
+  "runtime_egress_probe": {"blocked": true, "errno": 111},
+  "history_sha256_before": "ed5a2a99811794986b0989e3e9ecbaa73754bfd69854bcb05c1d57be7a3e9cac",
+  "final_log_scan": "incomplete: strict decoding of log bytes raised UnicodeDecodeError",
+  "sustained_telemetry": "unavailable: collected in memory but not exported before final log-scan failure; do not infer peaks or headroom from post-unload case samples",
+  "functional_controls": "Assertions for stale evidence, off/selection versions, injected outage/output, unchanged history, and logout were reached and passed before log scan, but their result export was skipped by that failure. Not independently replay-qualified.",
+  "outputs": {
+    "cross_metric": {"observations": [
+      {"kind": "unavailable_comparison", "evidence": [{"id": "e1", "state": "increased"}, {"id": "e2", "state": "decreased"}]},
+      {"kind": "co_occurrence", "evidence": [{"id": "e0", "state": "decreased"}]}
+    ]},
+    "mixed_directions": {"observations": [
+      {"kind": "sport_mix", "evidence": [{"id": "e0", "state": "increased"}]},
+      {"kind": "unavailable_comparison", "evidence": [{"id": "e1", "state": "decreased"}, {"id": "e2", "state": "unchanged"}]}
+    ]},
+    "mixed_sports": {"observations": [
+      {"kind": "sport_mix", "evidence": [{"id": "e0", "state": "decreased"}, {"id": "e1", "state": "increased"}]},
+      {"kind": "unavailable_comparison", "evidence": [{"id": "e2", "state": "decreased"}, {"id": "e3", "state": "unchanged"}]}
+    ]},
+    "partial_hrv": {"observations": [
+      {"kind": "sport_mix", "evidence": [{"id": "e0", "state": "decreased"}]},
+      {"kind": "unavailable_comparison", "evidence": [{"id": "e1", "state": "decreased"}, {"id": "e2", "state": "unavailable"}]}
+    ]},
+    "zero_baseline": {"observations": [
+      {"kind": "unavailable_comparison", "evidence": [{"id": "e1", "state": "increased"}, {"id": "e2", "state": "unchanged"}]},
+      {"kind": "co_occurrence", "evidence": [{"id": "e0", "state": "increased"}, {"id": "e1", "state": "increased"}]}
+    ]},
+    "unchanged": {"observations": [
+      {"kind": "unavailable_comparison", "evidence": [{"id": "e0", "state": "unchanged"}, {"id": "e1", "state": "increased"}, {"id": "e2", "state": "unchanged"}]}
+    ]}
+  },
+  "cases": [
+    {"case": "cross_metric", "repetition": "first_cold", "wall_seconds": 63.029, "reason": "unusable_model_output", "packet_sha256": "a7f443a8fb06563b9bab6acbe809957610c5c8fcf9e19a4f4a71e4c0e2f6b0c9", "http_report_sha256": "61a322cbf5e4f96a8a8229d9243db31e34c1fc30b2bd414bd45f19a41f89f676", "original_claim_sha256": "6602ed1629da399d2a5a74fb6b01fc3963653b9adf989c40299ebf3d876cd0ec", "load_seconds": 12.185255006, "prompt_tokens": 592, "output_tokens": 101, "flags": ["cross_metric_connection_missing", "invalid_co_occurrence", "invalid_unavailable_comparison", "state_mismatch"]},
+    {"case": "cross_metric", "repetition": "repeat_with_unload", "wall_seconds": 81.026, "reason": "unusable_model_output", "packet_sha256": "a7f443a8fb06563b9bab6acbe809957610c5c8fcf9e19a4f4a71e4c0e2f6b0c9", "http_report_sha256": "61a322cbf5e4f96a8a8229d9243db31e34c1fc30b2bd414bd45f19a41f89f676", "original_claim_sha256": "6602ed1629da399d2a5a74fb6b01fc3963653b9adf989c40299ebf3d876cd0ec", "load_seconds": 31.242947846, "prompt_tokens": 592, "output_tokens": 101, "flags": ["cross_metric_connection_missing", "invalid_co_occurrence", "invalid_unavailable_comparison", "state_mismatch"]},
+    {"case": "mixed_directions", "repetition": "new_prompt_with_unload", "wall_seconds": 81.023, "reason": "unusable_model_output", "packet_sha256": "bad1ebebe5b4c7349df0d120730427f4092ecb4a883a5c1e214d8a272b318379", "http_report_sha256": "ab8b1ba1e5b10c1378dbc7e1ec1f9de13db7827de395b03ca7857cf86cc5c949", "original_claim_sha256": "a2c9e2a3dff37e77116d51a3dd820ab022a7a2deafd1582790eadacdba1bd8fa", "load_seconds": 32.034401057, "prompt_tokens": 592, "output_tokens": 101, "flags": ["cross_metric_connection_missing", "invalid_sport_mix", "invalid_unavailable_comparison"]},
+    {"case": "mixed_sports", "repetition": "new_prompt_with_unload", "wall_seconds": 93.017, "reason": "unusable_model_output", "packet_sha256": "eec5f03d7f0378c846bd150c5d45db8b2a7b09c579e15c2c1dba31049d50be53", "http_report_sha256": "dc4781f591433dee7163f1f37f4c09e10f549f51f53a32d6293324c46f2a3b63", "original_claim_sha256": "c45d2360c10f5e9c30d8cab00720c37e85842592d3c49f797be9a87a39a32a32", "load_seconds": 33.061157708, "prompt_tokens": 703, "output_tokens": 116, "flags": ["cross_metric_connection_missing", "invalid_unavailable_comparison"]},
+    {"case": "partial_hrv", "repetition": "new_prompt_with_unload", "wall_seconds": 85.1, "reason": "unusable_model_output", "packet_sha256": "2318185acb1e472ded943b23bc779f4d2d8348a9734eefe811c44bdfcfaf3ffa", "http_report_sha256": "00abb1dcd423289ad5c9356c376892b2645459caf75aae37f7bbe617f9c61aed", "original_claim_sha256": "6e58622860a9d6ff08d0f6051906fa56e15d3bbede0fb637155cc242564f7409", "load_seconds": 30.535170319, "prompt_tokens": 607, "output_tokens": 116, "flags": ["cross_metric_connection_missing", "invalid_sport_mix", "invalid_unavailable_comparison"]},
+    {"case": "zero_baseline", "repetition": "new_prompt_with_unload", "wall_seconds": 84.057, "reason": "unusable_model_output", "packet_sha256": "c0aafd77f4b31c115fa915e1026ff0ad247f79a308613dbee9b770d7b069ac59", "http_report_sha256": "778e8ed971d804a2d8d1cdcaba95f7ddee7ab12b4eb3817262bd57e3337f7767", "original_claim_sha256": "a73c608f627dd164b2f35c5ff7d725ced3446dae93dc63566500232d96dc2e8e", "load_seconds": 30.529030056, "prompt_tokens": 596, "output_tokens": 116, "flags": ["invalid_unavailable_comparison", "state_mismatch"]},
+    {"case": "unchanged", "repetition": "new_prompt_with_unload", "wall_seconds": 73.018, "reason": "unusable_model_output", "packet_sha256": "b2b005178b733f5d7d5bd90c2b336b71d0e1aef17295c3a57cdbc382709e353c", "http_report_sha256": "bfc49a3b673c14803ebaf2739200100ee5e3891afabcfe84f10fd861ff02c65f", "original_claim_sha256": "f670b0997131c635259426c4035a91b1254eb533d288a6df7d98d836998d916d", "load_seconds": 28.307116921, "prompt_tokens": 590, "output_tokens": 79, "flags": ["cross_metric_connection_missing", "invalid_unavailable_comparison", "state_mismatch"]},
+    {"case": "sparse_activity", "repetition": "new_prompt_with_unload", "wall_seconds": 1.0, "reason": "insufficient_input", "http_report_sha256": "78debee59737b1622c7c68b733e056c77b6013f316e9b73011830fdd249a22ad", "inference_sent": false},
+    {"case": "missing_current_wellness", "repetition": "new_prompt_with_unload", "wall_seconds": 1.001, "reason": "insufficient_input", "http_report_sha256": "91aa403bee3da0572ffb3f8ea1a817893d4a8873414ce5200973c3deff306b75", "inference_sent": false},
+    {"case": "cross_metric", "repetition": "selected_alias_same_weights", "wall_seconds": 77.019, "reason": "unusable_model_output", "packet_sha256": "a7f443a8fb06563b9bab6acbe809957610c5c8fcf9e19a4f4a71e4c0e2f6b0c9", "http_report_sha256": "61a322cbf5e4f96a8a8229d9243db31e34c1fc30b2bd414bd45f19a41f89f676", "original_claim_sha256": "6602ed1629da399d2a5a74fb6b01fc3963653b9adf989c40299ebf3d876cd0ec", "load_seconds": 27.008263543, "prompt_tokens": 592, "output_tokens": 101, "flags": ["cross_metric_connection_missing", "invalid_co_occurrence", "invalid_unavailable_comparison", "state_mismatch"]}
+  ]
+}

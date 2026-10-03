@@ -1,7 +1,8 @@
 :root {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #17342e;
-  background: #f3f7f4;
+  color: #18202a;
+  background: #ffffff;
+  color-scheme: light;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -10,46 +11,153 @@
 * { box-sizing: border-box; }
 body { margin: 0; }
 main { max-width: 860px; margin: 0 auto; padding: 80px 24px; }
-.eyebrow { color: #526a60; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+.eyebrow { color: #c4550b; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
 h1 { margin: 16px 0; font-size: clamp(2.5rem, 8vw, 4rem); letter-spacing: -0.05em; }
-.intro { max-width: 560px; font-size: 1.2rem; line-height: 1.6; color: #526a60; }
-.panel { margin-top: 40px; padding: 28px; background: #fff; border: 1px solid #d7e3db; border-radius: 16px; }
+.intro { max-width: 560px; font-size: 1.2rem; line-height: 1.6; color: #525862; }
+.panel { margin-top: 40px; padding: 28px; background: #fff; border: 1px solid #e1e4e8; border-radius: 16px; }
 h2 { margin-top: 0; font-size: 1.25rem; }
 .panel p { line-height: 1.6; }
 .connection { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; }
-.dot { width: 8px; height: 8px; border-radius: 50%; background: #6d7d76; }
-.available .dot { background: #287b55; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #68717c; }
+.available .dot { background: #2d70b4; }
 .unavailable .dot { background: #b7493b; }
-.footnote { margin-top: 24px; color: #526a60; font-size: 0.85rem; }
+.footnote { margin-top: 24px; color: #525862; font-size: 0.85rem; }
 form { display: grid; gap: 12px; }
-input, select, button { font: inherit; border-radius: 8px; padding: 10px 12px; }
-input, select { border: 1px solid #9aafa2; background: inherit; color: inherit; }
-button { border: 0; background: #287b55; color: #fff; cursor: pointer; justify-self: start; }
+input, select, button, textarea { font: inherit; border-radius: 8px; padding: 10px 12px; }
+input, select, textarea { border: 1px solid #a7aeb8; background: inherit; color: inherit; min-width: 0; max-width: 100%; }
+button { border: 0; background: #c4550b; color: #fff; cursor: pointer; justify-self: start; }
 button:disabled { opacity: 0.6; cursor: wait; }
 .access-message { color: #b7493b; }
 .metric-grid { display: grid; gap: 16px; }
-.metric-card { border: 1px solid #9aafa2; border-radius: 8px; padding: 16px; min-width: 0; }
+.metric-card { border: 1px solid #a7aeb8; border-radius: 8px; padding: 16px; min-width: 0; }
 .metric-value { font-size: 1.2rem; font-weight: 600; }
 .trend-chart { width: 100%; max-height: 220px; }
 .trend-chart text { fill: currentColor; font-size: 12px; }
 .chart-axis { stroke: currentColor; }
-.chart-value { fill: #287b55; }
+.chart-value { fill: #c4550b; }
 figure { margin: 16px 0; }
 figcaption { font-size: 0.85rem; }
-.secondary { background: transparent; color: inherit; border: 1px solid #9aafa2; margin: 8px 8px 0 0; }
+.secondary { background: transparent; color: inherit; border: 1px solid #a7aeb8; margin: 8px 8px 0 0; }
 .table-scroll { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; margin: 16px 0; }
-th, td { text-align: left; padding: 8px; border-bottom: 1px solid #9aafa2; overflow-wrap: anywhere; }
+th, td { text-align: left; padding: 8px; border-bottom: 1px solid #a7aeb8; overflow-wrap: anywhere; }
 caption { text-align: left; font-weight: 600; }
-.analysis-panel { margin-top: 24px; padding-top: 16px; border-top: 1px solid #9aafa2; overflow-wrap: anywhere; }
+.analysis-panel { margin-top: 24px; padding-top: 16px; border-top: 1px solid #a7aeb8; overflow-wrap: anywhere; }
 .analysis-panel select { display: block; max-width: 100%; margin: 8px 0 12px; }
-.analysis-panel article { margin: 16px 0; border: 1px solid #9aafa2; border-radius: 8px; padding: 16px; }
+.analysis-panel article { margin: 16px 0; border: 1px solid #a7aeb8; border-radius: 8px; padding: 16px; }
 
-@media (prefers-color-scheme: dark) {
-  :root { color: #dfece5; background: #14211c; }
-  .panel { background: #1c3027; border-color: #344b3f; }
-  .eyebrow, .intro, .footnote { color: #b0c6b9; }
-  .available .dot { background: #79c89c; }
-  .unavailable .dot { background: #ff9d87; }
-  .chart-value { fill: #79c89c; }
+/* Rounded category cards. Colour never encodes health, readiness or clearance. */
+.dashboard-main { max-width: 980px; padding: 16px 24px 8px; }
+.dashboard-main header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.dashboard-main h1 { font-size: 1.8rem; margin: 0; letter-spacing: -0.04em; }
+.dashboard-main .eyebrow { margin: 0; font-size: .7rem; }
+.dashboard-main .footnote { margin: 10px 0 0; font-size: .72rem; line-height: 1.35; }
+.session-strip { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 8px 0; }
+.session-strip p { margin: 0; font-size: .78rem; }
+.session-strip button { padding: 7px 10px; font-size: .82rem; margin: 0; }
+.source-credential-status { color: #525862; }
+.dashboard-content { min-width: 0; }
+.dashboard-content > section { margin-top: 12px; }
+.dashboard-content h2, .dashboard-content h3 { margin: 0 0 8px; font-size: 1.1rem; }
+.dashboard-content h4 { margin: 8px 0; }
+.dashboard-content p { line-height: 1.4; }
+.dashboard-content label { font-size: .82rem; }
+.dashboard-content button { padding: 7px 10px; font-size: .82rem; }
+.dashboard-content select { padding: 6px 8px; max-width: 100%; }
+.section-tabs, .review-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.review-tabs .secondary { margin: 0; }
+.review-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
+.review-toolbar > .review-tabs { flex: 1 1 400px; margin: 0; }
+.review-toolbar > .secondary { margin: 0; }
+.section-tabs button, .review-tabs button { background: #f1f2f4; color: #18202a; border: 1px solid transparent; }
+.section-tabs button[aria-selected="true"], .section-tabs button[aria-pressed="true"],
+.review-tabs button[aria-selected="true"], .review-tabs button[aria-pressed="true"] { background: #c4550b; color: white; }
+.dashboard-tabs { padding-bottom: 8px; border-bottom: 1px solid #e1e4e8; }
+.dashboard-tabs button { flex: 1; font-size: .85rem; }
+.tile-pagination, .overview-pagination, .review-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: 10px 0 0; font-size: .8rem; }
+.tile-pagination .secondary, .overview-pagination .secondary, .review-pagination .secondary { margin: 0; }
+.overview-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.dashboard-tile, .review-tile { border: 0; border-radius: 22px; padding: 16px; min-width: 0; text-align: left; color: #fff; background: #56616f; box-shadow: 0 5px 18px #18202a14; overflow-wrap: anywhere; }
+button.dashboard-tile { width: 100%; display: grid; align-content: start; gap: 4px; cursor: pointer; position: relative; }
+.dashboard-tile.activity { background: #c4550b; }
+.dashboard-tile.wellness { background: #ad6500; }
+.dashboard-tile.events, .events-tile { background: #2d70b4; }
+.dashboard-tile.reviews, .review-tile { background: #8150b8; }
+.dashboard-tile.source { background: #087b80; }
+.dashboard-tile.unknown { background: #56616f; }
+.dashboard-tile.factual-tile { background: #087b80; }
+.dashboard-tile button, .review-tile button { color: #fff; background: #0000001f; border: 1px solid #fff; }
+.dashboard-tile button[aria-selected="true"], .dashboard-tile button[aria-pressed="true"],
+.review-tile button[aria-selected="true"], .review-tile button[aria-pressed="true"] { background: #00000047; color: #fff; }
+.dashboard-tile input, .dashboard-tile select, .dashboard-tile textarea,
+.review-tile input, .review-tile select, .review-tile textarea { color: #fff; border-color: #fff; color-scheme: dark; }
+.dashboard-tile option, .review-tile option { color: #fff; background: #20242a; }
+.dashboard-tile ::placeholder, .review-tile ::placeholder { color: #fff; opacity: 1; }
+.dashboard-tile .chart-value { fill: #fff; }
+.dashboard-tile :focus-visible, .review-tile :focus-visible { outline-color: #fff; }
+.tile-label { font-size: .85rem; font-weight: 650; margin: 0; padding-right: 22px; }
+.tile-value { display: block; font-size: clamp(1.4rem, 4vw, 2.5rem); font-weight: 750; letter-spacing: -.04em; line-height: 1.12; margin: 4px 0; }
+.tile-value--date { font-size: clamp(1.25rem, 3.5vw, 2rem); }
+.tile-unit { font-size: .75rem; font-weight: 500; letter-spacing: normal; margin-left: 6px; }
+.tile-detail { font-size: .75rem; line-height: 1.3; margin: 0; }
+.tile-icon { position: absolute; right: 14px; top: 14px; font-size: 1rem; }
+.tile-link { font-size: .7rem; font-weight: 600; margin-top: 3px; }
+.overview-range { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.overview-range label { display: grid; gap: 3px; }
+.overview-range input { padding: 5px 8px; font-size: .8rem; }
+.overview-range .secondary { margin: 0; }
+.overview-basis, .overview-footnote { font-size: .72rem; margin: 8px 0; }
+.overview > h2 { position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; }
+.compact-form { gap: 7px; }
+.compact-form p { margin: 4px 0; font-size: .8rem; }
+.compact-form input, .compact-form textarea { padding: 6px 8px; width: 100%; }
+.compact-form textarea { resize: vertical; min-height: 64px; }
+.dashboard-content .analysis-panel { margin-top: 8px; padding-top: 0; border: 0; }
+.dashboard-content .analysis-panel > p { font-size: .8rem; margin: 6px 0; }
+.review-tile { padding: 14px; }
+.review-tile fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.review-tile legend { font-size: .8rem; margin-bottom: 8px; }
+.review-tile label { display: block; margin: 6px 0; }
+.preset-basic-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; }
+.preset-basic-fields label:has(input[type="checkbox"]) { grid-column: 1 / -1; }
+.preset-basic-fields > label { align-content: start; }
+.review-tile h4 { margin-top: 5px; }
+.review-tile label:has(input:not([type="checkbox"])), .review-tile label:has(select) { display: grid; gap: 3px; }
+.review-tile input:not([type="checkbox"]) { padding: 5px 8px; }
+.review-tile p, .review-tile li { font-size: .8rem; }
+.review-tile p { margin: 7px 0; }
+.review-tile select { margin: 3px 0 !important; }
+.review-tile input[type="checkbox"] { margin: 0 6px 0 0; }
+.review-tile ul { padding-left: 18px; }
+.review-tile button { margin-top: 6px; }
+.private-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.dashboard-content .trend-chart { max-height: 140px; }
+.dashboard-content figcaption { font-size: .75rem; }
+.dashboard-content figure { margin: 8px 0; }
+.dashboard-content .metric-detail > p { font-size: .8rem; margin: 6px 0; }
+.dashboard-content .metric-detail > .tile-value { font-size: 2rem; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; clip-path: inset(50%); white-space: nowrap; overflow: hidden; }
+:focus-visible { outline: 3px solid #326b99; outline-offset: 3px; }
+button:disabled { cursor: not-allowed; }
+
+/* Keep all content accessible at zoom and on unusually small screens; never clip it. */
+@media (max-width: 520px) {
+  .dashboard-main { padding: 12px; }
+  .dashboard-main .eyebrow { max-width: 180px; }
+  .dashboard-tabs { gap: 4px; }
+  .dashboard-tabs button { padding: 7px 5px; font-size: .76rem; }
+  .overview-grid { gap: 8px; }
+  button.dashboard-tile { padding: 12px; border-radius: 18px; }
+  .tile-label { font-size: .78rem; }
+  .tile-detail { font-size: .7rem; }
+  .overview-range { gap: 6px; }
+  .source-credential-status { font-size: .7rem !important; }
+  .dashboard-content .review-tabs button { flex: 1 1 0; min-width: 0; padding: 6px 4px; font-size: .76rem; }
+}
+@media (max-height: 750px) {
+  .dashboard-main { padding-top: 10px; }
+  .dashboard-content > section { margin-top: 8px; }
+  .overview-grid { gap: 8px; }
+  button.dashboard-tile { padding: 12px; }
+  .dashboard-main .footnote { font-size: .67rem; }
 }

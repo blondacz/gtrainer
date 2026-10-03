@@ -53,6 +53,10 @@ class HistoryService(private val store: HistoryStore, private val source: Histor
         try { store.removeImports() } finally { operation.unlock() }
     }
 
+    internal fun reviewScheduler(reviews: ReviewInterpretationService): ReviewScheduler = ReviewScheduler(store, reviews, clock, durableQueue = true)
+    internal fun reviewQueue(reviews: ReviewInterpretationService): ReviewQueueService = ReviewQueueService(store, reviews, clock)
+    internal fun manualEvents(): ManualEventService = ManualEventService(store, clock)
+
     override fun close() {
         (source as? AutoCloseable)?.close()
         store.close()

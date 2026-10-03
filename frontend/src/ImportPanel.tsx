@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { TextPages } from './TilePrimitives'
 
 type CategoryStatus = {
   category: string; recordCount: number; lastAttemptUtc: string | null; lastSuccessUtc: string | null
@@ -26,7 +27,7 @@ function statusList(value: unknown): CategoryStatus[] {
   return statuses
 }
 
-export function ImportPanel({ csrfToken, configured, onChanged }: { csrfToken: string; configured: boolean; onChanged?: () => void }) {
+export function ImportPanel({ csrfToken, configured, onChanged, compact = false }: { csrfToken: string; configured: boolean; onChanged?: () => void; compact?: boolean }) {
   const today = new Date().toISOString().slice(0, 10)
   const earlier = new Date(Date.now() - 90 * 86400 * 1000).toISOString().slice(0, 10)
   const [oldest, setOldest] = useState(earlier)
@@ -34,6 +35,8 @@ export function ImportPanel({ csrfToken, configured, onChanged }: { csrfToken: s
   const [statuses, setStatuses] = useState<CategoryStatus[]>([])
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
+  const [view, setView] = useState('read')
+  const [category, setCategory] = useState('activities')
 
   useEffect(() => {
     const controller = new AbortController()
@@ -108,17 +111,26 @@ export function ImportPanel({ csrfToken, configured, onChanged }: { csrfToken: s
 
   return <section className="panel" aria-labelledby="imports-heading">
     <h2 id="imports-heading">Garmin-derived history through Intervals.icu</h2>
-    <p>Read only. No Garmin or Intervals.icu records are changed. Imported history stays on the Pi;
-      backups go encrypted to your configured Mac. No data is sent to a model.</p>
-    <form onSubmit={event => void sync(event)}>
+    {compact && <nav className="section-tabs" aria-label="Source sections">{['read', 'status', 'remove', 'limits'].map(name =>
+      <button key={name} aria-pressed={view === name} onClick={() => setView(name)}>{name}</button>)}</nav>}
+    {!compact && <p>Read only. No Garmin or Intervals.icu records are changed. Imported history stays on the Pi;
+      backups go encrypted to your configured Mac. The read itself makes no model call; separately enabled review schedules may queue guarded analysis.</p>}
+    {(!compact || view === 'read') && <form className="compact-form" onSubmit={event => void sync(event)}>
       <label htmlFor="import-oldest">First date</label>
       <input id="import-oldest" type="date" value={oldest} onChange={event => setOldest(event.target.value)} required disabled={busy} />
       <label htmlFor="import-newest">Last date</label>
       <input id="import-newest" type="date" value={newest} max={today} onChange={event => setNewest(event.target.value)} required disabled={busy} />
       <button type="submit" disabled={busy || !configured}>{busy ? 'Working…' : 'Read Intervals.icu'}</button>
-    </form>
+    </form>}
     {!configured && <p>Configure the source key to import. Existing private records can still be retained.</p>}
-    <ul>{statuses.map(status => <li key={status.category}>
+    {compact && view === 'status' && <div className="dashboard-tile source"><label htmlFor="import-category">Imported category</label>
+      <select id="import-category" value={category} onChange={event => setCategory(event.target.value)}><option value="activities">Activities</option><option value="wellness">Wellness</option></select>
+      {(() => { const status = statuses.find(item => item.category === category); return status ? <>
+        <p className="tile-value">{status.recordCount}<span className="tile-unit">stored records</span></p>
+        <TextPages key={category} label="Read status" text={`${readLabels[status.readStatus] ?? 'Status unavailable'}. Last attempt UTC: ${status.lastAttemptUtc ?? 'none'}; last successful read UTC: ${status.lastSuccessUtc ?? 'none'}. Latest stored date ${status.latestObservedDate ?? 'unavailable'}; ${status.rejected} rejected / ${status.incomplete} incomplete. Garmin-to-Intervals.icu freshness is unverified. Missing imports do not prove inactivity or illness.`} /></> : <p>Read status unavailable.</p> })()}
+    </div>}
+    {compact && view === 'limits' && <TextPages label="Source limits" text="Reads only from Intervals.icu, an intermediary with its own privacy risks. No Garmin or Intervals.icu records are changed. Missing recent values do not establish an upstream failure. Imported history stays on the Pi, backups are encrypted to your configured Mac. The source read itself makes no model call; separately selected, explicitly enabled review schedules can queue guarded local analysis. No hosted fallback. Recorded activity time and Intervals.icu load are not proprietary Garmin scores." />}
+    {!compact && <ul>{statuses.map(status => <li key={status.category}>
       <strong>{status.category === 'activities' ? 'Activities' : 'Wellness'}</strong>: {status.recordCount} stored;
       {' '}{readLabels[status.readStatus] ?? 'Status unavailable'}
       <p>Last attempt (UTC): {status.lastAttemptUtc ?? 'none'}. Last successful read (UTC): {status.lastSuccessUtc ?? 'none'}.</p>
@@ -127,10 +139,11 @@ export function ImportPanel({ csrfToken, configured, onChanged }: { csrfToken: s
       {status.latestObservedAgeDays !== null && status.latestObservedAgeDays > 7 &&
         <p>The latest imported record is over seven days old. This does not prove an upstream sync failure or missed activity.</p>}
       <p>Garmin-to-Intervals.icu freshness is unverified. Missing health values do not imply illness.</p>
-    </li>)}</ul>
+    </li>)}</ul>}
+    {(!compact || view === 'remove') && <><p>Removal deletes imported records and review snapshots, not manual events or upstream accounts. Retained encrypted backups remain.</p>
     <button type="button" onClick={() => void removeImports()} disabled={busy || !statuses.some(status => status.recordCount > 0)}>
       Remove local imports
-    </button>
+    </button></>}
     {message && <p aria-live="polite">{message}</p>}
   </section>
 }

@@ -1,0 +1,50 @@
+{
+  "synthetic_only": true,
+  "model": "openai/gpt-6-luna",
+  "reference_type": "Fresh conversational subagent per fixture; not ChatGPT UI, a controlled API benchmark, or a Pi/Ollama integration test",
+  "baseline_system_prompt_sha256": "9e544322e7eb0c976dbcef4c2973b3b0859fb5e5505701d3f76c549ca558e314",
+  "responses": 6,
+  "accepted_by_unchanged_kotlin_validator": 6,
+  "accepted_by_independent_replay": 6,
+  "local_validator_source_revision": "f6d879a7293ca0f07d218d31f8fe96e9fa0cc6f3",
+  "method": "Application instructions, exact output-schema structure and prepared synthetic packet were supplied in one task message with a synthetic-only/no-tools/JSON-only wrapper. No feedback, output repair or retry was used. Six fresh sessions, one response each.",
+  "limitations": "Harness instructions and message roles differ from Ollama. Temperature, seed, thinking, variant, context and generation budget were not controlled or exposed. No latency, resource or cost comparison; pricing was unavailable. Known development fixtures, not held-out quality or health-advice qualification. This does not authorize hosted real-health transfer or configure a hosted provider.",
+  "cases": [
+    {
+      "case": "cross_metric",
+      "session_id": "ses_f062fb5c5ffeabqeZrnMQCTRUg",
+      "packet_sha256": "a7f443a8fb06563b9bab6acbe809957610c5c8fcf9e19a4f4a71e4c0e2f6b0c9",
+      "raw_response": "{\"observations\":[{\"kind\":\"co_occurrence\",\"evidence\":[{\"id\":\"e0\",\"state\":\"decreased\"},{\"id\":\"e1\",\"state\":\"decreased\"},{\"id\":\"e2\",\"state\":\"decreased\"}]}]}"
+    },
+    {
+      "case": "mixed_directions",
+      "session_id": "ses_f062fb5a9ffeBwTGim1c0OnnUP",
+      "packet_sha256": "bad1ebebe5b4c7349df0d120730427f4092ecb4a883a5c1e214d8a272b318379",
+      "raw_response": "{\"observations\":[{\"kind\":\"co_occurrence\",\"evidence\":[{\"id\":\"e0\",\"state\":\"increased\"},{\"id\":\"e1\",\"state\":\"decreased\"}]},{\"kind\":\"recorded_change\",\"evidence\":[{\"id\":\"e2\",\"state\":\"unchanged\"}]}]}"
+    },
+    {
+      "case": "mixed_sports",
+      "session_id": "ses_f062fb573ffe0xBVy11lglg0TB",
+      "packet_sha256": "eec5f03d7f0378c846bd150c5d45db8b2a7b09c579e15c2c1dba31049d50be53",
+      "raw_response": "{\"observations\":[{\"kind\":\"co_occurrence\",\"evidence\":[{\"id\":\"e0\",\"state\":\"decreased\"},{\"id\":\"e2\",\"state\":\"decreased\"},{\"id\":\"e3\",\"state\":\"unchanged\"}]},{\"kind\":\"sport_mix\",\"evidence\":[{\"id\":\"e0\",\"state\":\"decreased\"},{\"id\":\"e1\",\"state\":\"increased\"}]}]}"
+    },
+    {
+      "case": "partial_hrv",
+      "session_id": "ses_f062fb56bffen2kBST08HIfrHU",
+      "packet_sha256": "2318185acb1e472ded943b23bc779f4d2d8348a9734eefe811c44bdfcfaf3ffa",
+      "raw_response": "{\"observations\":[{\"kind\":\"co_occurrence\",\"evidence\":[{\"id\":\"e0\",\"state\":\"decreased\"},{\"id\":\"e1\",\"state\":\"decreased\"}]},{\"kind\":\"unavailable_comparison\",\"evidence\":[{\"id\":\"e2\",\"state\":\"unavailable\"}]}]}"
+    },
+    {
+      "case": "zero_baseline",
+      "session_id": "ses_f062fb560ffeZ3ocQcsuJNvBfv",
+      "packet_sha256": "c0aafd77f4b31c115fa915e1026ff0ad247f79a308613dbee9b770d7b069ac59",
+      "raw_response": "{\"observations\":[{\"kind\":\"co_occurrence\",\"evidence\":[{\"id\":\"e0\",\"state\":\"increased\"},{\"id\":\"e1\",\"state\":\"unchanged\"},{\"id\":\"e2\",\"state\":\"unchanged\"}]}]}"
+    },
+    {
+      "case": "unchanged",
+      "session_id": "ses_f062fb537ffeTgc6Bnmil5CSGJ",
+      "packet_sha256": "b2b005178b733f5d7d5bd90c2b336b71d0e1aef17295c3a57cdbc382709e353c",
+      "raw_response": "{\"observations\":[{\"kind\":\"co_occurrence\",\"evidence\":[{\"id\":\"e0\",\"state\":\"unchanged\"},{\"id\":\"e1\",\"state\":\"unchanged\"},{\"id\":\"e2\",\"state\":\"unchanged\"}]}]}"
+    }
+  ]
+}

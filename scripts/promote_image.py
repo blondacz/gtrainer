@@ -48,8 +48,6 @@ def main():
     matches = [rule for rule in rulesets if rule['name'] == 'Protected main']
     require(len(matches) == 1, 'Unique Protected main ruleset is required.')
     validate_protection(api(f'{PREFIX}/rulesets/{matches[0]["id"]}'))
-    repository = api(PREFIX)
-    require(repository['allow_auto_merge'], 'Repository auto-merge is not enabled.')
     current = api(f'{PREFIX}/git/ref/heads/main')['object']['sha']
     if current != evidence['source_sha']:
         print('Not promoting an obsolete source commit; main advanced during CI.')
@@ -77,15 +75,15 @@ def main():
         'title': f'Promote tested ARM64 image {current[:12]}', 'head': branch, 'base': 'main',
         'body': f'Tests and immutable ARM64 image execution passed in run {evidence["run_id"]}.\n\n'
                 f'Image: `{evidence["image"]}`\n\n'
+                'Manual release approval required: review backup/restore compatibility before explicitly merging. '
+                'This workflow does not enable auto-merge.\n\n'
                 'Only the app image reference and public release evidence change. '
                 'No cluster credentials or personal records are involved.'})
     # GITHUB_TOKEN PR events may wait for workflow approval. Explicit dispatch
     # always triggers and checks the actual candidate SHA without a PAT/App key.
     api(f'{PREFIX}/actions/workflows/build.yml/dispatches', 'POST', {
         'ref': branch, 'inputs': {'verify_failure_gate': False}})
-    api('graphql', 'POST', {'query': '''mutation($id:ID!){enablePullRequestAutoMerge(input:{pullRequestId:$id,mergeMethod:SQUASH}){pullRequest{id}}}''',
-                           'variables': {'id': pr['node_id']}})
-    print('Opened protected promotion PR:', pr['html_url'])
+    print('Opened protected promotion PR awaiting manual merge:', pr['html_url'])
     if os.environ.get('GITHUB_STEP_SUMMARY'):
         with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
             summary.write(f'Promotion PR: {pr["html_url"]}\n')

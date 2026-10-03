@@ -24,6 +24,23 @@ const response = (body: unknown) => ({ ok: true, json: async () => body })
 afterEach(() => vi.unstubAllGlobals())
 
 describe('explicit experimental local observations', () => {
+  it('compact view separates controls, validated AI text and dated support without automatic generation', async () => {
+    const fetchMock = vi.fn(async (path: string) => response(path === '/api/models' ? catalogue(model.id, 1) : result()))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<AnalysisPanel compact csrfToken={csrf} report={report} digest={digest} />)
+    await screen.findByText(/Experimental local model selected/)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole('button', { name: /Generate observations/ }))
+    await screen.findByText(/Validated model-selected observations/)
+    expect(screen.queryByText(result().observations[0].text)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'observation' }))
+    expect(screen.getByText(result().observations[0].text)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'support' }))
+    expect(screen.getByText(/2400 seconds; 2020-05-30–2020-05-31/)).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Supporting metric'), { target: { value: '1' } })
+    expect(screen.getByText(/3600 seconds; 2020-06-01–2020-06-02/)).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
   it('starts off, selection never generates and explicit generation carries exact displayed range binding and CSRF', async () => {
     const fetchMock = vi.fn(async (path: string, options?: RequestInit) => {
       if (path === '/api/models') return response(options?.method === 'PUT' ? catalogue(model.id, 1) : catalogue())

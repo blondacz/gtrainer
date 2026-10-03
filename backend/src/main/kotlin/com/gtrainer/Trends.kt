@@ -108,8 +108,8 @@ internal object Trends {
     )
 
     fun report(history: HistoryResponse, range: TrendRange, sport: String?, today: LocalDate,
-               statuses: List<CategoryStatus>): TrendReport {
-        require(range.newest <= today)
+               statuses: List<CategoryStatus>, latestAllowedDate: LocalDate = today): TrendReport {
+        require(range.newest <= latestAllowedDate)
         require(sport == null || sport.matches(Regex("[A-Za-z0-9 _-]{1,64}")))
         val previousRange = range.previous()
         val sports = history.activities.filter { it.startLocal.take(10) in previousRange.oldest.toString()..range.newest.toString() }

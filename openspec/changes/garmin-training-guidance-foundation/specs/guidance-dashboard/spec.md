@@ -56,3 +56,22 @@ The system MUST make the most recent Intervals.icu synchronization result and st
 #### Scenario: Intermediary data is stale or sync failed
 - **WHEN** the latest Intervals.icu read failed or its available data is stale
 - **THEN** the dashboard indicates the observed issue and affected categories when known without assigning an unverified upstream cause
+
+### Requirement: Review configuration and schedule status are intuitive
+The dashboard MUST expose editable, enable/disable review presets and assignable supported triggers/schedules, with advanced scope, level and time-budget settings rather than requiring a rules language. It MUST distinguish the next scheduled changed-data check from a next due analysis and an unpredictable future event trigger. It MUST show the configured time zone, paused/disabled state, queued trigger reasons and estimated eligibility/start, running state, and last successful review's generation time and input coverage. It MUST label application-generated facts separately from optional AI interpretation. Unsupported triggers MUST explain their unavailable source data.
+
+#### Scenario: Next analysis depends on changed data
+- **WHEN** the next enabled rule is a timed changed-data check
+- **THEN** the dashboard shows its local date/time and that analysis runs only if relevant data changed
+
+#### Scenario: Review waits for an activity
+- **WHEN** only an activity-arrival rule is pending
+- **THEN** the dashboard says it is waiting for activity data without inventing a next analysis time
+
+#### Scenario: Imports are settling
+- **WHEN** sleep and HRV arrivals merge into a pending review
+- **THEN** the dashboard shows both reasons, the review type/level/scope and its settling status without promising an exact start behind running work
+
+#### Scenario: Newer data arrived during a review
+- **WHEN** a review finishes on an older snapshot
+- **THEN** its output retains its actual coverage and is marked older than the latest data rather than presented as current analysis

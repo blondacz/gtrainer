@@ -1,0 +1,99 @@
+{
+  "synthetic_only": true,
+  "date_context": "2026-10-02 operator-local date; retained Pi UTC timestamps are 2026-10-01 23:10 onward.",
+  "app_image": "ghcr.io/blondacz/gtrainer@sha256:90b7144514c27b2fc10e8498b8789ca8f42722fe3fd365ba891ad36169ff5448",
+  "app_revision": "f6d879a7293ca0f07d218d31f8fe96e9fa0cc6f3",
+  "ollama_image": "ollama/ollama@sha256:0d7a1b2e50d33428f0117535a25933fa61f8868f383c8e1d07823889412c8084",
+  "model": "granite4.2:3b",
+  "model_digest": "40577dc168a3a9ad34e9a1234e0c2570be86097fa75a236d4574ae985705d3c4",
+  "system_prompt_sha256": "9e544322e7eb0c976dbcef4c2973b3b0859fb5e5505701d3f76c549ca558e314",
+  "source_jsonl_sha256": "43999b6f8417ad21a1bb707e5abcb58029476db9d60b32fbcee7914ede175b34",
+  "operator_source_sha256": {
+    "app_fixtures": "b54de3724d7a79fcacc41c3007f0b02c6c63571dd93a74b3ea6363c48be0831d",
+    "app_capture_proxy": "70ca05841471bea53ecc28c86013e72f4f877b74621891aaedc43022d71d8766",
+    "run_app_on_pi": "bbb3e7a866395a7ec424bbfda19622f319aa642c1404e624c07ca8b50fbfa179"
+  },
+  "retention": "Actual parsed model claims are normalized below. Original claim hashes refer to original whitespace in retained private synthetic JSONL, not this extraction. Full report/packet/transport replay passed on the original. Resource maxima summarize its retained 87-sample series; raw samples remain in that JSONL.",
+  "complete": true,
+  "qualification": "Test procedure completed, but model usability failed: no accepted output. No automatic default, live promotion, production resource qualification, or actual-health authorization.",
+  "completed_app_requests": 10,
+  "real_inference_attempts": 8,
+  "distinct_usable_cases": 6,
+  "accepted": 0,
+  "input_gates_without_inference": 2,
+  "download_seconds": 94.08,
+  "model_size_bytes": 2244023965,
+  "runtime_egress_probe": {"blocked": true, "errno": 111},
+  "thinking_requested": false,
+  "reasoning_trace_returned": false,
+  "all_generations_complete": true,
+  "all_generations_done_reason": "stop",
+  "unload_verified_after_each_real_call": true,
+  "history_sha256_before": "ed5a2a99811794986b0989e3e9ecbaa73754bfd69854bcb05c1d57be7a3e9cac",
+  "history_sha256_after": "ed5a2a99811794986b0989e3e9ecbaa73754bfd69854bcb05c1d57be7a3e9cac",
+  "functional_controls": [
+    {"name": "stale_source_status", "reason": "evidence_changed"},
+    {"name": "off", "reason": "model_not_selected"},
+    {"name": "selection_version", "reason": "model_selection_changed"},
+    {"name": "outage", "reason": "model_unavailable", "explicit_injected_fault_not_model_quality": true},
+    {"name": "unsupported-output", "reason": "unusable_model_output", "explicit_injected_fault_not_model_quality": true}
+  ],
+  "log_marker_scan_passed": true,
+  "log_scan_limit": "Byte-oriented scan for synthetic credential, record, prompt-field, and injected-output markers; not proof against all numeric logging in another release.",
+  "cleanup_verified": true,
+  "live_image_unchanged": true,
+  "live_ready_after_cleanup": true,
+  "live_restarts_before_and_after": 0,
+  "temporary_restarts": 0,
+  "telemetry": {
+    "sample_count": 87,
+    "maximum_temperature_c": 73.8,
+    "minimum_host_available_mib": 3379.2,
+    "live_health_failures": 0,
+    "synthetic_health_failures": 0,
+    "maximum_live_health_seconds": 0.0329,
+    "maximum_synthetic_health_seconds": 0.1016,
+    "ollama_current_mib": 4647.8,
+    "ollama_lifetime_peak_mib": 4664.3,
+    "app_current_mib": 135.1,
+    "app_lifetime_peak_mib": 138.5,
+    "proxy_current_mib": 27.8,
+    "proxy_lifetime_peak_mib": 32.8,
+    "limit": "Finite sampled batch; cgroup peak includes cache/staging. Not long-term headroom qualification. Synthetic API probes are not physical chart interaction."
+  },
+  "outputs": {
+    "cross_metric": {"observations": [
+      {"evidence": [{"id": "e0", "state": "decreased"}], "kind": "sport_mix"}
+    ]},
+    "mixed_directions": {"observations": [
+      {"evidence": [{"id": "e0", "state": "increased"}], "kind": "sport_mix"},
+      {"evidence": [{"id": "e1", "state": "decreased"}], "kind": "recorded_change"}
+    ]},
+    "mixed_sports": {"observations": [
+      {"evidence": [{"id": "e0", "state": "decreased"}], "kind": "sport_mix"},
+      {"evidence": [{"id": "e1", "state": "increased"}], "kind": "sport_mix"}
+    ]},
+    "partial_hrv": {"observations": [
+      {"evidence": [{"id": "e0", "state": "decreased"}], "kind": "sport_mix"},
+      {"evidence": [{"id": "e1", "state": "decreased"}], "kind": "sport_mix"}
+    ]},
+    "zero_baseline": {"observations": [
+      {"evidence": [{"id": "e0", "state": "increased"}], "kind": "sport_mix"}
+    ]},
+    "unchanged": {"observations": [
+      {"evidence": [{"id": "e0", "state": "unchanged"}], "kind": "sport_mix"}
+    ]}
+  },
+  "cases": [
+    {"case": "cross_metric", "repetition": "first_cold", "wall_seconds": 46.447, "reason": "unusable_model_output", "packet_sha256": "a7f443a8fb06563b9bab6acbe809957610c5c8fcf9e19a4f4a71e4c0e2f6b0c9", "http_report_sha256": "61a322cbf5e4f96a8a8229d9243db31e34c1fc30b2bd414bd45f19a41f89f676", "original_claim_sha256": "90816902955a50cf93732aaf314a3a8b85e8666782f9991c40d4a231507be1ed", "load_seconds": 5.594546554, "prompt_tokens": 535, "output_tokens": 64, "chart_probe_seconds": 0.2429, "flags": ["cross_metric_connection_missing", "incomplete_evidence_selection", "invalid_sport_mix"]},
+    {"case": "cross_metric", "repetition": "repeat_with_unload", "wall_seconds": 44.746, "reason": "unusable_model_output", "packet_sha256": "a7f443a8fb06563b9bab6acbe809957610c5c8fcf9e19a4f4a71e4c0e2f6b0c9", "http_report_sha256": "61a322cbf5e4f96a8a8229d9243db31e34c1fc30b2bd414bd45f19a41f89f676", "original_claim_sha256": "90816902955a50cf93732aaf314a3a8b85e8666782f9991c40d4a231507be1ed", "load_seconds": 5.83650049, "prompt_tokens": 535, "output_tokens": 64, "chart_probe_seconds": 0.0591, "flags": ["cross_metric_connection_missing", "incomplete_evidence_selection", "invalid_sport_mix"]},
+    {"case": "mixed_directions", "repetition": "new_prompt_with_unload", "wall_seconds": 56.46, "reason": "unusable_model_output", "packet_sha256": "bad1ebebe5b4c7349df0d120730427f4092ecb4a883a5c1e214d8a272b318379", "http_report_sha256": "ab8b1ba1e5b10c1378dbc7e1ec1f9de13db7827de395b03ca7857cf86cc5c949", "original_claim_sha256": "ab365bd8d25e3f9990daac5dc6628ac3baffef1efd8ca6923fd28ad58651d309", "load_seconds": 5.602279868, "prompt_tokens": 533, "output_tokens": 115, "chart_probe_seconds": 0.0486, "flags": ["cross_metric_connection_missing", "incomplete_evidence_selection", "invalid_sport_mix"]},
+    {"case": "mixed_sports", "repetition": "new_prompt_with_unload", "wall_seconds": 60.041, "reason": "unusable_model_output", "packet_sha256": "eec5f03d7f0378c846bd150c5d45db8b2a7b09c579e15c2c1dba31049d50be53", "http_report_sha256": "dc4781f591433dee7163f1f37f4c09e10f549f51f53a32d6293324c46f2a3b63", "original_claim_sha256": "1786664e3aac8e573a1e73e63692d8c43a234eb80308698d3d99b46594bfd175", "load_seconds": 5.596487894, "prompt_tokens": 622, "output_tokens": 114, "chart_probe_seconds": 0.1014, "flags": ["cross_metric_connection_missing", "incomplete_evidence_selection", "invalid_sport_mix"]},
+    {"case": "partial_hrv", "repetition": "new_prompt_with_unload", "wall_seconds": 57.138, "reason": "unusable_model_output", "packet_sha256": "2318185acb1e472ded943b23bc779f4d2d8348a9734eefe811c44bdfcfaf3ffa", "http_report_sha256": "00abb1dcd423289ad5c9356c376892b2645459caf75aae37f7bbe617f9c61aed", "original_claim_sha256": "581e6e141dda15c75092363e881344683e5b1ef0d090c5d9e64d2bdaa50c112f", "load_seconds": 5.844761507, "prompt_tokens": 547, "output_tokens": 115, "chart_probe_seconds": 0.1325, "flags": ["cross_metric_connection_missing", "incomplete_evidence_selection", "invalid_sport_mix"]},
+    {"case": "zero_baseline", "repetition": "new_prompt_with_unload", "wall_seconds": 44.537, "reason": "unusable_model_output", "packet_sha256": "c0aafd77f4b31c115fa915e1026ff0ad247f79a308613dbee9b770d7b069ac59", "http_report_sha256": "778e8ed971d804a2d8d1cdcaba95f7ddee7ab12b4eb3817262bd57e3337f7767", "original_claim_sha256": "85a28d09b8c848c9c76e517f1a30688a8105fbd73e707b3c2c2ca7e3f9a3c494", "load_seconds": 5.083069267, "prompt_tokens": 538, "output_tokens": 63, "chart_probe_seconds": 0.0289, "flags": ["cross_metric_connection_missing", "incomplete_evidence_selection", "invalid_sport_mix"]},
+    {"case": "unchanged", "repetition": "new_prompt_with_unload", "wall_seconds": 44.67, "reason": "unusable_model_output", "packet_sha256": "b2b005178b733f5d7d5bd90c2b336b71d0e1aef17295c3a57cdbc382709e353c", "http_report_sha256": "bfc49a3b673c14803ebaf2739200100ee5e3891afabcfe84f10fd861ff02c65f", "original_claim_sha256": "aa44246702994bd56ec8117f98ab45fff4a9df2183280366a8e820761f63cbb9", "load_seconds": 5.092322131, "prompt_tokens": 531, "output_tokens": 63, "chart_probe_seconds": 0.045, "flags": ["cross_metric_connection_missing", "incomplete_evidence_selection", "invalid_sport_mix"]},
+    {"case": "sparse_activity", "repetition": "new_prompt_with_unload", "wall_seconds": 0.01, "reason": "insufficient_input", "http_report_sha256": "78debee59737b1622c7c68b733e056c77b6013f316e9b73011830fdd249a22ad", "inference_sent": false},
+    {"case": "missing_current_wellness", "repetition": "new_prompt_with_unload", "wall_seconds": 0.01, "reason": "insufficient_input", "http_report_sha256": "91aa403bee3da0572ffb3f8ea1a817893d4a8873414ce5200973c3deff306b75", "inference_sent": false},
+    {"case": "cross_metric", "repetition": "selected_alias_same_weights", "wall_seconds": 44.485, "reason": "unusable_model_output", "packet_sha256": "a7f443a8fb06563b9bab6acbe809957610c5c8fcf9e19a4f4a71e4c0e2f6b0c9", "http_report_sha256": "61a322cbf5e4f96a8a8229d9243db31e34c1fc30b2bd414bd45f19a41f89f676", "original_claim_sha256": "90816902955a50cf93732aaf314a3a8b85e8666782f9991c40d4a231507be1ed", "load_seconds": 5.087974793, "prompt_tokens": 535, "output_tokens": 64, "chart_probe_seconds": 0.051, "flags": ["cross_metric_connection_missing", "incomplete_evidence_selection", "invalid_sport_mix"]}
+  ]
+}

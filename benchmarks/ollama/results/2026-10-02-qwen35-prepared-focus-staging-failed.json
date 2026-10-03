@@ -1,0 +1,118 @@
+{
+  "profile": "prepared-focus-v1",
+  "synthetic_only": true,
+  "not_production_app_acceptance": true,
+  "source_jsonl_sha256": "24762d47bbfa35ce48d9543f5ddacced2899c0bde483f3900035636320b9c196",
+  "model": "qwen3.5:4b",
+  "model_digest": "2a654d98e6fba55d452b7043684e9b57a947e393bbffa62485a7aac05ee4eefd",
+  "source_sha256": {
+    "app_fixtures": "1efd8db75cd4c03c82316caa6050acff4cc1d29340f5f97233dc3d2f25316540",
+    "app_unseen_fixtures": "66f5154f00c5ba358c38fca7cb08e8827c914565d9387da635d62e00a78a5b8c",
+    "prepared_review": "309dc4e72611f094d6fdc1b9baef81f24c5a213cbfcece9baa7053501946f93d",
+    "run_app_on_pi": "d4ece1fa96f5474100bfe53666d0ee1fa5335973804137bb930337e1f231eecb",
+    "run_prepared_review_on_pi": "b9562af3988a5beeeaa55b764d0adad8ba5d7755904ebcbc39994769887cec57",
+    "app_capture_proxy": "7c271415da1129516e77a8a8d80d2f5c1c42a9a0e05f83c5d8b09be547f5e313"
+  },
+  "complete": false,
+  "cleanup_verified": true,
+  "first_pass_accepted": 0,
+  "final_accepted": 0,
+  "finalized_cases": 0,
+  "planned_usable_cases": 6,
+  "inference_attempts": 0,
+  "received_attempts": 0,
+  "correction_attempts": 0,
+  "sparse_no_call_gates": [],
+  "attempts": [],
+  "prepared_cases": [],
+  "case_outcomes": [],
+  "telemetry": {
+    "sample_count": 14,
+    "live_health_failures": 0,
+    "synthetic_health_failures": 0,
+    "maximum_temperature_c": 58.4,
+    "minimum_host_available_mib": 5861.0,
+    "ollama_lifetime_peak_mib": 3361.8,
+    "ollama_maximum_current_mib": 3350.5
+  },
+  "controls": null,
+  "log_scan_passed": false,
+  "failures": [
+    {
+      "phase": "prepared_failed",
+      "error_type": "RuntimeError",
+      "completed_cases": 0,
+      "code_locations": [
+        {
+          "function": "main",
+          "line": 147
+        },
+        {
+          "function": "model_api",
+          "line": 81
+        }
+      ],
+      "diagnostics_withheld": true,
+      "host_available_mib": 5956.5,
+      "temperature_c": 55.65
+    },
+    {
+      "phase": "prepared_failure_state",
+      "temporary_state": {
+        "app": {
+          "ready": true,
+          "restarts": 0,
+          "state": {
+            "running": {
+              "startedAt": "2026-10-02T13:50:12Z"
+            }
+          }
+        },
+        "ollama": {
+          "ready": true,
+          "restarts": 0,
+          "state": {
+            "running": {
+              "startedAt": "2026-10-02T13:50:11Z"
+            }
+          }
+        },
+        "proxy": {
+          "ready": true,
+          "restarts": 0,
+          "state": {
+            "running": {
+              "startedAt": "2026-10-02T13:50:12Z"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "baseline_live_state": [
+    {
+      "name": "gtrainer-67cffc87b9-55zz8",
+      "uid": "cbc928b6-9084-47dc-8b43-1575d2f2c78b",
+      "image": "ghcr.io/blondacz/gtrainer@sha256:3ff83b81e129cb7dcb00747b1ff2badee4f10b0e5325419eefbb3ca85bdba568",
+      "image_id": "ghcr.io/blondacz/gtrainer@sha256:3ff83b81e129cb7dcb00747b1ff2badee4f10b0e5325419eefbb3ca85bdba568",
+      "ready": true,
+      "restarts": 0
+    }
+  ],
+  "cleanup": {
+    "phase": "prepared_cleanup",
+    "temporary_namespace_removed": true,
+    "final_live_state": [
+      {
+        "name": "gtrainer-67cffc87b9-55zz8",
+        "uid": "cbc928b6-9084-47dc-8b43-1575d2f2c78b",
+        "image": "ghcr.io/blondacz/gtrainer@sha256:3ff83b81e129cb7dcb00747b1ff2badee4f10b0e5325419eefbb3ca85bdba568",
+        "image_id": "ghcr.io/blondacz/gtrainer@sha256:3ff83b81e129cb7dcb00747b1ff2badee4f10b0e5325419eefbb3ca85bdba568",
+        "ready": true,
+        "restarts": 0
+      }
+    ],
+    "host_available_mib": 6228.2,
+    "temperature_c": 54.55
+  }
+}

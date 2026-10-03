@@ -42,6 +42,47 @@ def fixture(path):
 
 
 class Backups(unittest.TestCase):
+    def test_restore_accepts_complete_review_schema_and_legacy_but_refuses_partial_or_future_schema(self):
+        for version, complete, marker, expected in [(1, False, False, True), (2, True, True, True),
+                                                    (2, False, True, False), (2, True, False, False),
+                                                    (3, True, True, False)]:
+            with self.subTest(version=version, complete=complete, marker=marker), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                root.chmod(0o700)
+                source = root / 'synthetic.sqlite3'
+                connection = fixture(source)
+                connection.execute(f'PRAGMA user_version={version}')
+                if complete:
+                    connection.executescript('''
+                        CREATE TABLE review_schedule (singleton INTEGER PRIMARY KEY CHECK(singleton=1), state_json TEXT NOT NULL);
+                        CREATE TABLE review_import_changes (revision INTEGER PRIMARY KEY AUTOINCREMENT, category TEXT NOT NULL,
+                            observed_date TEXT NOT NULL, received_utc TEXT NOT NULL, identity_sha256 TEXT NOT NULL,
+                            sport TEXT, sleep_changed INTEGER NOT NULL, sleep_available INTEGER NOT NULL);
+                        INSERT INTO review_schedule VALUES (1, '{"configuration":{"enabled":false}}');
+                    ''')
+                if marker:
+                    connection.execute("INSERT INTO schema_migrations VALUES (2, '2020-06-01T00:00:00Z')")
+                connection.commit()
+                connection.close()
+                ciphertext = root / 'synthetic.age'
+                ciphertext.write_bytes(b'synthetic ciphertext, no private data')
+                output = root / 'restored.sqlite3'
+                def decrypt(*args, **kwargs):
+                    kwargs['stdout'].write(source.read_bytes())
+                    return subprocess.CompletedProcess(args[0], 0)
+                with patch.dict('os.environ', {}, clear=True), patch('mac_backup.recipient', return_value='synthetic'), \
+                     patch('mac_backup.subprocess.run', side_effect=decrypt), patch('sys.stdout', new_callable=io.StringIO):
+                    if expected:
+                        restore(ciphertext, output, root / 'synthetic.key')
+                        with sqlite3.connect(output) as database:
+                            self.assertEqual(database.execute('PRAGMA user_version').fetchone(), (version,))
+                            self.assertEqual(database.execute('SELECT count(*) FROM events').fetchone(), (1,))
+                    else:
+                        with self.assertRaises(BackupError):
+                            restore(ciphertext, output, root / 'synthetic.key')
+                        self.assertFalse(output.exists())
+                self.assertFalse(list(root.glob('.restore-*')))
+
     def test_online_snapshot_contains_wal_records_and_events_and_cleans_staging(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
