@@ -54,192 +54,44 @@
 - [x] 7.5 Implement the single-running coalescing review queue with merged reasons/highest level, execution-time snapshots, debounce/cooldown/maximum deferral and cancellation/invalidation; verify separate scopes/windows, no evening suppression of immediate reviews, no starvation or repeated running cancellation, crash recovery and stale-result labeling.
 - [x] 7.6 Add review preset configuration and next-check/next-review/trigger/queued/running/last-success coverage UI and operator documentation; verify authenticated UI states, unsupported rules, configurable budgets, factual/AI separation and independent chart responsiveness without Google Calendar or plan changes.
 
-### Guarded local prototype status
+## Evidence and remaining work
 
-The approved background-review agreements are now captured in proposal, design
-and executable requirements. Task 7.1's separate synthetic protocol and regression
-checks passed (92 benchmark tests, 47 utility tests and strict spec validation).
-At that benchmark milestone tasks 7.5–7.6 remained outstanding; subsequent local
-queue/UI completion below does not qualify the existing prototype or enable live inference.
-See [code-prepared experiment](../../../docs/decisions/code-prepared-review-experiment.md).
+Foundation progress remains **28/33**. The completed source/dashboard/queue work is
+implemented and synthetically verified; no live inference, migration, or deployment
+is authorized by this record. Detailed historical outcomes are retained in the
+linked evidence rather than duplicated here.
 
-The subsequent approved deterministic continuation implements the factual portion
-of task 7.3: complete all-metric/all-sport groups, digest-bound authenticated
-read-only API, independently rendered factual UI and rule-selected relevant focus.
-The existing optional prototype contract and zero-correction policy are unchanged.
-The subsequent separately selected `review-focus-app-v1` API/runtime completes
-task 7.3 with whole-response validity/relevance checks, immutable evidence/model
-invalidation, shared single-flight access, call/job deadlines covering all attempt
-checks, and at most one independently validated correction only with explicit
-operator/user opt-in and sufficient headroom. Synthetic tests verify auth/CSRF,
-logout, faults and cancellation with no repair or fallback. The production
-resource/live-health guard is deliberately unwired, so even new catalogue/selection
-configuration cannot enable live inference. At that milestone tasks 7.5–7.6 and
-production model qualification remained outstanding. No deployment is enabled. See
-[deterministic factual reviews](../../../docs/decisions/deterministic-factual-reviews.md)
-and [separate guarded interpretation](../../../docs/decisions/guarded-review-interpretation.md).
+### Completed work evidence
 
-Task 7.4 now adds durable editable presets, strict authenticated versioned
-configuration, semantic transactional import deltas and explicit-zone routing.
-Synthetic regressions cover disabled defaults, unchanged imports, calendar DST/
-travel/rollback, correction reconciliation, stable scoped intent IDs, preserved
-future changes/sleep arrivals, per-period counts and unavailable/ambiguous steps.
-Schema 2 preserves imported records/events; restore validation supports both
-complete schemas 1 and 2. Configuration persists but restart/model changes require
-explicit re-arming. No production source step capability or inference guard is
-verified/wired, and no database/helper is migrated live. At that milestone the
-queue receiver was absent and due intents remained previewable without consumption;
-the subsequent queue/UI work below now implements tasks 7.5/7.6 locally. See
-[presets and scheduler](../../../docs/decisions/review-presets-and-scheduler.md).
+- Guarded review contracts, frozen experiments, and local-model limitations:
+  [code-prepared experiment](../../../docs/decisions/code-prepared-review-experiment.md),
+  [guarded local analysis](../../../docs/decisions/guarded-local-analysis.md),
+  [actual app test](../../../docs/decisions/guarded-app-ministral-test.md),
+  [Granite app test](../../../docs/decisions/guarded-app-granite42-test.md).
+- Deterministic facts, guarded interpretation, presets/scheduler/queue:
+  [factual reviews](../../../docs/decisions/deterministic-factual-reviews.md),
+  [guarded interpretation](../../../docs/decisions/guarded-review-interpretation.md),
+  [scheduler and queue](../../../docs/decisions/review-presets-and-scheduler.md).
+- Dashboard, events, privacy and operator behavior:
+  [dashboard guide](../../../docs/dashboard.md).
+- Source merge is recorded in PR [#21](https://github.com/blondacz/gtrainer/pull/21).
+  Container-input test fixes are in PR
+  [#22](https://github.com/blondacz/gtrainer/pull/22); its CI passed. This is not
+  image publication, promotion, or Pi deployment evidence.
 
-The complete fresh Qwen3.5 suite answered 5/10 requested focuses on first pass and
-finally; all 15 responses were structurally valid, but five corrections repeated
-irrelevant choices. Both sparse gates and final controls/cleanup passed. This
-completes experimental evidence capture, not model qualification. Earlier partial
-captures remain separate; no extra run or broader cap is authorized.
+### Unfinished acceptance criteria
 
-Task 7.2's initial pair left Qwen3.5 inference untested: Qwen3 completed eight calls with
-4/6 relevant selections both before and after two corrections; Qwen3.5 staging
-failed during model pull before any inference. Both captures were independently
-replayed and owned cleanup/live-state checks passed. Qwen3.5 has no quality score
-from this attempt, and its underlying staging error remains unknown because the
-helper withheld HTTP details. No automatic retry, larger cap or live rollout is
-authorized by recording these outcomes.
+The five unchecked tasks are **4.4, 4.5, 4.6, 4.8, and 6.1** (see their original
+checkboxes above). Their original acceptance criteria remain in force; this roadmap
+update does not waive or replace them.
 
-The explicitly approved Qwen3.5 diagnostic rerun then staged successfully and
-completed seven calls: 5/6 relevant cases on first pass and after one ineffective
-correction. Identical prepared packets and frozen task matched Qwen3's 4/6 run.
-Independent original-byte replay, both sparse gates, controls/log/history/unload,
-resource/live-health and owned cleanup checks passed. The model again reached
-5120 MiB lifetime cgroup peak but had no observed OOM or restart. Task 7.2 is now
-complete as an experimental procedure, not qualification of production AI or
-meaningful coaching. Earlier staging failure remains preserved and unexplained;
-no additional rerun, cap/hardware change or rollout is authorized.
+### Agreed next increment
 
-The user-approved Kotlin comparison validator, switchable local interface,
-authenticated explicit generation, and model-status UI are implemented with
-synthetic backend/adapter/API/UI tests. Task 4.7's unavailable reasons and
-independent chart/evidence behavior are verified. Tasks 4.4, 4.6, and 4.8 remain
-unchecked pending verification of the exact app packet/prompt with the local
-model and operator instructions, not just fake-provider tests or the different
-benchmark prompt. No default or inference-service rollout is approved by this
-prototype. See [guarded local analysis](../../../docs/decisions/guarded-local-analysis.md)
-for scope, resource limits, and the still-required synthetic Pi integration
-qualification. Hosted consent and actual-data end-to-end verification remain
-outstanding; events were unfinished at that prototype milestone and are now
-implemented locally. No requirements are waived.
-
-The separately approved exact published-app synthetic Pi run completed ten app
-requests: eight real Ministral responses were rejected whole (0/8 accepted), and
-two sparse inputs made no model call. Independent retained-response replay agreed.
-The final runner log-decoding failure prevented log-scan completion and sustained
-telemetry export; those checks and accepted hardware rendering remain unverified.
-Tasks 4.4, 4.6, and 4.8 remain unchecked. No requirement is narrowed to declare
-the integration complete. See [actual app test](../../../docs/decisions/guarded-app-ministral-test.md).
-
-The subsequent user-approved Granite 4.2 3B run finished with exported controls,
-87 resource samples, unchanged history, log-marker checks, responsive concurrent
-synthetic trend/input API reads, and verified cleanup. It still accepted 0/8
-real responses: invalid single-sport mixes and incomplete evidence selections
-failed whole-response validation. Tasks 4.4/4.6/4.8 remain unchecked; accepted
-hardware rendering, broader model switching/quality, and production qualification
-are not replaced with a narrower success criterion. See
-[Granite app test](../../../docs/decisions/guarded-app-granite42-test.md).
-
-### Local queue, event and dashboard continuation
-
-Tasks **5.1–5.3/7.5/7.6** are now implemented and synthetically verified locally;
-progress is **28/33**. The dashboard has a white background, more colourful rounded
-category tiles with white text, neutral surrounding text/orange accents, active-section
-tabs, viewport-adaptive card pages and lossless
-metric/factual/prototype/event evidence paging. Colours do not encode health or
-readiness. Factual metrics stay independently usable through optional-model faults.
-Review controls expose versioned explicit saves, separate model consent, unsupported
-steps, configured zones, conditional checks, unknown arrivals, queue eligibility,
-running state and stale completed-coverage metadata. Historical stored prose is
-withheld in the metadata view rather than accepted without independent support.
-
-Manual events use the existing SQLite table, bounded strict authenticated/CSRF CRUD,
-preserved text and next-upcoming/ongoing UTC date classification. Reopen, edits,
-deletion, multi-day trips, ordering, capacity and unchanged history/scheduler are
-verified. Events and notes never enter model packets or automatic workout decisions.
-
-The durable queue shares the scheduler JSON singleton, atomically commits intents
-with occurrence/cursor/latch state, preserves busy-slot receipts/capacity, fixes
-snapshots at execution start, avoids repeated import cancellation, prevents obsolete
-publication and recovers without automatic replay. Independent review findings were
-fixed and **35 queue regressions** passed; the full backend build has **215 passing
-tests**, frontend build **225**, benchmark suite **121** and utility suite **48**.
-Palette regressions verify a white page, neutral/orange surrounding text, white
-tile labels and at least 4.5:1 normal-text contrast on every category tile.
-Strict specs, relative documentation links and diff checks pass. The dashboard
-guide was verified against the running built frontend, using isolated browser-only
-synthetic responses for sign-in, stepped multi-day event creation, next-event
-classification and off/guarded review controls. API/storage tests independently
-verify the real authenticated backend routes and persistence. Browser smoke uses
-no actual records, model calls or production credentials; it is not actual-data/Pi
-release or model qualification. See [dashboard guide](../../../docs/dashboard.md) and
-[scheduler/queue/operator details](../../../docs/decisions/review-presets-and-scheduler.md).
-The user subsequently approved committing/pushing this tested source for PR review
-only. Nothing is promoted, deployed, migrated live or used for real inference.
-Tasks 4.4/4.5/4.6/4.8/6.1 retain their original acceptance
-requirements and remain unfinished.
-
-### Source-review verification and superseded qualification proposal
-
-Source review was committed as `99b527a96458946255a767fe3fde22d3cbe2fe0e`
-and pushed to [PR #21](https://github.com/blondacz/gtrainer/pull/21).
-CI run **37073228601** passed tests/build and release provenance; image publication
-and promotion were skipped. PR auto-merge is not enabled. PR #20 remains separate
-and untouched. Synthetic browser checks of the committed build verify overview,
-review request and paged preset identity/coverage views at 1000×700 and 390×844;
-390×575 preserves accessible review-control scrolling without clipping or
-horizontal overflow. Tile text is white; the page remains white with neutral text.
-
-The earlier local qualification proposal described twenty fresh selector cases,
-at most twenty first-pass calls, no corrections and a 20/20 structural/relevance
-sample gate. It was never authorized to run. On 2026-10-03 the user agreed the
-broader coaching direction below, which supersedes that selector-only next step
-and the calendar-first roadmap. Earlier captures/results remain historical evidence,
-not qualification for richer reviews or planning.
-
-### Agreed next increment and cumulative roadmap (2026-10-03)
-
-See [proposal roadmap](proposal.md#agreed-cumulative-roadmap-2026-10-03) and
-[incremental architecture](design.md#agreed-incremental-coaching-architecture-2026-10-03).
-The next planning step is a small connected-insights change: persistent attributed
-athlete context/feedback, a richer evidence-grounded review contract, explicit
-local/hosted model selection and a common synthetic usefulness evaluation. Create
-that increment's proposal/specs/tasks before implementation; do not launch the
-superseded selector trial or expand every future phase into tasks now.
-
-The cumulative roadmap is:
-1. Connected insights and persistent context.
-2. Multisport goals and long-term event/season direction.
-3. Feasible weekly plans, feedback-driven adaptation and practical delivery.
-4. Curated knowledge-backed skills/training support, with media analysis later.
-
-Carry forward these agreed constraints when planning the next increment:
-- Reuse the existing app/database, imports, facts, events, dashboard, model
-  boundaries, scheduler/queue, tests and operational tooling. Evolve contracts;
-  preserve the old experiments as baselines rather than rewriting the product.
-- Store feedback in SQLite, retrieve only relevant history, and include applicable
-  structured restrictions explicitly. Start with filters/full-text retrieval;
-  add embeddings only for demonstrated value. Preserve attribution, dates,
-  corrections and user control; distinguish model inference from user facts.
-- Support both bounded independently validated response correction and longitudinal
-  feedback on sessions/plans. This is stored memory, not implicit model training.
-- Compare switchable local and hosted models first. Optional small/large task
-  routing follows evidence; hosted personal-data transfer always needs consent.
-- Support experienced multisport development, seasonal/event priorities, strength,
-  prescribed rehabilitation, nutrition/weight goals and lifelong wellbeing without
-  recording personal health details in public artifacts. Keep technical skill and
-  subjective feedback distinct from wearable measurements.
-- Keep architecture/process lean: one next-phase specification, no mandatory new
-  services/vector store/agent framework, and retain AI/ML/Ollama/RAG learning as a
-  secondary objective with measurable experiments.
-
-This artifact update implements no coaching feature, selects no provider and
-authorizes no model run, personal-data transfer, merge, image publication,
-deployment or live migration. Foundation progress remains **28/33**; tasks
-4.4/4.5/4.6/4.8/6.1 retain their original acceptance criteria and remain unchecked.
+Insights and persistent context remain first: a richer evidence-grounded review,
+durable attributed feedback/context, and explicit local/hosted comparison on common
+synthetic cases, assessing usefulness as well as correctness. Freeze scheduler/queue
+expansion until that increment demonstrates value. See the
+[proposal roadmap](proposal.md#agreed-cumulative-roadmap-2026-10-03) and
+[design](design.md#agreed-incremental-coaching-architecture-2026-10-03). Planning
+follows; no selector-only benchmark, new inference, personal-data transfer, or
+provider choice is authorized by this roadmap.
