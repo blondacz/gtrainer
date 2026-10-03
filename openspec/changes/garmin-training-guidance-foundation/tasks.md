@@ -185,7 +185,7 @@ only. Nothing is promoted, deployed, migrated live or used for real inference.
 Tasks 4.4/4.5/4.6/4.8/6.1 retain their original acceptance
 requirements and remain unfinished.
 
-### Pending local qualification planning
+### Source-review verification and superseded qualification proposal
 
 Source review was committed as `99b527a96458946255a767fe3fde22d3cbe2fe0e`
 and pushed to [PR #21](https://github.com/blondacz/gtrainer/pull/21).
@@ -196,19 +196,50 @@ review request and paged preset identity/coverage views at 1000×700 and 390×84
 390×575 preserves accessible review-control scrolling without clipping or
 horizontal overflow. Tile text is white; the page remains white with neutral text.
 
-The user chose **local qualification planning** and approved recording the pending
-plan in [design.md](design.md#pending-local-model-qualification-plan). Start with
-the usefulness gate against code-owned deterministic selection; a focus-selection
-pass is not proof of useful health reasoning. The proposed, not authorized,
-exact-app trial freezes twenty fresh synthetic cases, the separate app contract,
-pinned candidate, rubric and guards; it permits no more than twenty first-pass
-calls, no corrections, unchanged three-core/5 GiB limits and the existing
-120/130-second app defaults. All twenty responses must pass structural/relevance
-checks for the sample gate; original attempts and failures remain independently
-replayable. Production guard, sustained operation, private networking, compatible
-restore/rollback and actual-data release verification remain separate gates.
+The earlier local qualification proposal described twenty fresh selector cases,
+at most twenty first-pass calls, no corrections and a 20/20 structural/relevance
+sample gate. It was never authorized to run. On 2026-10-03 the user agreed the
+broader coaching direction below, which supersedes that selector-only next step
+and the calendar-first roadmap. Earlier captures/results remain historical evidence,
+not qualification for richer reviews or planning.
 
-This planning approval does **not** authorize runner implementation, a model run,
-model/provider selection, health-data transfer, merging, image publication,
-deployment or live migration. No experiment occurred. Progress remains **28/33**;
-tasks 4.4/4.5/4.6/4.8/6.1 stay unchecked with their original acceptance criteria.
+### Agreed next increment and cumulative roadmap (2026-10-03)
+
+See [proposal roadmap](proposal.md#agreed-cumulative-roadmap-2026-10-03) and
+[incremental architecture](design.md#agreed-incremental-coaching-architecture-2026-10-03).
+The next planning step is a small connected-insights change: persistent attributed
+athlete context/feedback, a richer evidence-grounded review contract, explicit
+local/hosted model selection and a common synthetic usefulness evaluation. Create
+that increment's proposal/specs/tasks before implementation; do not launch the
+superseded selector trial or expand every future phase into tasks now.
+
+The cumulative roadmap is:
+1. Connected insights and persistent context.
+2. Multisport goals and long-term event/season direction.
+3. Feasible weekly plans, feedback-driven adaptation and practical delivery.
+4. Curated knowledge-backed skills/training support, with media analysis later.
+
+Carry forward these agreed constraints when planning the next increment:
+- Reuse the existing app/database, imports, facts, events, dashboard, model
+  boundaries, scheduler/queue, tests and operational tooling. Evolve contracts;
+  preserve the old experiments as baselines rather than rewriting the product.
+- Store feedback in SQLite, retrieve only relevant history, and include applicable
+  structured restrictions explicitly. Start with filters/full-text retrieval;
+  add embeddings only for demonstrated value. Preserve attribution, dates,
+  corrections and user control; distinguish model inference from user facts.
+- Support both bounded independently validated response correction and longitudinal
+  feedback on sessions/plans. This is stored memory, not implicit model training.
+- Compare switchable local and hosted models first. Optional small/large task
+  routing follows evidence; hosted personal-data transfer always needs consent.
+- Support experienced multisport development, seasonal/event priorities, strength,
+  prescribed rehabilitation, nutrition/weight goals and lifelong wellbeing without
+  recording personal health details in public artifacts. Keep technical skill and
+  subjective feedback distinct from wearable measurements.
+- Keep architecture/process lean: one next-phase specification, no mandatory new
+  services/vector store/agent framework, and retain AI/ML/Ollama/RAG learning as a
+  secondary objective with measurable experiments.
+
+This artifact update implements no coaching feature, selects no provider and
+authorizes no model run, personal-data transfer, merge, image publication,
+deployment or live migration. Foundation progress remains **28/33**; tasks
+4.4/4.5/4.6/4.8/6.1 retain their original acceptance criteria and remain unchecked.

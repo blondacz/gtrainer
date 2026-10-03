@@ -2,7 +2,7 @@
 
 ## Context
 
-See proposal.md for motivation. The Kotlin/Ktor and React foundation now implements imports, historical trends and a guarded local-analysis prototype. The user has a Raspberry Pi 5 (8 GB RAM) running K3s and has linked Garmin Connect to Intervals.icu. Synthetic exact-app trials have not qualified a local model: revised Qwen3 4B instructions accepted 4/6 fresh structural cases but omitted mandatory evidence twice. The phase-one requirements cover imported history, descriptive reviews and manually entered events. Google Calendar and personalized planning remain separate later phases.
+See proposal.md for motivation and the agreed cumulative roadmap. The Kotlin/Ktor, React and SQLite foundation implements imports, factual reviews, manual events, review controls and a durable scheduler/queue alongside guarded model experiments. The target Pi 5 has 8 GB RAM and runs K3s. No local model is production-qualified; the fresh Qwen3.5 prepared-focus benchmark remained 5/10 relevant. The current change's acceptance remains descriptive. Richer connected reviews with persistent context are the next increment; goal-based planning follows without requiring calendar integration first.
 
 ## Goals / Non-Goals
 
@@ -21,106 +21,140 @@ See proposal.md for motivation. The Kotlin/Ktor and React foundation now impleme
 1. **Use Intervals.icu as the preferred source, not as a claim of Garmin parity.** The user already linked Garmin Connect there. Its documented API can read activities and wellness with a personal API key; the user's field-name-only sample showed `type`, durations, `calories`, `weight`, `hrv`, sleep fields, and `vo2max`. It did not show fitness age, endurance score, or Garmin training status. Before integration, check non-null coverage, dates, source/origin, and whether the scale values really sync; never store real samples or credentials in the repository. Authenticate read-only, keep the key out of Git/logs/AI input, and let the user replace it if rotated. Prefer this over a direct unofficial Garmin login because it avoids handling Garmin credentials; user exports or other approved sources remain fallback adapters. Garmin's official program is business-only and, per a 2026 Garmin forum response, new access requests are temporarily paused; do not make it a prerequisite. Intervals.icu remains an additional external holder of the user's data.
 2. **Store source-aware historical records.** Keep activity and wellness records separate from raw API transport and record the Intervals.icu ID, upstream origin when exposed, units, sport, time context, and fetch status. Make repeated sync idempotent and allow local deletion. Compute reproducible aggregates and period comparisons from validated records before sending a small, structured summary to a model; keep recorded values and provenance as the authority. Calculate time spent in recorded activities but never call it Garmin intensity minutes. Name `atl`/`ctl` and similar measures as Intervals.icu calculations, not Garmin scores. Show missing proprietary metrics as unavailable.
 3. **Keep manual events independent of Garmin data.** Store each event's start/end, sport, description of success, and optional current-state notes. Sort by start date for the next-event display. Do not automatically score readiness or prioritize events. This app-owned event data can later be mapped to Google Calendar, but phase one uses no Google credentials.
-4. **Use a replaceable model boundary for descriptive synthesis.** Benchmark small Ollama models on the Pi 5; if local inference is usable, prefer it as the default but do not bind the app to Ollama or to one model. Allow another configured local model, or a hosted provider only after clearly describing the transfer and receiving the user's explicit consent. No silent fallback from local to hosted. Give models only necessary validated aggregates and date ranges, and verify output against those inputs before showing it. Keep deterministic charts working if inference fails; never treat the model as a source for proprietary scores, causation, diagnosis, or a training prescription. Do not log prompts, health payloads, or keys. If no practical local model exists, ask the user to choose a supported alternative rather than silently sending data out.
+4. **Use an explicitly switchable model boundary.** Local Ollama and hosted providers are both in scope as options; prefer local where useful, but select no automatic default. Start with one selected provider per task and compare common synthetic cases before introducing optional small/large-model routing. Hosted personal-data transfer requires disclosure and explicit consent; no silent escalation or fallback. Supply only the necessary evidence/context and keep factual charts independent. In this descriptive foundation, do not generate training prescriptions or medical/sport-safety judgments. Richer contracts need claim-level grounding and usefulness evaluation, not merely valid IDs or JSON. Do not log sensitive prompts, health payloads or keys.
 5. **Use Kotlin/Ktor and React/TypeScript.** Kotlin matches the user's JVM experience; Ktor keeps the backend small on the Pi, while React/TypeScript handles charts and the event UI. Read Intervals.icu over its documented API in a replaceable adapter; do not introduce a Python Garmin-login worker in this phase. Prefer a simple local persistent store for this single-user release and choose its backup/restore method after checking the cluster. A larger JVM framework and a separate database service are unnecessary defaults for now.
 6. **Automate private K3s deployment with Flux.** Check the cluster and Git host first, then bootstrap/configure Flux to reconcile version-pinned manifests from a repository. CI builds and tests the Ktor and React app, publishes a Linux ARM64 image to a registry, and updates the pinned image reference in the deployment source after tests pass; Flux pulls and applies the change on the Pi. CI must not receive cluster credentials or open a path to the home network. Use an appropriate protected promotion path for releases and encrypt any Git-stored secrets with SOPS/age (or provision them outside Git); never store decryption keys in the repository. Keep storage persistent, dashboard access authenticated and LAN-only, and model resources bounded. Argo CD is not needed for this single app.
-7. **Leave clean boundaries for later phases.** Phase 2 will add Google events and optional writes to a configurable training calendar with configurable approval, including user-confirmed commitment and travel constraints. Phase 3 will plan for overlapping sport goals, actual activity, recovery, calendar commitments, travel, and stated abilities as described below; a vetted and user-amendable sport knowledge base can ask targeted questions. Uploaded photos/videos can be stored for review without AI analysis. Future planning may reuse the model boundary without coupling it to a provider. More users might justify applying for Garmin's business API and a different deployment and privacy model, but are not planned for now. Neither later phase is an acceptance criterion of this change.
+7. **Extend the foundation through small cumulative phases.** Follow the proposal's connected-insights/context, long-term goals, adaptive weekly planning and knowledge-backed coaching sequence. Manual commitments suffice initially; calendar integration is optional. Preserve the existing implementation and capture future planning constraints below without adding every phase to the foundation task list. Develop only the next increment's executable specs/tasks when it is proposed. Photo/video analysis and multi-model routing need demonstrated value before added infrastructure.
 8. **Guarantee factual coverage before inference.** Code groups every required comparison by compatible time range, keeping unavailable comparisons explicit. These facts can be rendered without a model. Optional model work is separately bounded, initially selecting a relevant descriptive focus from code-prepared supported relationships; it is not asked to repeat every fact. Reject an invalid whole response before rendering its interpretation. A correction attempt receives only bounded validator feedback and the same immutable input; it is a new independently validated response, never patched fragments. Closed-vocabulary focus selection tests instruction following/relevance, not unrestricted sports interpretation or coaching.
 9. **Use editable review presets rather than a rules-language UI.** Type means what is examined, scope means the period/activity, level means interim or thorough, and trigger means why/when it runs. Start with daily-combined, after-activity, and weekly presets, all switchable and assignable to supported triggers. Code owns routing and scheduling, not the model. Suggested configurable rules include a two-hour changed-data check, settled sleep/wellness arrival, settled new activity, daily/weekly local-time reviews, and optional record-count/daily-step thresholds. There is no fixed morning hour. Daily steps require verified source support; threshold crossings occur once per configured period and duplicate imports count as no change. Imports refer to newly received/corrected records, not proof of the physiological event's exact time.
 10. **Keep a small stable queue.** Run one analysis at a time, with at most one pending job per review type, scope and compatible execution window. New matching requests replace obsolete pending snapshots and merge reasons; a higher level upgrades but never downgrades matching work. Resolve the newest snapshot when execution begins. Do not let an evening thorough schedule suppress an immediate interim request. Different scopes remain separate. Debounce import bursts, enforce a configurable cooldown and maximum deferral, and do not cancel running jobs repeatedly. New data may queue a follow-up; completed old-snapshot output remains dated historical output, not current coverage. No external broker or generalized workflow engine is needed initially.
 11. **Treat latency as a background budget, not a real-time qualification gate.** The application serves factual data while analysis runs. Time budgets include model loading, checks and at most one corrective retry, with separate bounded per-call and total-job deadlines. A five-minute target and ten-minute maximum are provisional tunable starting points, not agreed fixed limits or changes to the installed prototype's 120/130-second bounds. Correctness and resource safety take priority over speed. All review levels use identical safety validation; thorough is not guaranteed precision. Keep the three-core/5 GiB model cap and stop on OOM, restart or host/live-health guard failure. Test Qwen3 4B Instruct and pinned Qwen3.5 4B using synthetic inputs; any future hardware/cap change needs separate approval and a separately labeled run.
 12. **Automatic reviews require explicit enablement.** Default inference and schedules remain off; enabling schedules requires an explicit model/configuration choice and does not authorize hosted health transfer. Disable/pause or model-selection changes invalidate pending work and prevent stale in-flight publication. Future scheduled local selection persistence, if implemented, must be explicit and documented; the current memory-only prototype remains off after restart. Show next scheduled check (conditional on changed data), next due review, pending event conditions, queued reasons/start estimate, running state and last successful snapshot coverage. Do not invent a next event-trigger time or guarantee an exact start behind running work.
 
-## Pending local-model qualification plan
+## Agreed incremental coaching architecture (2026-10-03)
 
-The user chose local qualification planning after source-review PR #21. This
-section authorizes recording the plan only, not implementing a runner, calling a
-model, changing live configuration, transferring health data, merging, publishing
-an image, promoting a release or deploying. No local model is qualified or selected
-by this plan. Earlier benchmark results remain unchanged and separate.
+### Preserve the implementation
 
-### Gate 1: Establish the intended usefulness
+Extend the current application and SQLite store. Reuse imports/provenance and
+factual calculations as evidence, manual events as the starting point for
+event-linked goals, dashboard/evidence paging as presentation, scheduler/queue as
+background execution, and authentication/backups/delivery as operations. Existing
+tests and original benchmark captures remain regression evidence. Keep the
+restricted prototype and focus selector as separately named experimental baselines;
+introduce a richer review contract rather than forcing coaching through their
+ID-selection validators. No wholesale rewrite, external broker, agent swarm or
+separate ML platform is required.
 
-The current `review-focus-app-v1` model chooses candidate IDs whose supported facts,
-text and relevant-focus set are already computed by code. Compare its intended
-contribution against that deterministic baseline before spending another inference
-budget. Reproducing the rule-selected IDs demonstrates instruction following, not
-physiological reasoning, coaching or added value over code. A relevance pass alone
-must not complete task 4.6 or be presented as useful unrestricted interpretation.
-If richer descriptive interpretation is needed, design a separately named contract
-and independently checkable claims first; do not broaden this contract or silently
-replace the installed prototype. If no useful model contribution is established,
-retain the factual view and keep optional AI off.
+Add domain concepts only when needed: athlete context, goals, plans, sessions,
+feedback and revisions. Keep one small phase proposal with concrete acceptance
+examples; future phases remain roadmap commitments. The AI/ML learning objective
+is served through structured outputs, evaluation, model comparison and retrieval,
+not by adding infrastructure without a demonstrated need.
 
-### Gate 2: Freeze a separately approved exact-app trial
+### Durable memory and relevant retrieval
 
-Before any launch, prepare and independently check a manifest binding the app
-commit/build, `review-focus-app-v1` prompt, adapter/options, validator, synthetic
-records, packet/report hashes, expected relevance rubric, runtime/model artifact,
-guards and scoring. Do not reuse earlier observed cases as a fresh holdout or tune
-the prompt, cases or rubric after viewing results. Keep this application trial
-distinct from `prepared-focus-v1` and the installed `/api/analysis` prototype.
+The database is the durable record; prompts contain bounded relevant context.
+Store goals, current restrictions, availability, preferences and accepted decisions
+as structured records. Explicitly include applicable hard constraints whenever
+planning or adapting; semantic search must not decide whether a restriction is
+remembered. Store session reflections and coaching feedback as dated text linked
+to the relevant session, sport, goal or plan revision.
 
-The proposed candidate is the previously pinned Qwen3.5 4B manifest
-`2a654d98e6fba55d452b7043684e9b57a947e393bbffa62485a7aac05ee4eefd`
-with Ollama `0.35.0`; this is a candidate for approval, not a default selection.
-Its earlier fresh benchmark remained **5/10 relevant**, with all 15 outputs
-structurally valid and no corrective rescue. The app uses a separate contract, so
-earlier benchmark scores cannot qualify it or be pooled with a new result.
+Each memory retains source/author, observation date, applicability/expiry where
+known and correction/supersession history. Distinguish measurements, user reports,
+human-coach/clinician guidance and model interpretations. Users can inspect,
+correct, retire or delete memories; a summary must not silently turn an inference
+into a user fact or resurrect superseded instructions. Derived retrieval indexes
+must reflect corrections/removal. Private feedback is not a development fixture
+or public documentation input.
 
-Proposed bounded trial:
+Start with SQLite and explicit date/sport/goal filters; use full-text search when
+needed. Add embeddings only if retrieval evaluation demonstrates an improvement;
+a new vector database is not an initial requirement. Retrieve related experiences
+and applicable knowledge without keeping entire conversations in every prompt.
+Long-term memory is explicit stored context, not automatic model-weight training.
 
-- Twenty fresh usable synthetic cases: five each for daily-combined, wellness,
-  activity-balance and missing-wellness. Include opposing/unchanged directions,
-  zero baselines, incomplete coverage and candidate-position variation. Keep the
-  independent expected-kind rubric outside the model packet.
-- Additional sparse/no-relevant-candidate and oversized-input controls must make
-  no provider call. Incompatible-period tests must not create a same-period
-  association or silently merge evidence.
-- At most twenty inference calls, one per usable case, with corrective attempts
-  disabled. Retain the app defaults of **120000 ms per attempt / 130000 ms per
-  job**, including loading, pre/postflight and validation. Preserve three cores,
-  **5 GiB**, 2048 context, 256 output tokens, temperature zero, seed 42, thinking
-  off and unload after each call. Do not change the installed prototype limits.
-- Use only an isolated synthetic app/store and owned model resources, without
-  production credentials, actual records, manual personal events or notes. No
-  source reads, hosted transfer, model substitution or automatic retry.
-- Freeze resource/live-health freshness and responsiveness thresholds before
-  launch. Stop on OOM, restart, unreadable/stale telemetry or failed host/app health;
-  mark unfinished cases unknown, preserve received bytes independently of control
-  failures, and clean up only resources owned by the trial.
+### Two feedback loops
 
-The proposed sample gate requires **20/20 structurally valid and relevant
-first-pass responses**, correct no-call controls, unchanged synthetic history and
-no unsupported interpretation rendered. Whole-response validation remains
-mandatory; no output repair, fragment salvage, pooling with previous runs or
-rescoring after failures. Independently replay every original response and retain
-bindings, rejections, latency, resource/control evidence and cleanup outcome.
-Passing is a limited exact-app sample result, not statistical assurance of general
-reliability, a medical/sport-safety claim or production qualification. Failure
-keeps AI off and requires a new decision rather than a silent rerun or larger cap.
+Within a request, check facts, evidence bindings and applicable plan constraints,
+then allow bounded validator feedback and a new independently checked response.
+Model self-approval alone is insufficient. Retain first-pass and revised outcomes
+separately; never repair rejected fragments into an accepted answer. Existing
+contracts keep their current correction policies; the next contract defines its
+own explicit attempt/time/cost bounds before execution. Resource, transport or
+health failures do not silently trigger retries or provider escalation.
 
-### Gate 3: Qualify production operation separately
+Across sessions and weeks, compare plans with actual activity, user reflections,
+accepted/rejected suggestions and reported outcomes. Update the attributed memory
+and propose explained plan revisions. Delayed imports remain unknown until
+resolved; no automatic catch-up prescription. Initial plan changes require
+explicit acceptance, with any later automation policy designed separately.
 
-A future production resource/live-health guard must first pass synthetic fault
-tests for stale/missing telemetry, OOM/restarts, identity changes, cancellation and
-unavailable live health, failing closed before sending or accepting output. Its
-absence must continue to block normal runtime inference. Subsequent sustained
-synthetic Pi qualification must separately cover concurrent chart responsiveness,
-shared-slot/queue behaviour, invalidation, restart recovery and bounded background
-budgets without adding calls to the twenty-call trial above.
+### Models and meaningful evaluation
 
-Private networking, least-privilege runtime access, schema-compatible encrypted
-backup/restore and rollback, and accepted hardware/UI rendering remain release
-gates. Model switching must leave stored history untouched. Any image publication,
-promotion, live migration, actual-data end-to-end verification, user model
-selection or schedule re-arming requires its own applicable approval. Keep tasks
-4.4/4.6/4.8/6.1 unfinished until their original criteria are met; hosted consent
-task 4.5 also remains unfinished and is not removed by the local-only direction.
+Begin with an explicit local/remote provider choice behind the existing model
+boundary. Hosted models were not ruled out; learning local inference is a goal,
+not a requirement to use a weaker model for every task. Compare selected models
+on the same synthetic review cases for evidence accuracy, useful connections,
+appropriate uncertainty/questions, latency, resource use and cost. Later planning
+evaluations add feasibility, goal alignment and adaptation quality. Valid JSON,
+citations or evidence IDs alone do not establish sound coaching reasoning.
 
-## Later-phase planning requirements (not implemented in phase one)
+Optional routing of basic tasks to a small local model and complex reviews/plans
+to a stronger model comes only after measurements justify it. Code owns arithmetic,
+dates, hard constraints and orchestration; models provide synthesis, questions,
+explanations and proposals. Disclose which context is transferred to a hosted
+provider and require informed consent. Apply the same disclosure to remote
+embedding/reranking services; retrieval does not bypass the transfer boundary.
 
-### Phase 2: Calendar commitments and travel context
+### Coaching scope and knowledge
+
+Represent present capacity per sport, alongside experience, technique, confidence,
+equipment and opportunities. Support competitive goals, seasonal priorities and
+maintenance of other sports. Combine strength, skills and prescribed rehabilitation
+with endurance work; incorporate clinician-provided restrictions without inventing
+medical clearance or changing a rehabilitation prescription. Wellbeing, recovery,
+nutrition/weight goals and sustainable participation span all phases. Load metrics
+are evidence, not a universal fitness/readiness score across disciplines.
+
+Curated knowledge should retain publisher, date/version, discipline, audience and
+applicability, with citations to the retrieved passages. Distinguish personal
+coach/physio notes from general guidance. Useful sources informing the roadmap:
+
+- [BCAB educational philosophy](https://britishcanoeingawarding.org.uk/our-educational-philosophy/): participant-led, individualised, enjoyable development.
+- [Athlete Development Framework](https://britishcanoeingawarding.org.uk/athlete-development-framework/): technical, physical and psychological development; principles rather than ready-made programmes.
+- [Personal Performance Award resources](https://britishcanoeingawarding.org.uk/personal-performance-award-resources/): discipline-specific learning, including SUP and touring.
+- [Coaching and leadership logbook](https://britishcanoeingawarding.org.uk/resource/coaching-and-leadership-logbook/): recording experience and development.
+
+These inform our design, not an official endorsement of the app. Do not transfer
+Olympic training prescriptions indiscriminately between populations or disciplines.
+Selected reference material can support early reviews; systematic RAG follows
+incrementally. Photo/video assistance is later work requiring a defined assessment
+task, privacy controls and accuracy evaluation, not an assumed competence check.
+
+### Superseded selector-only qualification proposal
+
+The earlier proposed twenty-case, twenty-call Qwen3.5 `review-focus-app-v1` trial
+and 20/20 relevance gate were planning only and were never authorized to run.
+They are superseded as the next step by connected insights with persistent context
+and switchable-model evaluation. The earlier fresh `prepared-focus-v1` result
+remains 5/10 relevant with no corrective rescue; retain original captures and
+contract boundaries. No selector score alone qualifies richer coaching.
+
+Roadmap approval selects no provider and authorizes no new inference, personal-data
+transfer, cap increase or deployment. Existing runtime limits and missing production
+qualification guard remain in effect. Runtime health, responsive charts, private
+access and compatible backup/restore remain release requirements. The foundation's
+unfinished tasks retain their original acceptance criteria.
+
+## Later planning and delivery constraints
+
+These carry into the roadmap's goals/planning phases, not the foundation's current
+executable requirements. Calendar integration is optional rather than a phase gate.
+
+### Commitments, delivery and travel context
+
+- Keep history ingestion read-only. Add a separate, explicitly authorized publication path for app-owned planned workouts when delivery is implemented. Investigate [Intervals.icu planned-workout API support](https://www.intervals.icu/features/open-api/) and [Garmin delivery](https://forum.intervals.icu/t/upload-planned-workouts-to-garmin-connect/1521) first; verify supported sports/device behaviour before promising delivery. Preserve external identity and make repeat publication idempotent. Convenient authenticated phone access belongs with daily planning; Google Calendar can follow if useful.
 
 - Keep planned training, recorded activities, external commitments, and blocked time distinct. Retain external calendar identity, recurring occurrence identity, and time-zone context so changes or cancellations can be reconciled without duplicate events or shifts to the wrong local day.
 - Let the user identify fixed and adjustable aspects of an event: time, duration, location, equipment, and intended effort. Support recurring weekly commitments and one-off calendar events. Do not assume that a calendar title alone establishes these constraints or permission to move an event.
@@ -128,7 +162,7 @@ task 4.5 also remains unfinished and is not removed by the local-only direction.
 - Allow date-bounded travel context with destination, time zone, availability, and user-confirmed equipment or facilities. A trip can change which activities are feasible without blocking all exercise. Do not infer destination access or equipment solely from the trip title.
 - Keep externally managed or group commitments read-only from the planner's perspective. Optional approved calendar writes target app-managed training entries, not other people's events. Manual events and user-confirmed constraints remain usable without Google Calendar.
 
-### Phase 3: Adaptive short-term planning
+### Adaptive short-term planning
 
 - Reassess upcoming flexible training when new or corrected activity and wellness records are ingested, a planned session is confirmed missed or cancelled, the user reports recovery concerns, or relevant calendar/travel constraints change. Use actual sport, duration, and available effort/load information, including unplanned sessions, rather than assuming the planned workout was completed. Repeated ingestion of unchanged records must not cause duplicate or unnecessary plan revisions.
 - Distinguish completed, confirmed missed, cancelled, and not-yet-confirmed sessions. Account for source freshness and incomplete imports before asking the user to confirm an apparently missed session. Missing health measurements are unknown inputs, not evidence of illness or poor recovery.
@@ -143,7 +177,7 @@ task 4.5 also remains unfinished and is not removed by the local-only direction.
 - **Actual or missed workout:** An unplanned recorded session or a confirmed missed workout triggers a review of the remaining short-term plan. A late Garmin-to-Intervals.icu import must not be interpreted as a confirmed missed workout; a subsequently imported activity can resolve the uncertainty and inform a new proposal.
 - **Czech Republic trip:** During the trip's dates, do not schedule Brighton sea paddling or Brighton climbing sessions. Preserve any other feasible commitments and consider destination training only with confirmed access, equipment, time, and recovery context. Restore home-location availability after the trip without automatically adding missed home sessions.
 
-These requirements are roadmap commitments for separate phase-2/3 changes. Their executable specs and implementation tasks will be authored in those changes; the current phase-one specs remain descriptive and its task list does not include planning or Google Calendar work.
+These constraints carry forward into separate incremental changes. Author executable specs and implementation tasks only for the next selected increment; the current foundation specs remain descriptive and its task list does not include planning or Google Calendar work.
 
 ## Risks / Trade-offs
 
@@ -170,4 +204,4 @@ be made private again.
 
 ## Migration Plan
 
-Existing imported records and the live release must remain unchanged during synthetic experimentation. New grouping/review protocols are benchmark-only until app implementation and qualification are verified; they do not silently replace the installed validator or prompt. Any future queue/configuration schema migration must preserve existing records, start automatic inference disabled, and define crash recovery without duplicate calls or stale publication. Build and test with synthetic Intervals.icu-shaped samples first; keep real data and keys out of fixtures and logs. Back up the record and event store before upgrades and test restore. For a bad release, revert the Git-pinned image reference and let Flux reconcile; for a storage/schema issue, restore a verified backup with a compatible app version. Later Google Calendar integration must preserve manual event IDs and avoid duplicate imported events; it must not silently overwrite manually entered goals.
+Existing imported records and the live release remain unchanged during synthetic experimentation. The separate factual/review/queue implementation is local source, not production AI qualification; future richer contracts must not silently replace the installed validator or prompt. The local schema-2 queue/configuration work preserves records and defines recovery without automatic inference replay. Subsequent memory/goal/plan schema changes must be additive where practical, preserve stable event/history identities and include compatible restore/rollback. Build and test with synthetic samples first; keep real data and keys out of fixtures and logs. Back up the private store before upgrades and test restore. For a bad release, revert the Git-pinned image reference; for a schema issue, restore a verified backup with a compatible version. Future delivery/calendar adapters must preserve identities and never overwrite externally managed commitments or manually entered goals.
