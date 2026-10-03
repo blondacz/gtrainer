@@ -2,7 +2,7 @@
 
 ## Context
 
-See proposal.md for motivation and the agreed cumulative roadmap. The Kotlin/Ktor, React and SQLite foundation implements imports, factual reviews, manual events, review controls and a durable scheduler/queue alongside guarded model experiments. The target Pi 5 has 8 GB RAM and runs K3s. No local model is production-qualified; the fresh Qwen3.5 prepared-focus benchmark remained 5/10 relevant. The current change's acceptance remains descriptive. Richer connected reviews with persistent context are the next increment; goal-based planning follows without requiring calendar integration first.
+See proposal.md for motivation and the agreed cumulative roadmap. The Kotlin/Ktor, React and SQLite foundation implements imports, factual reviews, manual events, review controls and a durable scheduler/queue alongside guarded model experiments. The target Pi 5 has 8 GB RAM and runs K3s. No local model is production-qualified; the fresh Qwen3.5 prepared-focus benchmark remained 5/10 relevant. The current change's acceptance remains descriptive. Richer connected reviews with persistent context are the next increment; goal-based planning follows without requiring calendar integration first. Do not expand scheduler or queue capability until the insights increment demonstrates value; current behavior remains opt-in and unchanged.
 
 ## Goals / Non-Goals
 
@@ -95,10 +95,12 @@ explicit acceptance, with any later automation policy designed separately.
 Begin with an explicit local/remote provider choice behind the existing model
 boundary. Hosted models were not ruled out; learning local inference is a goal,
 not a requirement to use a weaker model for every task. Compare selected models
-on the same synthetic review cases for evidence accuracy, useful connections,
-appropriate uncertainty/questions, latency, resource use and cost. Later planning
-evaluations add feasibility, goal alignment and adaptation quality. Valid JSON,
-citations or evidence IDs alone do not establish sound coaching reasoning.
+on common synthetic cases for evidence accuracy, useful connections, appropriate
+uncertainty/questions, latency, resource use and cost. Evaluate usefulness and
+claim quality, not only schema validity, citations or evidence IDs. Existing
+conversational hosted reference evidence is not a controlled API comparison, a
+matched fresh selector benchmark, or qualification of the richer review contract.
+Later planning evaluations add feasibility, goal alignment and adaptation quality.
 
 Optional routing of basic tasks to a small local model and complex reviews/plans
 to a stronger model comes only after measurements justify it. Code owns arithmetic,

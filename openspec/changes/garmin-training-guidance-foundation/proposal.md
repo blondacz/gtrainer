@@ -42,6 +42,11 @@ foundation, not new acceptance requirements silently added to this change.
    personal coach/physio guidance. Begin with simple retrieval; add embeddings or
    photo/video analysis only when a defined task and evaluation justify them.
 
+Until the connected-insights increment demonstrates user value, do not expand the
+existing review scheduler or queue. Their current behavior remains opt-in and
+unchanged; this is a pause on additional capability, not a claim that scheduled
+model reviews are qualified or enabled in production.
+
 Wellbeing, sustainable nutrition/weight goals, enjoyment and long-term health run
 through all phases. Support experienced competitors across paddling, endurance,
 climbing and seasonal snow sports; do not reduce the product to recreational SUP
