@@ -91,10 +91,15 @@ class ReviewSchedulePersistenceTest {
             assertEquals(2, sync.rejected)
             assertEquals(3, sync.incomplete)
             database(path) { connection -> connection.createStatement().use {
-                it.executeQuery("PRAGMA user_version").use { rows -> rows.next(); assertEquals(2, rows.getInt(1)) }
+                it.executeQuery("PRAGMA user_version").use { rows -> rows.next(); assertEquals(7, rows.getInt(1)) }
                 it.executeQuery("SELECT version FROM schema_migrations ORDER BY version").use { rows ->
                     assertTrue(rows.next()); assertEquals(1, rows.getInt(1))
-                    assertTrue(rows.next()); assertEquals(2, rows.getInt(1)); assertFalse(rows.next())
+                    assertTrue(rows.next()); assertEquals(2, rows.getInt(1))
+                    assertTrue(rows.next()); assertEquals(3, rows.getInt(1))
+                    assertTrue(rows.next()); assertEquals(4, rows.getInt(1))
+                    assertTrue(rows.next()); assertEquals(5, rows.getInt(1))
+                    assertTrue(rows.next()); assertEquals(6, rows.getInt(1))
+                    assertTrue(rows.next()); assertEquals(7, rows.getInt(1)); assertFalse(rows.next())
                 }
                 it.executeQuery("SELECT goal FROM events").use { rows -> rows.next(); assertEquals("synthetic", rows.getString(1)) }
             } }
@@ -118,7 +123,7 @@ class ReviewSchedulePersistenceTest {
                 }
             } }
         }
-        database(path) { it.createStatement().use { statement -> statement.execute("PRAGMA user_version=3") } }
+        database(path) { it.createStatement().use { statement -> statement.execute("PRAGMA user_version=8") } }
         assertFailsWith<IllegalStateException> { HistoryStore(path).close() }
     }
 

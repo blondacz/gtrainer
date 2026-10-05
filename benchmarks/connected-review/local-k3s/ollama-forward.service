@@ -1,0 +1,12 @@
+[Unit]
+Description=Local-only Ollama Kubernetes port forward
+After=k3s.service
+Requires=k3s.service
+
+[Service]
+ExecStart=/usr/local/bin/k3s kubectl -n gtrainer-models port-forward --address=127.0.0.1 service/ollama 11434:11434
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

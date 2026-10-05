@@ -11,6 +11,7 @@ WORKDIR /source
 COPY gradlew gradlew.bat settings.gradle.kts build.gradle.kts gradle.properties ./
 COPY gradle/ gradle/
 COPY backend/ backend/
+COPY benchmarks/connected-review/cases-v2.json benchmarks/connected-review/validator-parity-v2.json benchmarks/connected-review/
 COPY --from=frontend /source/frontend/dist/ backend/src/main/resources/web/
 RUN ./gradlew --no-daemon :backend:build :backend:installDist
 RUN mkdir /source/native && cd /source/native && \

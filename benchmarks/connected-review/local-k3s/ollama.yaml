@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gtrainer-models
+  labels:
+    app.kubernetes.io/managed-by: gtrainer-local-models
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: models
+  namespace: gtrainer-models
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+  namespace: gtrainer-models
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: ollama
+  template:
+    metadata:
+      labels:
+        app: ollama
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        fsGroup: 10001
+      containers:
+        - name: ollama
+          # Ollama 0.35.0, Linux amd64 manifest (Pi uses a different architecture).
+          image: ollama/ollama@sha256:9c1dc45ea758396139ec0adfa52947714c61f8d1e4537a6e2daef8138e7a64a9
+          command: [ollama, serve]
+          ports:
+            - containerPort: 11434
+          env:
+            - {name: HOME, value: /models}
+            - {name: OLLAMA_MODELS, value: /models/blobs}
+            - {name: OLLAMA_HOST, value: "0.0.0.0:11434"}
+            - {name: OLLAMA_NO_CLOUD, value: "1"}
+            - {name: OLLAMA_NUM_PARALLEL, value: "1"}
+            - {name: OLLAMA_MAX_LOADED_MODELS, value: "1"}
+            - {name: OLLAMA_MAX_QUEUE, value: "2"}
+            - {name: OLLAMA_CONTEXT_LENGTH, value: "4096"}
+          resources:
+            requests: {cpu: "500m", memory: 1Gi}
+            limits: {cpu: "3", memory: 6656Mi}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+            seccompProfile: {type: RuntimeDefault}
+          volumeMounts:
+            - {name: models, mountPath: /models}
+            - {name: tmp, mountPath: /tmp}
+          readinessProbe:
+            exec:
+              command: [ollama, list]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: models
+          persistentVolumeClaim: {claimName: models}
+        - name: tmp
+          emptyDir: {sizeLimit: 128Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama
+  namespace: gtrainer-models
+spec:
+  selector: {app: ollama}
+  ports:
+    - {port: 11434, targetPort: 11434}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: no-inbound
+  namespace: gtrainer-models
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress: []

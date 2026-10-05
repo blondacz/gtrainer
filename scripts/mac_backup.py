@@ -170,7 +170,7 @@ def restore(ciphertext, output, key=KEY):
         with sqlite3.connect(uri, uri=True) as database:
             require(database.execute('PRAGMA integrity_check').fetchone() == ('ok',), 'Restored database integrity failed.')
             version = database.execute('PRAGMA user_version').fetchone()[0]
-            require(version in (1, 2), 'Select a compatible database schema/app version.')
+            require(version in (1, 2, 3, 4, 5, 6, 7), 'Select a compatible database schema/app version.')
             tables = {row[0] for row in database.execute("SELECT name FROM sqlite_master WHERE type='table'")}
             require({'schema_migrations', 'activities', 'wellness', 'events', 'sync_status'} <= tables,
                     'Expected record/event/migration schema is missing.')
@@ -195,6 +195,76 @@ def restore(ciphertext, output, key=KEY):
                     require(expected <= columns, 'Restored review schema is not compatible.')
                 require(database.execute('SELECT version FROM schema_migrations WHERE version=2').fetchone() == (2,),
                         'Restored review migration record is missing.')
+            if version == 3:
+                require({'review_schedule', 'review_import_changes', 'athlete_context'} <= tables,
+                        'Expected review/context schema is missing.')
+                for table, expected in {
+                    'review_schedule': {'singleton', 'state_json'},
+                    'review_import_changes': {'revision', 'category', 'observed_date', 'received_utc',
+                                              'identity_sha256', 'sport', 'sleep_changed', 'sleep_available'},
+                    'athlete_context': {'context_id', 'revision', 'category', 'author_attribution', 'entered_by',
+                                        'observed_on', 'applicable_from', 'applicable_until', 'sport',
+                                        'activity_id', 'review_id', 'content'},
+                }.items():
+                    columns = {row[1] for row in database.execute(f'PRAGMA table_info({table})')}
+                    require(expected <= columns, 'Restored review/context schema is not compatible.')
+                require(database.execute('SELECT version FROM schema_migrations WHERE version=2').fetchone() == (2,),
+                        'Restored review migration record is missing.')
+                require(database.execute('SELECT version FROM schema_migrations WHERE version=3').fetchone() == (3,),
+                        'Restored context migration record is missing.')
+            if version == 4:
+                require({'review_schedule', 'review_import_changes', 'athlete_context'} <= tables,
+                        'Expected review/context schema is missing.')
+                columns = {row[1] for row in database.execute('PRAGMA table_info(athlete_context)')}
+                require({'context_id', 'revision', 'category', 'author_attribution', 'entered_by', 'observed_on',
+                         'applicable_from', 'applicable_until', 'sport', 'activity_id', 'review_id', 'content', 'retired'} <= columns,
+                        'Restored context schema is not compatible.')
+                require(database.execute('SELECT version FROM schema_migrations WHERE version=2').fetchone() == (2,),
+                        'Restored review migration record is missing.')
+                require(database.execute('SELECT version FROM schema_migrations WHERE version=3').fetchone() == (3,),
+                        'Restored context migration record is missing.')
+                require(database.execute('SELECT version FROM schema_migrations WHERE version=4').fetchone() == (4,),
+                        'Restored context lifecycle migration record is missing.')
+            if version == 5:
+                require({'review_schedule', 'review_import_changes', 'athlete_context'} <= tables,
+                        'Expected review/context schema is missing.')
+                columns = {row[1] for row in database.execute('PRAGMA table_info(athlete_context)')}
+                require({'context_id', 'revision', 'category', 'source_category', 'author_attribution', 'entered_by',
+                         'observed_on', 'applicable_from', 'applicable_until', 'sport', 'activity_id', 'review_id',
+                         'content', 'retired'} <= columns, 'Restored context schema is not compatible.')
+                for version_marker in (2, 3, 4, 5):
+                    require(database.execute('SELECT version FROM schema_migrations WHERE version=?',
+                                             (version_marker,)).fetchone() == (version_marker,),
+                            'Restored context migration record is missing.')
+            if version == 6:
+                require({'review_schedule', 'review_import_changes', 'athlete_context'} <= tables,
+                        'Expected review/context schema is missing.')
+                columns = {row[1] for row in database.execute('PRAGMA table_info(athlete_context)')}
+                require({'context_id', 'revision', 'category', 'source_category', 'author_attribution', 'entered_by',
+                         'observed_on', 'applicable_from', 'applicable_until', 'sport', 'activity_id', 'review_id',
+                         'content', 'retired', 'restriction_kind', 'restriction_value', 'restriction_unit'} <= columns,
+                        'Restored context schema is not compatible.')
+                for version_marker in (2, 3, 4, 5, 6):
+                    require(database.execute('SELECT version FROM schema_migrations WHERE version=?',
+                                             (version_marker,)).fetchone() == (version_marker,),
+                            'Restored context migration record is missing.')
+            if version == 7:
+                require({'review_schedule', 'review_import_changes', 'athlete_context', 'connected_review_snapshots',
+                         'connected_review_snapshot_state', 'connected_review_requests', 'connected_review_context_refs'} <= tables,
+                        'Expected connected-review snapshot schema is missing.')
+                for table, expected in {
+                    'connected_review_snapshots': {'snapshot_id', 'request_id', 'generation', 'packet_json', 'packet_sha256',
+                        'evidence_digest', 'refs_json', 'coverage_from', 'coverage_until', 'provider', 'model', 'contract_version', 'created_utc'},
+                    'connected_review_snapshot_state': {'snapshot_id', 'state', 'stale_reason', 'published_output'},
+                    'connected_review_requests': {'request_id', 'active_generation'},
+                    'connected_review_context_refs': {'snapshot_id', 'context_id', 'revision'},
+                }.items():
+                    columns = {row[1] for row in database.execute(f'PRAGMA table_info({table})')}
+                    require(expected <= columns, 'Restored connected-review schema is not compatible.')
+                for version_marker in (2, 3, 4, 5, 6, 7):
+                    require(database.execute('SELECT version FROM schema_migrations WHERE version=?',
+                                             (version_marker,)).fetchone() == (version_marker,),
+                            'Restored connected-review migration record is missing.')
         # Exclusive publication: even a concurrent restore cannot overwrite a
         # pre-existing target after the initial existence check.
         os.link(temporary, output)

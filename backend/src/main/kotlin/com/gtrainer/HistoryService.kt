@@ -13,6 +13,7 @@ class SyncBusy : IllegalStateException("A private data operation is already runn
 class HistoryService(private val store: HistoryStore, private val source: HistorySource,
                      private val clock: Clock = Clock.systemUTC()) : AutoCloseable {
     private val operation = Mutex()
+    fun athleteContexts() = AthleteContextService(store)
 
     suspend fun sync(range: ReadRange): List<CategoryStatus> = withContext(Dispatchers.IO) {
         if (!operation.tryLock()) throw SyncBusy()

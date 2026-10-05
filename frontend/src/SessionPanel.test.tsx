@@ -17,6 +17,9 @@ describe('private access', () => {
     render(<SessionPanel onAuthenticatedChange={authenticated} />)
     await screen.findByRole('heading', { name: 'Overview' })
     expect(authenticated).toHaveBeenLastCalledWith(true)
+    expect(screen.getByRole('complementary', { name: 'Context deletion and backup retention' })).toHaveTextContent(
+      'Retained encrypted backups may still contain deleted data until they expire under normal retention.',
+    )
     expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.queryByRole('heading', { name: 'Historical trends' })).not.toBeInTheDocument()
     expect(fetchMock.mock.calls.some(([path]) => path === '/api/review-models')).toBe(false)

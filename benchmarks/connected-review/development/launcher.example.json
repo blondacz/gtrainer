@@ -1,0 +1,42 @@
+{
+  "enabled": false,
+  "bindAddress": "127.0.0.1",
+  "port": 8081,
+  "databasePath": "/REPLACE-WITH-DEDICATED-OWNER-ONLY-DIRECTORY/development.sqlite",
+  "passwordVerifierFile": "/REPLACE-WITH-SEPARATE-DEVELOPMENT-VERIFIER",
+  "models": [
+    {
+      "bindAddress": "127.0.0.1",
+      "providerId": "ollama",
+      "modelId": "qwen3-q3",
+      "label": "Qwen3 Q3 synthetic development example (unqualified)",
+      "tag": "gtrainer-qwen3:8b-q3_k_m",
+      "manifestDigest": "1cfe11082ca46aa64ac99dd0f41f874671c654686fc6d6b3d48942ca04b13c8a",
+      "ollamaVersion": "0.35.0",
+      "contextWindow": 2048,
+      "tokenLimit": 1536,
+      "threads": 3,
+      "seed": 17,
+      "temperature": 0.1
+    }
+  ],
+  "policy": {
+    "profile": "connected-review-development-local-v1",
+    "attemptTimeoutMillis": 900000,
+    "totalTimeoutMillis": 1840000
+  },
+  "worker": {
+    "enabled": false,
+    "nodeName": "replace-with-pinned-node",
+    "bootId": "00000000-0000-0000-0000-000000000001",
+    "containerId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "supervisorSocket": "/var/lib/gtrainer-development/control/supervisor.sock",
+    "applianceMemoryLimitBytes": 5368709120,
+    "protectApplication": true,
+    "nodeHost": "replace-with-approved-owning-node",
+    "nodeUser": "gtrainer_dev_read",
+    "nodePort": 22,
+    "identityFile": "/REPLACE-WITH-DEDICATED-DEVELOPMENT-IDENTITY",
+    "knownHostsFile": "/REPLACE-WITH-OWNER-ONLY-DEVELOPMENT-KNOWN-HOSTS"
+  }
+}

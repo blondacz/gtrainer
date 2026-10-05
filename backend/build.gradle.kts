@@ -34,7 +34,24 @@ application {
     applicationDefaultJvmArgs = listOf("-Dorg.slf4j.simpleLogger.defaultLogLevel=warn", "--enable-native-access=ALL-UNNAMED")
 }
 
+// Bundle only frozen packet fixtures, never benchmark captures or reference outputs.
+tasks.processResources {
+    // Explicitly prebuilt isolated UI; never includes the personal dashboard bundle.
+    from("../frontend/dist-development") { into("development-web") }
+    from("../benchmarks/connected-review/cases-v2.json") {
+        into("development-review")
+    }
+}
+
 tasks.test {
     useJUnitPlatform()
     jvmArgs("--enable-native-access=ALL-UNNAMED")
+}
+
+tasks.register<JavaExec>("runDevelopmentReview") {
+    group = "application"
+    description = "Opt-in loopback synthetic connected-review launcher (separate from the normal app)"
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("com.gtrainer.DevelopmentReviewLauncher")
+    jvmArgs(application.applicationDefaultJvmArgs)
 }

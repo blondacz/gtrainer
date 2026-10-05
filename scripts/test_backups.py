@@ -45,7 +45,11 @@ class Backups(unittest.TestCase):
     def test_restore_accepts_complete_review_schema_and_legacy_but_refuses_partial_or_future_schema(self):
         for version, complete, marker, expected in [(1, False, False, True), (2, True, True, True),
                                                     (2, False, True, False), (2, True, False, False),
-                                                    (3, True, True, False)]:
+                                                    (3, True, True, True), (3, False, True, False),
+                                                    (4, True, True, True), (4, False, True, False),
+                                                    (5, True, True, True), (5, False, True, False),
+                                                    (6, True, True, True), (6, False, True, False),
+                                                    (7, True, True, True), (8, True, True, False)]:
             with self.subTest(version=version, complete=complete, marker=marker), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 root.chmod(0o700)
@@ -60,8 +64,60 @@ class Backups(unittest.TestCase):
                             sport TEXT, sleep_changed INTEGER NOT NULL, sleep_available INTEGER NOT NULL);
                         INSERT INTO review_schedule VALUES (1, '{"configuration":{"enabled":false}}');
                     ''')
+                if version == 3 and complete:
+                    connection.executescript('''
+                        CREATE TABLE athlete_context (context_id TEXT NOT NULL, revision INTEGER NOT NULL,
+                            category TEXT NOT NULL, author_attribution TEXT NOT NULL, entered_by TEXT NOT NULL,
+                            observed_on TEXT NOT NULL, applicable_from TEXT, applicable_until TEXT,
+                            sport TEXT, activity_id TEXT, review_id TEXT, content TEXT NOT NULL,
+                            PRIMARY KEY(context_id,revision));
+                    ''')
+                if version == 4 and complete:
+                    connection.executescript('''
+                        CREATE TABLE athlete_context (context_id TEXT NOT NULL, revision INTEGER NOT NULL,
+                            category TEXT NOT NULL, author_attribution TEXT NOT NULL, entered_by TEXT NOT NULL,
+                            observed_on TEXT NOT NULL, applicable_from TEXT, applicable_until TEXT,
+                            sport TEXT, activity_id TEXT, review_id TEXT, content TEXT NOT NULL, retired INTEGER NOT NULL,
+                            PRIMARY KEY(context_id,revision));
+                    ''')
+                if version == 5 and complete:
+                    connection.executescript('''
+                        CREATE TABLE athlete_context (context_id TEXT NOT NULL, revision INTEGER NOT NULL,
+                            category TEXT NOT NULL, author_attribution TEXT NOT NULL, entered_by TEXT NOT NULL,
+                            observed_on TEXT NOT NULL, applicable_from TEXT, applicable_until TEXT,
+                            sport TEXT, activity_id TEXT, review_id TEXT, content TEXT NOT NULL, retired INTEGER NOT NULL,
+                            source_category TEXT NOT NULL, PRIMARY KEY(context_id,revision));
+                    ''')
+                if version in (6, 7) and complete:
+                    connection.executescript('''
+                        CREATE TABLE athlete_context (context_id TEXT NOT NULL, revision INTEGER NOT NULL,
+                            category TEXT NOT NULL, author_attribution TEXT NOT NULL, entered_by TEXT NOT NULL,
+                            observed_on TEXT NOT NULL, applicable_from TEXT, applicable_until TEXT,
+                            sport TEXT, activity_id TEXT, review_id TEXT, content TEXT NOT NULL, retired INTEGER NOT NULL,
+                            source_category TEXT NOT NULL, restriction_kind TEXT, restriction_value TEXT, restriction_unit TEXT,
+                            PRIMARY KEY(context_id,revision));
+                    ''')
+                if version == 7 and complete:
+                    connection.executescript('''
+                        CREATE TABLE connected_review_snapshots (snapshot_id TEXT PRIMARY KEY, request_id TEXT, generation INTEGER,
+                            packet_json TEXT, packet_sha256 TEXT, evidence_digest TEXT, refs_json TEXT, coverage_from TEXT,
+                            coverage_until TEXT, sport TEXT, provider TEXT, model TEXT, contract_version TEXT, created_utc TEXT);
+                        CREATE TABLE connected_review_snapshot_state (snapshot_id TEXT PRIMARY KEY, state TEXT, stale_reason TEXT, published_output TEXT);
+                        CREATE TABLE connected_review_requests (request_id TEXT PRIMARY KEY, active_generation INTEGER);
+                        CREATE TABLE connected_review_context_refs (snapshot_id TEXT, context_id TEXT, revision INTEGER);
+                    ''')
                 if marker:
                     connection.execute("INSERT INTO schema_migrations VALUES (2, '2020-06-01T00:00:00Z')")
+                    if version == 3:
+                        connection.execute("INSERT INTO schema_migrations VALUES (3, '2020-06-02T00:00:00Z')")
+                    if version == 4:
+                        connection.execute("INSERT INTO schema_migrations VALUES (3, '2020-06-02T00:00:00Z'),(4,'2020-06-03T00:00:00Z')")
+                    if version == 5:
+                        connection.execute("INSERT INTO schema_migrations VALUES (3, '2020-06-02T00:00:00Z'),(4,'2020-06-03T00:00:00Z'),(5,'2020-06-04T00:00:00Z')")
+                    if version >= 6:
+                        connection.execute("INSERT INTO schema_migrations VALUES (3, '2020-06-02T00:00:00Z'),(4,'2020-06-03T00:00:00Z'),(5,'2020-06-04T00:00:00Z'),(6,'2020-06-05T00:00:00Z')")
+                    if version == 7:
+                        connection.execute("INSERT INTO schema_migrations VALUES (7,'2020-06-06T00:00:00Z')")
                 connection.commit()
                 connection.close()
                 ciphertext = root / 'synthetic.age'

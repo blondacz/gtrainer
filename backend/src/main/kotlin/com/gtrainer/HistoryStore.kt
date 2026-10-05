@@ -32,7 +32,8 @@ data class HistoryResponse(val activities: List<ActivityRecord>, val wellness: L
     override fun toString(): String = "HistoryResponse([REDACTED])"
 }
 
-class HistoryStore(path: Path) : AutoCloseable, ManualEventRepository {
+class HistoryStore(path: Path) : AutoCloseable, ManualEventRepository, AthleteContextRepository, ConnectedReviewExecutionRepository {
+    fun athleteContexts() = AthleteContextService(this)
     private val connection: Connection
     private val scheduleJson = Json { encodeDefaults = true }
 
@@ -50,11 +51,12 @@ class HistoryStore(path: Path) : AutoCloseable, ManualEventRepository {
         try {
             connection.createStatement().use { statement ->
                 statement.execute("PRAGMA busy_timeout=5000")
+                statement.execute("PRAGMA foreign_keys=ON")
                 statement.execute("PRAGMA journal_mode=WAL")
                 statement.execute("PRAGMA synchronous=FULL")
                 statement.execute("PRAGMA secure_delete=ON")
                 val version = statement.executeQuery("PRAGMA user_version").use { result -> result.next(); result.getInt(1) }
-                require(version in 0..2) { "Database schema is not compatible with this app" }
+                require(version in 0..7) { "Database schema is not compatible with this app" }
                 if (version == 0) transaction {
                     statement.execute("CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_utc TEXT NOT NULL)")
                     statement.execute("CREATE TABLE activities (source TEXT NOT NULL, source_id TEXT NOT NULL, observed_date TEXT NOT NULL, record_json TEXT NOT NULL, PRIMARY KEY(source,source_id))")
@@ -76,6 +78,46 @@ class HistoryStore(path: Path) : AutoCloseable, ManualEventRepository {
                         it.setString(1, Instant.now().toString()); it.executeUpdate()
                     }
                     statement.execute("PRAGMA user_version=2")
+                }
+                if (version < 3) transaction {
+                    statement.execute("CREATE TABLE athlete_context (context_id TEXT NOT NULL, revision INTEGER NOT NULL CHECK(revision > 0), category TEXT NOT NULL, author_attribution TEXT NOT NULL, entered_by TEXT NOT NULL, observed_on TEXT NOT NULL, applicable_from TEXT, applicable_until TEXT, sport TEXT, activity_id TEXT, review_id TEXT, content TEXT NOT NULL, PRIMARY KEY(context_id,revision), CHECK(applicable_until IS NULL OR applicable_from IS NULL OR applicable_until >= applicable_from))")
+                    statement.execute("CREATE INDEX athlete_context_observed ON athlete_context(observed_on)")
+                    statement.execute("CREATE INDEX athlete_context_applicability ON athlete_context(applicable_from,applicable_until,sport,activity_id)")
+                    connection.prepareStatement("INSERT INTO schema_migrations VALUES (3,?)").use {
+                        it.setString(1, Instant.now().toString()); it.executeUpdate()
+                    }
+                    statement.execute("PRAGMA user_version=3")
+                }
+                if (version < 4) transaction {
+                    statement.execute("ALTER TABLE athlete_context ADD COLUMN retired INTEGER NOT NULL DEFAULT 0 CHECK(retired IN (0,1))")
+                    connection.prepareStatement("INSERT INTO schema_migrations VALUES (4,?)").use {
+                        it.setString(1, Instant.now().toString()); it.executeUpdate()
+                    }
+                    statement.execute("PRAGMA user_version=4")
+                }
+                if (version < 5) transaction {
+                    statement.execute("ALTER TABLE athlete_context ADD COLUMN source_category TEXT NOT NULL DEFAULT 'user_report' CHECK(source_category IN ('user_report','clinician_guidance','coach_guidance','review_feedback'))")
+                    connection.prepareStatement("INSERT INTO schema_migrations VALUES (5,?)").use {
+                        it.setString(1, Instant.now().toString()); it.executeUpdate()
+                    }
+                    statement.execute("PRAGMA user_version=5")
+                }
+                if (version < 6) transaction {
+                    statement.execute("ALTER TABLE athlete_context ADD COLUMN restriction_kind TEXT")
+                    statement.execute("ALTER TABLE athlete_context ADD COLUMN restriction_value TEXT")
+                    statement.execute("ALTER TABLE athlete_context ADD COLUMN restriction_unit TEXT")
+                    connection.prepareStatement("INSERT INTO schema_migrations VALUES (6,?)").use { it.setString(1, Instant.now().toString()); it.executeUpdate() }
+                    statement.execute("PRAGMA user_version=6")
+                }
+                if (version < 7) transaction {
+                    statement.execute("CREATE TABLE connected_review_snapshots (snapshot_id TEXT PRIMARY KEY, request_id TEXT NOT NULL, generation INTEGER NOT NULL, packet_json TEXT NOT NULL, packet_sha256 TEXT NOT NULL, evidence_digest TEXT NOT NULL, refs_json TEXT NOT NULL, coverage_from TEXT NOT NULL, coverage_until TEXT NOT NULL, sport TEXT, provider TEXT NOT NULL, model TEXT NOT NULL, contract_version TEXT NOT NULL, created_utc TEXT NOT NULL, UNIQUE(request_id,generation))")
+                    statement.execute("CREATE TABLE connected_review_snapshot_state (snapshot_id TEXT PRIMARY KEY REFERENCES connected_review_snapshots(snapshot_id) ON DELETE CASCADE, state TEXT NOT NULL, stale_reason TEXT, published_output TEXT)")
+                    statement.execute("CREATE TABLE connected_review_requests (request_id TEXT PRIMARY KEY, active_generation INTEGER NOT NULL)")
+                    statement.execute("CREATE TABLE connected_review_context_refs (snapshot_id TEXT NOT NULL REFERENCES connected_review_snapshots(snapshot_id) ON DELETE CASCADE, context_id TEXT NOT NULL, revision INTEGER NOT NULL, PRIMARY KEY(snapshot_id,context_id,revision))")
+                    statement.execute("CREATE INDEX connected_review_context_lookup ON connected_review_context_refs(context_id)")
+                    statement.execute("CREATE TRIGGER connected_review_snapshot_immutable BEFORE UPDATE ON connected_review_snapshots BEGIN SELECT RAISE(ABORT,'connected review snapshots are immutable'); END")
+                    connection.prepareStatement("INSERT INTO schema_migrations VALUES (7,?)").use { it.setString(1, Instant.now().toString()); it.executeUpdate() }
+                    statement.execute("PRAGMA user_version=7")
                 }
                 reviewScheduleStateLocked() // Missing or corrupt scheduler state must fail closed.
                 statement.executeUpdate("UPDATE sync_status SET read_status='INTERRUPTED' WHERE read_status='RUNNING'")
@@ -163,7 +205,8 @@ class HistoryStore(path: Path) : AutoCloseable, ManualEventRepository {
                         if (!changed) continue
                         insert.setString(1, identity.first); insert.setString(2, identity.second)
                         insert.setString(3, identity.third); insert.setString(4, json); insert.executeUpdate()
-                        appendReviewChangeLocked(category, identity, at, sport, sleepChanged, sleepAvailable)
+                         appendReviewChangeLocked(category, identity, at, sport, sleepChanged, sleepAvailable)
+                         staleConnectedReviewsLocked("evidence_changed")
                     }
                 }
             }
@@ -194,6 +237,125 @@ class HistoryStore(path: Path) : AutoCloseable, ManualEventRepository {
             check(it.next()); it.getLong(1)
         }
     }
+
+    private fun staleConnectedReviewsLocked(reason: String) {
+        connection.prepareStatement("UPDATE connected_review_snapshot_state SET state='STALE',stale_reason=? WHERE state IN ('IN_FLIGHT','RUNNING','PUBLISHED')").use {
+            it.setString(1, reason); it.executeUpdate()
+        }
+    }
+
+    /** Persist the exact inert packet; this method never invokes an inference provider. */
+    @Synchronized
+    fun createConnectedReviewSnapshot(binding: ConnectedReviewBinding, at: Instant): ConnectedReviewStatus = transaction {
+        require(binding.requestId.matches(Regex("[A-Za-z0-9_.:-]{1,128}")))
+        require(binding.contractVersion == InterpretationContractV1.PROFILE)
+        require(binding.providerSelection.storageId.length <= 71)
+        val from = LocalDate.parse(binding.coverageFrom); val until = LocalDate.parse(binding.coverageUntil); require(from <= until)
+        val packet = InterpretationContractV1.packet(binding.evidence, binding.retrieval)
+        require(binding.sport == packet.evidence.selectedSport)
+        val packetJson = scheduleJson.encodeToString(packet)
+        val packetDigest = InterpretationContractV1.promptSha256(packet)
+        val evidenceDigest = packet.evidence.evidenceReportSha256
+        require(evidenceDigest.matches(Regex("[a-f0-9]{64}")))
+        val refs = packet.context.map { ContextRevisionRefV1(it.contextId, it.revision) }.distinct().sortedWith(compareBy({ it.contextId }, { it.revision }))
+        require(refs.size == packet.context.size && refs.all { it.revision > 0 })
+        val generation = connection.prepareStatement("SELECT active_generation FROM connected_review_requests WHERE request_id=?").use {
+            it.setString(1, binding.requestId); it.executeQuery().use { row -> if (row.next()) Math.addExact(row.getLong(1), 1) else 1L }
+        }
+        connection.prepareStatement("UPDATE connected_review_snapshot_state SET state='STALE',stale_reason='new_generation' WHERE snapshot_id IN (SELECT snapshot_id FROM connected_review_snapshots WHERE request_id=?) AND state IN ('IN_FLIGHT','RUNNING','PUBLISHED')").use { it.setString(1,binding.requestId); it.executeUpdate() }
+        val id = java.util.UUID.randomUUID().toString()
+        connection.prepareStatement("INSERT INTO connected_review_snapshots VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)").use {
+            it.setString(1,id); it.setString(2,binding.requestId); it.setLong(3,generation); it.setString(4,packetJson); it.setString(5,packetDigest)
+            it.setString(6,evidenceDigest); it.setString(7,scheduleJson.encodeToString(refs)); it.setString(8,from.toString()); it.setString(9,until.toString())
+            it.setString(10,binding.sport); it.setString(11,binding.providerSelection.storageId); it.setString(12,binding.providerSelection.modelId); it.setString(13,binding.contractVersion); it.setString(14,at.toString()); it.executeUpdate()
+        }
+        connection.prepareStatement("INSERT INTO connected_review_snapshot_state VALUES(?,'IN_FLIGHT',NULL,NULL)").use { it.setString(1,id); it.executeUpdate() }
+        connection.prepareStatement("INSERT INTO connected_review_requests VALUES(?,?) ON CONFLICT(request_id) DO UPDATE SET active_generation=excluded.active_generation").use { it.setString(1,binding.requestId); it.setLong(2,generation); it.executeUpdate() }
+        connection.prepareStatement("INSERT INTO connected_review_context_refs VALUES(?,?,?)").use { insert -> refs.forEach { insert.setString(1,id); insert.setString(2,it.contextId); insert.setInt(3,it.revision); insert.addBatch() }; insert.executeBatch() }
+        connectedReviewStatusLocked(id)
+    }
+
+    /** Accepts only output already independently validated; never called by runtime in this task. */
+    @Synchronized
+    override fun publishConnectedReview(snapshotId: String, output: ValidatedConnectedReviewOutput, currentEvidenceDigest: String,
+                               currentContext: List<ContextRevisionRefV1>, provider: String, model: String,
+                               contractVersion: String): ConnectedReviewStatus = transaction {
+        val snapshot = connectedReviewStatusLocked(snapshotId)
+        val active = connection.prepareStatement("SELECT active_generation FROM connected_review_requests WHERE request_id=?").use { it.setString(1,snapshot.requestId); it.executeQuery().use { r -> r.next(); r.getLong(1) } }
+        if (snapshot.state !in setOf("IN_FLIGHT", "RUNNING") || active != snapshot.generation) return@transaction snapshot
+        require(currentEvidenceDigest.matches(Regex("[a-f0-9]{64}")))
+        require(currentContext.distinct().size == currentContext.size && currentContext.all { it.revision > 0 })
+        val reason = when {
+            snapshot.evidenceDigest != currentEvidenceDigest -> "evidence_changed"
+            snapshot.context.toSet() != currentContext.toSet() -> "context_changed"
+            snapshot.provider != provider || snapshot.model != model -> "provider_changed"
+            snapshot.contractVersion != contractVersion -> "contract_changed"
+            else -> null
+        }
+        if (reason != null) {
+            connection.prepareStatement("UPDATE connected_review_snapshot_state SET state='STALE',stale_reason=? WHERE snapshot_id=?").use { it.setString(1,reason); it.setString(2,snapshotId); it.executeUpdate() }
+            return@transaction connectedReviewStatusLocked(snapshotId)
+        }
+        require(output.text.length <= 12_000)
+        connection.prepareStatement("UPDATE connected_review_snapshot_state SET state='PUBLISHED',published_output=? WHERE snapshot_id=? AND state IN ('IN_FLIGHT','RUNNING')").use { it.setString(1,output.text); it.setString(2,snapshotId); check(it.executeUpdate()==1) }
+        connectedReviewStatusLocked(snapshotId)
+    }
+
+    @Synchronized
+    override fun connectedReviewStatus(snapshotId: String): ConnectedReviewStatus = connectedReviewStatusLocked(snapshotId)
+
+    @Synchronized
+    override fun failConnectedReview(snapshotId: String, reason: String): ConnectedReviewStatus = transaction {
+        require(reason.matches(Regex("[a-z][a-z0-9_]{1,63}")))
+        connection.prepareStatement("UPDATE connected_review_snapshot_state SET state='FAILED',stale_reason=? WHERE snapshot_id=? AND state IN ('IN_FLIGHT','RUNNING')").use {
+            it.setString(1, reason); it.setString(2, snapshotId); it.executeUpdate()
+        }
+        connectedReviewStatusLocked(snapshotId)
+    }
+
+    @Synchronized
+    override fun claimConnectedReview(snapshotId: String): ConnectedReviewStatus? = transaction {
+        val claimed = connection.prepareStatement("UPDATE connected_review_snapshot_state SET state='RUNNING' WHERE snapshot_id=? AND state='IN_FLIGHT'").use {
+            it.setString(1, snapshotId); it.executeUpdate() == 1
+        }
+        if (claimed) connectedReviewStatusLocked(snapshotId) else null
+    }
+
+    @Synchronized
+    override fun connectedReviewPacket(snapshotId: String): InterpretationPacketV1 = connection.prepareStatement(
+        "SELECT s.packet_json,s.packet_sha256,x.state FROM connected_review_snapshots s JOIN connected_review_snapshot_state x USING(snapshot_id) WHERE s.snapshot_id=?").use {
+        it.setString(1, snapshotId); it.executeQuery().use { row ->
+            if (!row.next()) throw ConnectedReviewNotFound()
+            val packetJson = row.getString(1)
+            val packet = scheduleJson.decodeFromString<InterpretationPacketV1>(packetJson)
+            require(row.getString(2) == InterpretationContractV1.promptSha256(packet)) {
+                "Connected review packet is unavailable"
+            }
+            packet
+        }
+    }
+
+    @Synchronized
+    override fun connectedReviewInspection(snapshotId: String): ConnectedReviewInspection {
+        val status = connectedReviewStatusLocked(snapshotId)
+        val selection = ConnectedReviewProviderSelection(status.provider.substringAfter(':', ""), status.model,
+            status.provider.substringBefore(':'))
+        val packet = try { connectedReviewPacket(snapshotId) } catch (_: Exception) { null }
+        val review = status.publishedOutput?.let { raw ->
+            runCatching { scheduleJson.decodeFromString<InterpretationDraftV1>(raw) }.getOrNull()
+        }
+        return ConnectedReviewInspection(status, selection,
+            packet?.let(InterpretationContractV1::prompt) ?: InterpretationPromptV1("", ""), review, packet != null)
+    }
+
+    private fun connectedReviewStatusLocked(id: String): ConnectedReviewStatus = connection.prepareStatement("SELECT s.snapshot_id,s.request_id,s.generation,s.evidence_digest,s.packet_sha256,s.refs_json,s.coverage_from,s.coverage_until,s.sport,s.provider,s.model,s.contract_version,x.state,x.stale_reason,x.published_output,s.created_utc FROM connected_review_snapshots s JOIN connected_review_snapshot_state x USING(snapshot_id) WHERE s.snapshot_id=?").use {
+        it.setString(1,id); it.executeQuery().use { r -> if (!r.next()) throw ConnectedReviewNotFound()
+            ConnectedReviewStatus(r.getString(1),r.getString(2),r.getLong(3),r.getString(4),r.getString(5),scheduleJson.decodeFromString(r.getString(6)),r.getString(7),r.getString(8),r.getString(9),r.getString(10),r.getString(11),r.getString(12),r.getString(13),r.getString(14),r.getString(15),r.getString(16))
+        }
+    }
+
+    private fun sha256(value: String) = MessageDigest.getInstance("SHA-256").digest(value.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it.toInt() and 0xff) }
+
 
     private fun reviewScheduleStateLocked(): ReviewSchedulerState = try {
         connection.createStatement().use { statement ->
@@ -301,6 +463,116 @@ class HistoryStore(path: Path) : AutoCloseable, ManualEventRepository {
         it.setString(1, id); it.executeUpdate() > 0
     }
 
+    private fun context(rows: java.sql.ResultSet) = AthleteContext(rows.getString(1), rows.getInt(2), rows.getString(3),
+        rows.getString(4), rows.getString(5), rows.getString(6), rows.getString(7), rows.getString(8), rows.getString(9),
+        rows.getString(10), rows.getString(11), rows.getString(12), rows.getString(13), rows.getInt(14) != 0,
+        rows.getString(15), rows.getString(16), rows.getString(17))
+
+    private fun latestContextsLocked(): List<AthleteContext> = connection.createStatement().use { statement ->
+        statement.executeQuery("SELECT c.context_id,c.revision,c.category,c.source_category,c.author_attribution,c.entered_by,c.observed_on,c.applicable_from,c.applicable_until,c.sport,c.activity_id,c.review_id,c.content,c.retired,c.restriction_kind,c.restriction_value,c.restriction_unit FROM athlete_context c JOIN (SELECT context_id,max(revision) revision FROM athlete_context GROUP BY context_id) latest ON c.context_id=latest.context_id AND c.revision=latest.revision ORDER BY c.context_id LIMIT 1001").use { rows -> buildList {
+            while (rows.next()) { require(size < 1000) { "Context list exceeds bound" }; add(context(rows)) }
+        } }
+    }
+
+    @Synchronized override fun contexts(today: LocalDate): List<AthleteContext> {
+        return latestContextsLocked().filter { context -> !context.retired && LocalDate.parse(context.observedOn) <= today &&
+            (context.applicableFrom == null || LocalDate.parse(context.applicableFrom) <= today) &&
+            (context.applicableUntil == null || LocalDate.parse(context.applicableUntil) >= today) }
+            .sortedWith(compareByDescending<AthleteContext> { it.observedOn }.thenBy { it.contextId })
+    }
+
+    @Synchronized override fun contextRevisions(id: String): List<AthleteContext> {
+        validateContextId(id)
+        return connection.prepareStatement("SELECT context_id,revision,category,source_category,author_attribution,entered_by,observed_on,applicable_from,applicable_until,sport,activity_id,review_id,content,retired,restriction_kind,restriction_value,restriction_unit FROM athlete_context WHERE context_id=? ORDER BY revision DESC LIMIT 1001").use {
+            it.setString(1, id); it.executeQuery().use { rows -> buildList {
+                while (rows.next()) {
+                    require(size < 1000) { "Context history exceeds bound" }
+                    add(context(rows))
+                }
+            } }
+        }.also { if (it.isEmpty()) throw ContextNotFound() }
+    }
+
+    @Synchronized override fun retrieveContexts(query: ContextRetrievalQuery): ContextRetrievalResult =
+        retrieveAthleteContext(latestContextsLocked(), query)
+
+    private fun saveContext(id: String, revision: Int, request: AthleteContextRequest, retired: Boolean = false): AthleteContext {
+        connection.prepareStatement("INSERT INTO athlete_context(context_id,revision,category,author_attribution,entered_by,observed_on,applicable_from,applicable_until,sport,activity_id,review_id,content,retired,source_category,restriction_kind,restriction_value,restriction_unit) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").use {
+            it.setString(1,id); it.setInt(2,revision); it.setString(3,request.category); it.setString(4,request.authorAttribution)
+            it.setString(5,"authenticated_user"); it.setString(6,request.observedOn); it.setString(7,request.applicableFrom)
+            it.setString(8,request.applicableUntil); it.setString(9,request.sport); it.setString(10,request.activityId)
+            it.setString(11,request.reviewId); it.setString(12,request.content); it.setInt(13,if(retired) 1 else 0)
+            it.setString(14,request.sourceCategory); it.setString(15,request.restrictionKind); it.setString(16,request.restrictionValue); it.setString(17,request.restrictionUnit); it.executeUpdate()
+        }
+        return AthleteContext(id,revision,request.category,request.sourceCategory,request.authorAttribution,"authenticated_user",request.observedOn,
+            request.applicableFrom,request.applicableUntil,request.sport,request.activityId,request.reviewId,request.content,retired,request.restrictionKind,request.restrictionValue,request.restrictionUnit)
+    }
+
+    @Synchronized override fun createContext(request: AthleteContextRequest): AthleteContext = transaction {
+        val count = connection.createStatement().use { it.executeQuery("SELECT count(DISTINCT context_id) FROM athlete_context").use { r -> r.next(); r.getInt(1) } }
+        require(count < 1000) { "Context capacity reached" }
+        staleConnectedReviewsLocked("context_changed")
+        saveContext(java.util.UUID.randomUUID().toString(),1,request)
+    }
+
+    @Synchronized override fun correctContext(id: String, request: AthleteContextRequest): AthleteContext = transaction {
+        validateContextId(id)
+        val current = connection.prepareStatement("SELECT max(revision) FROM athlete_context WHERE context_id=?").use {
+            it.setString(1,id); it.executeQuery().use { r -> r.next(); r.getInt(1) }
+        }
+        if (current == 0) throw ContextNotFound()
+        staleConnectedReviewsLocked("context_changed")
+        saveContext(id, Math.addExact(current,1), request)
+    }
+
+    @Synchronized override fun retireContext(id: String): Boolean = transaction {
+        validateContextId(id)
+        val row = connection.prepareStatement("SELECT revision,category,source_category,author_attribution,observed_on,applicable_from,applicable_until,sport,activity_id,review_id,content,retired,restriction_kind,restriction_value,restriction_unit FROM athlete_context WHERE context_id=? ORDER BY revision DESC LIMIT 1").use {
+            it.setString(1,id); it.executeQuery().use { r -> if (!r.next()) null else listOf(r.getInt(1),r.getString(2),r.getString(3),r.getString(4),r.getString(5),r.getString(6),r.getString(7),r.getString(8),r.getString(9),r.getString(10),r.getString(11),r.getInt(12),r.getString(13),r.getString(14),r.getString(15)) }
+        } ?: return@transaction false
+        if (row[11] as Int == 1) return@transaction false
+        staleConnectedReviewsLocked("context_changed")
+        saveContext(id,(row[0] as Int)+1,AthleteContextRequest(row[1] as String,row[2] as String,row[3] as String,row[4] as String,row[5] as String?,row[6] as String?,row[7] as String?,row[8] as String?,row[9] as String?,row[10] as String,row[12] as String?,row[13] as String?,row[14] as String?),true)
+        true
+    }
+
+    @Synchronized override fun deleteContext(id: String): Boolean = transaction {
+        validateContextId(id)
+        val exists = connection.prepareStatement("SELECT 1 FROM athlete_context WHERE context_id=?").use { it.setString(1,id); it.executeQuery().use { r -> r.next() } }
+        if (exists) {
+            // A context deletion is stronger than staleness: remove dependent immutable
+            // snapshots too, so neither their packet text nor published output survives.
+            connection.prepareStatement("DELETE FROM athlete_context WHERE category='feedback' AND review_id IN (SELECT snapshot_id FROM connected_review_context_refs WHERE context_id=?)").use {
+                it.setString(1, id); it.executeUpdate()
+            }
+            connection.prepareStatement("DELETE FROM connected_review_snapshots WHERE snapshot_id IN (SELECT snapshot_id FROM connected_review_context_refs WHERE context_id=?)").use {
+                it.setString(1, id); it.executeUpdate()
+            }
+        }
+        connection.prepareStatement("DELETE FROM athlete_context WHERE context_id=?").use { it.setString(1,id); it.executeUpdate()>0 }
+    }
+
+    @Synchronized override fun recordReviewFeedback(snapshotId: String, request: ReviewFeedbackRequest, observedOn: LocalDate): AthleteContext = transaction {
+        validateContextId(snapshotId)
+        val review = connectedReviewStatusLocked(snapshotId)
+        require(review.state in setOf("PUBLISHED", "STALE") && review.publishedOutput != null) {
+            "Feedback requires a stored connected-review output"
+        }
+        val feedback = buildList {
+            request.rating?.let { add("rating=$it") }
+            request.correction?.let { add("correction=$it") }
+        }.joinToString("\n")
+        val context = AthleteContextRequest(
+            category = "feedback",
+            sourceCategory = "review_feedback",
+            authorAttribution = "athlete",
+            observedOn = observedOn.toString(),
+            reviewId = snapshotId,
+            content = feedback,
+        )
+        saveContext(java.util.UUID.randomUUID().toString(), 1, context)
+    }
+
     private fun categoryTable(category: String): String {
         require(category in setOf("activities", "wellness")) { "Invalid record category" }
         return category
@@ -349,6 +621,7 @@ class HistoryStore(path: Path) : AutoCloseable, ManualEventRepository {
     fun removeImports() {
         transaction {
             val state = reviewScheduleStateLocked()
+            staleConnectedReviewsLocked("evidence_removed")
             connection.createStatement().use {
                 it.executeUpdate("DELETE FROM activities")
                 it.executeUpdate("DELETE FROM wellness")

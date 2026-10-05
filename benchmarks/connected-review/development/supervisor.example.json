@@ -1,0 +1,19 @@
+{
+  "enabled": false,
+  "controlDirectory": "/var/lib/gtrainer-development/control",
+  "modelsDirectory": "/var/lib/gtrainer-development/models",
+  "workerCommand": [
+    "/opt/java/openjdk/bin/java",
+    "-Xms64m",
+    "-Xmx192m",
+    "--enable-native-access=ALL-UNNAMED",
+    "-Dorg.slf4j.simpleLogger.defaultLogLevel=warn",
+    "-cp",
+    "/opt/gtrainer/lib/*",
+    "com.gtrainer.DevelopmentReviewLauncher"
+  ],
+  "workerEnvironment": {
+    "GTRAINER_DEVELOPMENT_REVIEW_ENABLED": "false",
+    "GTRAINER_DEVELOPMENT_REVIEW_CONFIG_FILE": "/var/lib/gtrainer-development/configuration/launcher.json"
+  }
+}
