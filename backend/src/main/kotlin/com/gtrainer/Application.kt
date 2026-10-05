@@ -1,14 +1,11 @@
 package com.gtrainer
 
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.Cookie
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
-import io.ktor.server.application.createApplicationPlugin
-import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.ApplicationStopped
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
@@ -16,16 +13,12 @@ import io.ktor.server.http.content.staticResources
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.response.respond
 import io.ktor.server.request.path
-import io.ktor.server.request.receiveChannel
 import io.ktor.server.routing.get
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
-import io.ktor.utils.io.readBuffer
-import kotlinx.io.readByteArray
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -59,29 +52,16 @@ data class SyncRequest(val oldest: String, val newest: String) {
 @Serializable
 data class RemovalRequest(val confirmation: String)
 
-private class PrivateRequestError(val status: HttpStatusCode) : IllegalArgumentException("Invalid private request")
-
-private suspend inline fun <reified T> ApplicationCall.privateJson(maximumBytes: Int = 4096): T {
-    try {
-        val body = receiveChannel().readBuffer(maximumBytes.toLong() + 1).readByteArray()
-        if (body.size > maximumBytes) throw PrivateRequestError(HttpStatusCode.PayloadTooLarge)
-        return Json.decodeFromJsonElement<T>(StrictModelJson.parse(body.decodeToString(throwOnInvalidSequence = true)))
-    } catch (cancelled: CancellationException) {
-        throw cancelled
-    } catch (error: PrivateRequestError) {
-        throw error
-    } catch (_: Exception) {
-        throw PrivateRequestError(HttpStatusCode.BadRequest)
-    }
-}
-
 fun Application.module(auth: SingleUserAuth = SingleUserAuth.fromEnvironment(),
                         history: HistoryService? = HistoryService.fromEnvironment(),
                         analysis: AnalysisService = AnalysisService.fromEnvironment(),
                         reviews: ReviewInterpretationService = ReviewInterpretationService.fromEnvironment(analysis.inferenceGate()),
                         schedules: ReviewScheduler? = history?.reviewScheduler(reviews),
                         reviewQueue: ReviewQueueService? = history?.reviewQueue(reviews),
-                        events: ManualEventService? = history?.manualEvents()) {
+                        events: ManualEventService? = history?.manualEvents(),
+                         contexts: AthleteContextService? = history?.athleteContexts(),
+                         connectedReviews: ConnectedReviewService? = null) {
+    val access = PrivateApiAccess(auth)
     val schedulerJob = schedules?.let { scheduler -> launch {
         while (isActive) {
             delay(30_000)
@@ -96,17 +76,7 @@ fun Application.module(auth: SingleUserAuth = SingleUserAuth.fromEnvironment(),
     } }
     monitor.subscribe(ApplicationStopping) { schedulerJob?.cancel(); reviewQueue?.close() }
     monitor.subscribe(ApplicationStopped) { history?.close(); analysis.close(); reviews.close() }
-    install(createApplicationPlugin("PrivacyHeaders") {
-        onCall { call ->
-            call.response.headers.append("X-Content-Type-Options", "nosniff")
-            call.response.headers.append("X-Frame-Options", "DENY")
-            call.response.headers.append("Referrer-Policy", "no-referrer")
-            call.response.headers.append("Content-Security-Policy",
-                "default-src 'self'; script-src 'self'; style-src 'self'; " +
-                    "connect-src 'self'; img-src 'self' data:; object-src 'none'; " +
-                    "base-uri 'none'; frame-ancestors 'none'; form-action 'self'")
-        }
-    })
+    installPrivateHttpSecurity()
     install(ContentNegotiation) {
         json()
     }
@@ -117,62 +87,43 @@ fun Application.module(auth: SingleUserAuth = SingleUserAuth.fromEnvironment(),
         }
         route("/api/{path...}") {
             handle {
-                call.response.headers.append(HttpHeaders.CacheControl, "no-store")
                 val path = call.request.path()
-                val isWrite = call.request.local.method !in listOf(HttpMethod.Get, HttpMethod.Head)
-                val token = call.request.cookies["gtrainer_session"]
-                val session = auth.session(token)
-                if (path == "/api/login" && call.request.local.method == HttpMethod.Post) {
-                    if (call.request.headers[HttpHeaders.Origin] != auth.allowedOrigin) {
-                        call.respond(HttpStatusCode.Forbidden, ApiError("origin_rejected"))
-                        return@handle
-                    }
-                    if (!auth.configured) {
-                        call.respond(HttpStatusCode.ServiceUnavailable, ApiError("authentication_not_configured"))
-                        return@handle
-                    }
-                    val request = try {
-                        // Bounded even for chunked/no-Content-Length requests.
-                        val body = call.receiveChannel().readBuffer(4097L).readByteArray()
-                        if (body.size > 4096) {
-                            call.respond(HttpStatusCode.PayloadTooLarge, ApiError("request_too_large"))
-                            return@handle
-                        }
-                        Json.decodeFromString<LoginRequest>(body.decodeToString(throwOnInvalidSequence = true))
-                    } catch (_: Exception) {
-                        call.respond(HttpStatusCode.BadRequest, ApiError("invalid_request"))
-                        return@handle
-                    }
-                    val created = auth.login(request.password)
-                    if (created == null) {
-                        call.respond(HttpStatusCode.Unauthorized, ApiError("login_failed"))
-                        return@handle
-                    }
-                    call.response.cookies.append(Cookie("gtrainer_session", created.token,
-                        path = "/", maxAge = 8 * 60 * 60, httpOnly = true, secure = auth.secureCookie,
-                        extensions = mapOf("SameSite" to "Strict")))
-                    call.respond(SessionResponse(true, created.csrfToken, auth.intervalsConfigured))
-                    return@handle
-                }
-                if (session == null) {
-                    call.respond(HttpStatusCode.Unauthorized, ApiError("authentication_required"))
-                    return@handle
-                }
-                if (isWrite && (call.request.headers[HttpHeaders.Origin] != auth.allowedOrigin ||
-                            !auth.validCsrf(session, call.request.headers["X-CSRF-Token"]))) {
-                    call.respond(HttpStatusCode.Forbidden, ApiError("csrf_rejected"))
-                    return@handle
-                }
-                if (path == "/api/session" && call.request.local.method == HttpMethod.Get) {
-                    call.respond(SessionResponse(true, session.csrfToken, auth.intervalsConfigured))
-                } else if (path == "/api/logout" && call.request.local.method == HttpMethod.Post) {
-                    auth.logout(session.token)
-                    call.response.cookies.append(Cookie("gtrainer_session", "", path = "/", maxAge = 0,
-                        httpOnly = true, secure = auth.secureCookie, extensions = mapOf("SameSite" to "Strict")))
-                    call.respond(ApiError("logged_out"))
-                } else {
+                val token = call.request.cookies[SESSION_COOKIE]
+                val session = access.authorize(call) ?: return@handle
+                if (!access.respondToSessionRequest(call, session)) {
                     try {
                         when {
+                            call.respondConnectedReview(path, connectedReviews) -> Unit
+                            contexts != null && path == "/api/context-retrieval" && call.request.local.method == HttpMethod.Get -> {
+                                val parameters = call.request.queryParameters
+                                val asOf = LocalDate.parse(requireNotNull(parameters["asOf"]))
+                                val optionalLimit = parameters["optionalLimit"]?.toIntOrNull() ?: 20
+                                require(optionalLimit in 0..1000)
+                                val query = ContextRetrievalQuery(asOf, parameters["sport"], parameters["activityId"],
+                                    parameters["reviewId"], optionalLimit)
+                                call.respond(withContext(Dispatchers.IO) { contexts.retrieve(query) })
+                            }
+                            contexts != null && path == "/api/contexts" && call.request.local.method == HttpMethod.Get -> call.respond(withContext(Dispatchers.IO) { contexts.list() })
+                            contexts != null && path == "/api/contexts" && call.request.local.method == HttpMethod.Post -> call.respond(HttpStatusCode.Created, withContext(Dispatchers.IO) { contexts.create(call.privateJson<AthleteContextRequest>(16_384)) })
+                            contexts != null && path.startsWith("/api/connected-reviews/") && path.endsWith("/feedback") && call.request.local.method == HttpMethod.Post -> {
+                                val snapshotId = path.removePrefix("/api/connected-reviews/").removeSuffix("/feedback")
+                                    .removeSuffix("/")
+                                call.respond(HttpStatusCode.Created, withContext(Dispatchers.IO) {
+                                    contexts.recordReviewFeedback(snapshotId, call.privateJson<ReviewFeedbackRequest>(8192))
+                                })
+                            }
+                            contexts != null && path.startsWith("/api/contexts/") && path.endsWith("/retire") && call.request.local.method == HttpMethod.Post -> {
+                                val id = path.removePrefix("/api/contexts/").removeSuffix("/retire")
+                                if (withContext(Dispatchers.IO) { contexts.retire(id) }) call.respond(HttpStatusCode.NoContent) else call.respond(HttpStatusCode.NotFound, ApiError("context_not_found"))
+                            }
+                            contexts != null && path.startsWith("/api/contexts/") && path.endsWith("/history") && call.request.local.method == HttpMethod.Get -> {
+                                val id = path.removePrefix("/api/contexts/").removeSuffix("/history")
+                                call.respond(withContext(Dispatchers.IO) { contexts.history(id) })
+                            }
+                            contexts != null && path.startsWith("/api/contexts/") && call.request.local.method == HttpMethod.Put -> call.respond(withContext(Dispatchers.IO) { contexts.correct(path.removePrefix("/api/contexts/"), call.privateJson<AthleteContextRequest>(16_384)) })
+                            contexts != null && path.startsWith("/api/contexts/") && call.request.local.method == HttpMethod.Delete -> {
+                                if (withContext(Dispatchers.IO) { contexts.delete(path.removePrefix("/api/contexts/")) }) call.respond(HttpStatusCode.NoContent) else call.respond(HttpStatusCode.NotFound, ApiError("context_not_found"))
+                            }
                             events != null && path == "/api/events" && call.request.local.method == HttpMethod.Get ->
                                 call.respond(withContext(Dispatchers.IO) { events.list() })
                             events != null && path == "/api/events" && call.request.local.method == HttpMethod.Post -> {
@@ -268,8 +219,12 @@ fun Application.module(auth: SingleUserAuth = SingleUserAuth.fromEnvironment(),
                         call.respond(HttpStatusCode.Conflict, ApiError("review_configuration_changed"))
                     } catch (_: ReviewQueueCapacity) {
                         call.respond(HttpStatusCode.Conflict, ApiError("review_queue_capacity"))
-                    } catch (_: EventNotFound) {
-                        call.respond(HttpStatusCode.NotFound, ApiError("event_not_found"))
+                          } catch (_: EventNotFound) {
+                            call.respond(HttpStatusCode.NotFound, ApiError("event_not_found"))
+                        } catch (_: ContextNotFound) {
+                            call.respond(HttpStatusCode.NotFound, ApiError("context_not_found"))
+                        } catch (_: ConnectedReviewNotFound) {
+                            call.respond(HttpStatusCode.NotFound, ApiError("connected_review_not_found"))
                     } catch (_: TrendSizeLimit) {
                         call.respond(HttpStatusCode.PayloadTooLarge, ApiError("choose_shorter_trend_range"))
                     } catch (error: PrivateRequestError) {

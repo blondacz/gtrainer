@@ -22,6 +22,11 @@
 !frontend/index.html
 !frontend/src/
 !frontend/src/**
+# Only frozen synthetic fixtures required by backend resource/contract tests.
+!benchmarks/
+!benchmarks/connected-review/
+!benchmarks/connected-review/cases-v2.json
+!benchmarks/connected-review/validator-parity-v2.json
 **/.env*
 **/*.key
 **/*.pem

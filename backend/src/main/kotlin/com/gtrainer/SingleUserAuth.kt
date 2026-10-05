@@ -63,6 +63,7 @@ class SingleUserAuth(
     val intervalsConfigured: Boolean = false,
     private val clock: Clock = Clock.systemUTC(),
     private val sessionLifetime: Duration = Duration.ofHours(8),
+    private val insecureLoopbackPort: Int = 8080,
 ) {
     private val random = SecureRandom()
     private val sessions = linkedMapOf<String, UserSession>()
@@ -71,8 +72,9 @@ class SingleUserAuth(
 
     init {
         require(sessionLifetime > Duration.ZERO)
+        require(insecureLoopbackPort in 1..65535)
         require((secureCookie && allowedOrigin.matches(Regex("https://[a-zA-Z0-9.:-]+"))) ||
-            (!secureCookie && allowedOrigin == "http://127.0.0.1:8080")) {
+            (!secureCookie && allowedOrigin == "http://127.0.0.1:$insecureLoopbackPort")) {
             "Authentication requires HTTPS or the explicit loopback SSH-tunnel origin"
         }
     }

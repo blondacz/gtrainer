@@ -4,6 +4,8 @@ import { TrendPanel } from './TrendPanel'
 import { ReviewControls } from './ReviewControls'
 import { OverviewTiles } from './OverviewTiles'
 import { ManualEventPanel } from './ManualEventPanel'
+import { AthleteContextPanel } from './AthleteContextPanel'
+import { ConnectedReviewPanel } from './ConnectedReviewPanel'
 
 type Session = { authenticated: true; csrfToken: string; intervalsConfigured: boolean }
 
@@ -23,7 +25,7 @@ export function SessionPanel({ onAuthenticatedChange }: { onAuthenticatedChange?
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [historyRevision, setHistoryRevision] = useState(0)
-  const [section, setSection] = useState<'overview' | 'charts' | 'imports' | 'reviews' | 'events'>('overview')
+  const [section, setSection] = useState<'overview' | 'charts' | 'imports' | 'reviews' | 'events' | 'context' | 'connected'>('overview')
   useEffect(() => { onAuthenticatedChange?.(session !== null) }, [session, onAuthenticatedChange])
 
   useEffect(() => {
@@ -91,21 +93,24 @@ export function SessionPanel({ onAuthenticatedChange }: { onAuthenticatedChange?
     {!session && <h2 id="access-heading">Private access</h2>}
     {checking ? <p>Checking sign-in…</p> : session ? <>
       <div className="session-strip"><div><h2 id="access-heading" className="visually-hidden">Private dashboard</h2>
-      <p>Signed in to your private dashboard.</p>
-      <p className="source-credential-status">{session.intervalsConfigured ? 'Intervals.icu credential is configured.' :
-        'Intervals.icu credential is not configured.'}</p>
+       <p>Signed in to your private dashboard.</p>
+       <p className="source-credential-status">{session.intervalsConfigured ? 'Intervals.icu credential is configured.' :
+         'Intervals.icu credential is not configured.'}</p>
       </div><button type="button" className="secondary" onClick={() => void signOut()} disabled={busy}>Sign out</button></div>
+      <aside className="retention-notice" aria-label="Context deletion and backup retention">
+        <strong>Deleting context removes active copies.</strong> Retained encrypted backups may still contain deleted data until they expire under normal retention.
+      </aside>
       <nav className="dashboard-tabs section-tabs" role="tablist" aria-label="Dashboard sections">
-        {(['overview', 'charts', 'imports', 'reviews', 'events'] as const).map(name => <button type="button" role="tab" key={name}
+        {(['overview', 'charts', 'imports', 'reviews', 'events', 'context', 'connected'] as const).map(name => <button type="button" role="tab" key={name}
           id={`dashboard-tab-${name}`} aria-selected={section === name} aria-controls="dashboard-section" tabIndex={section === name ? 0 : -1} onClick={() => setSection(name)}
           onKeyDown={event => {
-            const names = ['overview', 'charts', 'imports', 'reviews', 'events'] as const
+            const names = ['overview', 'charts', 'imports', 'reviews', 'events', 'context', 'connected'] as const
             const index = names.indexOf(name)
             const next = event.key === 'ArrowRight' ? (index + 1) % names.length : event.key === 'ArrowLeft' ? (index + names.length - 1) % names.length :
               event.key === 'Home' ? 0 : event.key === 'End' ? names.length - 1 : null
             if (next !== null) { event.preventDefault(); setSection(names[next]); document.getElementById(`dashboard-tab-${names[next]}`)?.focus() }
           }}>
-          {{ overview: 'Overview', charts: 'Trends', imports: 'Source', reviews: 'Reviews', events: 'Events' }[name]}</button>)}
+          {{ overview: 'Overview', charts: 'Trends', imports: 'Source', reviews: 'Reviews', events: 'Events', context: 'Context', connected: 'Connected insights' }[name]}</button>)}
       </nav>
       <div id="dashboard-section" className="dashboard-content" role="tabpanel" aria-labelledby={`dashboard-tab-${section}`}>
         {section === 'overview' && <OverviewTiles revision={historyRevision} onNavigate={setSection} />}
@@ -113,6 +118,8 @@ export function SessionPanel({ onAuthenticatedChange }: { onAuthenticatedChange?
         {section === 'charts' && <TrendPanel compact revision={historyRevision} csrfToken={session.csrfToken} />}
         {section === 'reviews' && <ReviewControls revision={historyRevision} csrfToken={session.csrfToken} />}
         {section === 'events' && <ManualEventPanel csrfToken={session.csrfToken} onChanged={() => setHistoryRevision(value => value + 1)} />}
+        {section === 'context' && <AthleteContextPanel csrfToken={session.csrfToken} />}
+        {section === 'connected' && <ConnectedReviewPanel />}
       </div>
     </> : <form onSubmit={event => void signIn(event)}>
       <p>Sign in before accessing private records. Your password is never stored in browser storage.</p>

@@ -19,8 +19,22 @@ class DeliveryGuards(unittest.TestCase):
         self.assertEqual(next(line for line in rules if line and not line.startswith('#')), '**')
         for rule in ('**/.env*', '**/*.key', '**/*.pem', '**/*.db', '**/*.sqlite', '**/*.age'):
             self.assertIn(rule, rules)
-        for directory in ('docs', 'benchmarks', 'openspec', '.opencode', '.git', 'backups'):
+        for directory in ('docs', 'openspec', '.opencode', '.git', 'backups'):
             self.assertFalse(any(line.startswith('!' + directory + '/') for line in rules))
+        self.assertEqual({line for line in rules if line.startswith('!benchmarks/')}, {
+            '!benchmarks/', '!benchmarks/connected-review/',
+            '!benchmarks/connected-review/cases-v2.json',
+            '!benchmarks/connected-review/validator-parity-v2.json',
+        })
+
+    def test_container_copies_only_frozen_synthetic_review_fixtures(self):
+        root = Path(__file__).resolve().parents[1]
+        dockerfile = (root / 'Dockerfile').read_text()
+        copies = [line for line in dockerfile.splitlines() if line.startswith('COPY benchmarks/')]
+        self.assertEqual(copies, [
+            'COPY benchmarks/connected-review/cases-v2.json '
+            'benchmarks/connected-review/validator-parity-v2.json benchmarks/connected-review/'
+        ])
 
     def test_published_image_verification_uses_immutable_arm64_reference(self):
         workflow = (Path(__file__).resolve().parents[1] / '.github/workflows/build.yml').read_text()

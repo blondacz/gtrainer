@@ -1,0 +1,78 @@
+# Example only. Do not apply without separate deployment approval and operator
+# replacement of every placeholder/config/image/storage/identity-verifier value.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gtrainer-connected-review-development
+  namespace: gtrainer-connected-review-development
+spec:
+  replicas: 0
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: gtrainer-connected-review-development
+  template:
+    metadata:
+      labels:
+        app: gtrainer-connected-review-development
+    spec:
+      # No automatic cross-node failover; old-container proof is still required.
+      nodeName: REPLACE_WITH_APPROVED_PINNED_NODE
+      automountServiceAccountToken: false
+      shareProcessNamespace: false
+      terminationGracePeriodSeconds: 75
+      securityContext:
+        runAsUser: 10001
+        runAsGroup: 10001
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: dedicated-worker-runtime
+          image: REPLACE_WITH_EXPLICIT_COMPATIBLE_IMAGE_AT_SHA256_DIGEST
+          command:
+            - python3
+            - /opt/gtrainer-supervisor/pid1_supervisor.py
+            - /var/lib/gtrainer-development/configuration/supervisor.json
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: "3"
+              memory: 5Gi
+            limits:
+              cpu: "3"
+              memory: 5Gi
+          volumeMounts:
+            - name: isolated-development-data
+              mountPath: /var/lib/gtrainer-development
+            - name: runtime-tmp
+              mountPath: /tmp
+      volumes:
+        - name: isolated-development-data
+          persistentVolumeClaim:
+            claimName: REPLACE_WITH_NEW_NODE_LOCAL_OWNER_ONLY_DEVELOPMENT_PVC
+        - name: runtime-tmp
+          emptyDir:
+            sizeLimit: 64Mi
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: gtrainer-connected-review-development-isolation
+  namespace: gtrainer-connected-review-development
+spec:
+  podSelector:
+    matchLabels:
+      app: gtrainer-connected-review-development
+  policyTypes: [Ingress, Egress]
+  ingress: []
+  egress: []
+# No direct Ollama Service, public ingress, node observer credentials or production
+# PVC. Approved private API tunnelling/verifier networking must be configured later.
+# Operator must populate UID-10001, mode-0700 configuration/control/queue directories
+# and separate mode-0600 credentials in this NEW PVC. No fsGroup/chmod of old data.

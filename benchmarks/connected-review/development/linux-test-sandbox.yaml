@@ -1,0 +1,21 @@
+# Controlled process fixtures only: not an Ollama/app deployment.
+# Use a NEW LIMA_HOME; never start/adopt a benchmark VM with this configuration.
+minimumLimaVersion: 2.2.0
+vmType: vz
+arch: x86_64
+cpus: 2
+memory: 1GiB
+disk: 8GiB
+images:
+  - location: https://cloud-images.ubuntu.com/minimal/releases/noble/release-20261001/ubuntu-24.04-minimal-cloudimg-amd64.img
+    arch: x86_64
+    digest: sha256:a8eb6570f87a941f3de2e000c046b9367f8ab1423756a94830d454fae8ad80ff
+mounts: []
+containerd:
+  system: false
+  user: false
+ssh:
+  loadDotSSHPubKeys: false
+portForwards:
+  - guestPortRange: [1, 65535]
+    ignore: true

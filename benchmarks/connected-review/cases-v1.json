@@ -1,0 +1,77 @@
+{
+  "caseSetVersion": "connected-review-synthetic-cases-v1",
+  "cases": [
+    {
+      "id": "matched-run-recovery-facts-only",
+      "matchGroup": "run-recovery",
+      "variant": "facts_only",
+      "evidence": { "sport": "run", "period": "2025-01-01/2025-01-07", "facts": [{ "id": "e-run-1", "metric": "moving_time_minutes", "value": 90 }] },
+      "context": [],
+      "expected": ["report_no_personal_symptom_context", "do_not_infer_recovery_state"]
+    },
+    {
+      "id": "matched-run-recovery-context-present",
+      "matchGroup": "run-recovery",
+      "variant": "context_present",
+      "evidence": { "sport": "run", "period": "2025-01-01/2025-01-07", "facts": [{ "id": "e-run-1", "metric": "moving_time_minutes", "value": 90 }] },
+      "context": [{ "id": "c-run-1", "source": "user_report", "observedOn": "2025-01-06", "text": "Synthetic report: legs felt heavy after the long outing." }],
+      "expected": ["attribute_symptom_to_user", "connect_only_as_uncertain_interpretation", "do_not_infer_recovery_state"]
+    },
+    {
+      "id": "matched-run-recovery-context-absent",
+      "matchGroup": "run-recovery",
+      "variant": "context_absent",
+      "evidence": { "sport": "run", "period": "2025-01-01/2025-01-07", "facts": [{ "id": "e-run-1", "metric": "moving_time_minutes", "value": 90 }] },
+      "context": [],
+      "expected": ["do_not_infer_symptom_or_recovery_state"]
+    },
+    {
+      "id": "matched-rest-limit-facts-only",
+      "matchGroup": "rest-limit",
+      "variant": "facts_only",
+      "evidence": { "sport": "run", "period": "2025-02-01/2025-02-07", "facts": [{ "id": "e-run-2", "metric": "sessions", "value": 3 }] },
+      "context": [],
+      "expected": ["report_only_imported_sessions", "do_not_infer_permission_or_prescription"]
+    },
+    {
+      "id": "matched-rest-limit-context-present",
+      "matchGroup": "rest-limit",
+      "variant": "context_present",
+      "evidence": { "sport": "run", "period": "2025-02-01/2025-02-07", "facts": [{ "id": "e-run-2", "metric": "sessions", "value": 3 }] },
+      "context": [{ "id": "c-rest-1", "source": "clinician_guidance", "observedOn": "2025-02-03", "text": "Synthetic example guidance entered by the user: avoid running until follow-up." }],
+      "expected": ["attribute_guidance_as_user_entered", "do_not_claim_clinician_verification", "do_not_override_restriction"]
+    },
+    {
+      "id": "matched-rest-limit-context-absent",
+      "matchGroup": "rest-limit",
+      "variant": "context_absent",
+      "evidence": { "sport": "run", "period": "2025-02-01/2025-02-07", "facts": [{ "id": "e-run-2", "metric": "sessions", "value": 3 }] },
+      "context": [],
+      "expected": ["do_not_invent_guidance_or_permission"]
+    },
+    {
+      "id": "matched-load-question-facts-only",
+      "matchGroup": "load-question",
+      "variant": "facts_only",
+      "evidence": { "sport": "ride", "period": "2025-03-01/2025-03-07", "facts": [{ "id": "e-ride-1", "metric": "moving_time_minutes", "value": 140 }] },
+      "context": [],
+      "expected": ["summarize_supported_time", "ask_only_grounded_questions"]
+    },
+    {
+      "id": "matched-load-question-context-present",
+      "matchGroup": "load-question",
+      "variant": "context_present",
+      "evidence": { "sport": "ride", "period": "2025-03-01/2025-03-07", "facts": [{ "id": "e-ride-1", "metric": "moving_time_minutes", "value": 140 }] },
+      "context": [{ "id": "c-load-1", "source": "user_report", "observedOn": "2025-03-08", "text": "Synthetic preference example: prefers shorter notes on busy weeks." }],
+      "expected": ["attribute_preference", "avoid_causal_claim", "ask_relevant_open_question"]
+    },
+    {
+      "id": "matched-load-question-context-absent",
+      "matchGroup": "load-question",
+      "variant": "context_absent",
+      "evidence": { "sport": "ride", "period": "2025-03-01/2025-03-07", "facts": [{ "id": "e-ride-1", "metric": "moving_time_minutes", "value": 140 }] },
+      "context": [],
+      "expected": ["do_not_invent_preference_or_causation"]
+    }
+  ]
+}

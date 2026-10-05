@@ -1,0 +1,25 @@
+# Disabled build recipe: all three compatible, digest-pinned CPU images must be
+# supplied explicitly. This change neither downloads/builds images nor models.
+ARG PYTHON_IMAGE
+ARG JAVA_IMAGE
+ARG OLLAMA_IMAGE
+FROM ${JAVA_IMAGE} AS java
+FROM ${OLLAMA_IMAGE} AS ollama
+FROM ${PYTHON_IMAGE}
+
+# Expected layouts: Temurin-style JRE and official CPU Ollama distribution.
+# Operator must verify ABI/layout compatibility before separately approved build.
+COPY --from=java /opt/java/openjdk /opt/java/openjdk
+COPY --from=ollama /usr/bin/ollama /usr/local/bin/ollama
+COPY --from=ollama /usr/lib/ollama /usr/lib/ollama
+
+# Explicit curated copies. Never COPY the repository, captures, or runtime/tests.
+COPY backend/build/install/backend /opt/gtrainer
+COPY backend/runtime/linux_children.py backend/runtime/runtime_scope.py backend/runtime/pid1_supervisor.py /opt/gtrainer-supervisor/
+COPY benchmarks/connected-review/development/supervisor.example.json /etc/gtrainer-development/supervisor.json
+
+RUN useradd --uid 10001 --user-group --no-create-home --home-dir /var/lib/gtrainer-development gtrainer-development
+USER 10001:10001
+ENV PYTHONDONTWRITEBYTECODE=1
+# No EXPOSE and no Ollama service. PID 1 owns the sole worker/runtime process tree.
+ENTRYPOINT ["python3", "/opt/gtrainer-supervisor/pid1_supervisor.py", "/etc/gtrainer-development/supervisor.json"]

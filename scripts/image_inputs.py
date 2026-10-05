@@ -10,7 +10,9 @@ import subprocess
 def affects_image(paths):
     roots = ('backend/', 'frontend/', 'gradle/', '.github/workflows/', 'scripts/')
     files = {'Dockerfile', '.dockerignore', 'gradlew', 'gradlew.bat', 'build.gradle.kts',
-             'settings.gradle.kts', 'gradle.properties'}
+             'settings.gradle.kts', 'gradle.properties',
+             'benchmarks/connected-review/cases-v2.json',
+             'benchmarks/connected-review/validator-parity-v2.json'}
     return any(path in files or path.startswith(roots) for path in paths)
 
 

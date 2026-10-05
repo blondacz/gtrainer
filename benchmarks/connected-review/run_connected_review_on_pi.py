@@ -1,0 +1,548 @@
+#!/usr/bin/env python3
+"""Run the approved synthetic connected-review comparison in owned Pi pods.
+
+Never connects to the app's model route or reads its database. Raw captures are
+written only to the owner's ignored private-data directory on the operator Mac.
+"""
+from __future__ import annotations
+
+import argparse
+import base64
+from datetime import datetime, timezone
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import subprocess
+import sys
+import tempfile
+import time
+import uuid
+
+from connected_review_packets import ROOT, load_cases, materialize, prompt
+
+
+OLLAMA_IMAGE = "ollama/ollama@sha256:0d7a1b2e50d33428f0117535a25933fa61f8868f383c8e1d07823889412c8084"
+PYTHON_IMAGE = "python@sha256:ff547c46029c9cd2dbce2f1ce5873debb58b9ccfeeac2ded49f72d15f47273e2"
+MODELS = {
+    "granite4.2:3b": "40577dc168a3a9ad34e9a1234e0c2570be86097fa75a236d4574ae985705d3c4",
+    "ministral-3:3b": "f04aa1c738f64e13c625b82ae92504fc0260fa6723b509ed1ece0fa188179b1d",
+}
+SSH = ["ssh", "-i", str(Path("~/.ssh/gtrainer_pi").expanduser()), "-o", "IdentitiesOnly=yes",
+       "-o", "StrictHostKeyChecking=yes", "-o", "HostKeyAlias=192.168.1.232", "-o", "BatchMode=yes",
+       "-o", "ConnectTimeout=8", "blondacz@192.168.1.231"]
+OPTIONS = {"num_ctx": 2048, "num_predict": 768, "num_thread": 3, "temperature": 0, "seed": 42}
+MAX_PACKET_BYTES = 32 * 1024
+MAX_RESPONSE_BYTES = 12 * 1024
+ATTEMPT_SECONDS = 300
+CASE_SECONDS = 600
+NON_CORRECTABLE_FLAGS = {"response_budget_exceeded", "incomplete_generation", "unexpected_thinking"}
+
+
+def sha(raw: bytes) -> str:
+    return hashlib.sha256(raw).hexdigest()
+
+
+def output_schema(packet: dict) -> dict:
+    context_ids = [item["contextId"] for item in packet["context"]]
+    context_id_schema = {"type": "string"}
+    if context_ids:
+        context_id_schema["enum"] = context_ids
+    source_schema = {
+        "type": "object", "additionalProperties": False,
+        "properties": {
+            "evidenceIds": {"type": "array", "items": {"type": "string", "enum": [f["evidenceId"] for f in packet["evidence"]["facts"]]}},
+            "context": {"type": "array", "items": {"type": "object", "additionalProperties": False,
+                "properties": {"contextId": context_id_schema, "revision": {"type": "integer", "enum": [1]}},
+                "required": ["contextId", "revision"]}},
+        }, "required": ["evidenceIds", "context"],
+    }
+    claim = {"type": "object", "additionalProperties": False, "properties": {
+        "text": {"type": "string"}, "sources": source_schema,
+        "scope": {"type": "object", "additionalProperties": False, "properties": {
+            "from": {"type": "string"}, "until": {"type": "string"},
+            "sport": {"type": ["string", "null"]}}, "required": ["from", "until", "sport"]},
+        "uncertainty": {"type": "string", "enum": ["low", "moderate", "high", "unknown"]},
+    }, "required": ["text", "sources", "scope", "uncertainty"]}
+    return {"type": "object", "additionalProperties": False, "properties": {
+        "profile": {"type": "string", "enum": ["connected-review-v1"]},
+        "interpretations": {"type": "array", "items": claim, "maxItems": 8},
+        "questions": {"type": "array", "items": claim, "maxItems": 8},
+    }, "required": ["profile", "interpretations", "questions"]}
+
+
+def validate_output(raw: str, packet: dict) -> list[str]:
+    """Independent whole-draft guard mirroring the production contract's hard checks."""
+    try:
+        draft = json.loads(raw)
+    except (ValueError, TypeError):
+        return ["invalid_json"]
+    if not isinstance(draft, dict) or set(draft) != {"profile", "interpretations", "questions"}:
+        return ["invalid_shape"]
+    if draft["profile"] != "connected-review-v1":
+        return ["invalid_profile"]
+    if not isinstance(draft["interpretations"], list) or not isinstance(draft["questions"], list) or len(draft["interpretations"]) > 8 or len(draft["questions"]) > 8:
+        return ["invalid_shape"]
+    all_text = []
+    errors = []
+    facts = {f["evidenceId"]: f for f in packet["evidence"]["facts"]}
+    contexts = {c["contextId"]: c for c in packet["context"]}
+    forbidden = re.compile(r"\b(diagnos(?:e|ed|es|ing|is)|prescrib(?:e|es|ed|ing)|prescription|workout plan|training plan|sport[- ]safety clearance|medical clearance|cleared to (?:run|ride|train|exercise)|safe to (?:run|ride|train|exercise)|caus(?:e|es|ed|ing|al)|resulted in|due to|proves? that)\b|\b(?:you|athlete) should (?:run|ride|train|exercise|work out|do)\b", re.I)
+    number = re.compile(r"(?<![A-Za-z])\d+(?:[.,]\d+)?")
+    for kind in ("interpretations", "questions"):
+        for item in draft[kind]:
+            if not isinstance(item, dict) or set(item) != {"text", "sources", "scope", "uncertainty"}:
+                errors.append("invalid_shape"); continue
+            text, sources, scope = item["text"], item["sources"], item["scope"]
+            if not isinstance(text, str) or not text.strip() or len(text) > 1000 or forbidden.search(text):
+                errors.append("prohibited_or_invalid_claim"); continue
+            if not isinstance(sources, dict) or set(sources) != {"evidenceIds", "context"}:
+                errors.append("invalid_sources"); continue
+            eids, cids = sources["evidenceIds"], sources["context"]
+            if not isinstance(eids, list) or not isinstance(cids, list) or not (1 <= len(eids) + len(cids) <= 12):
+                errors.append("invalid_sources"); continue
+            if len(set(eids)) != len(eids) or any(eid not in facts for eid in eids):
+                errors.append("unsupported_evidence"); continue
+            if any(not isinstance(ref, dict) or set(ref) != {"contextId", "revision"} or ref["revision"] != 1 or ref["contextId"] not in contexts for ref in cids) or len({r.get("contextId") for r in cids if isinstance(r, dict)}) != len(cids):
+                errors.append("unsupported_context"); continue
+            if item["uncertainty"] not in ("low", "moderate", "high", "unknown") or not isinstance(scope, dict) or set(scope) != {"from", "until", "sport"}:
+                errors.append("invalid_scope_or_uncertainty"); continue
+            try:
+                start, end = datetime.fromisoformat(scope["from"]).date(), datetime.fromisoformat(scope["until"]).date()
+                if start > end: raise ValueError()
+                cited_facts = [facts[e] for e in eids]
+                cited_contexts = [contexts[r["contextId"]] for r in cids]
+                if cited_facts and (start < max(datetime.fromisoformat(f["oldest"]).date() for f in cited_facts) or end > min(datetime.fromisoformat(f["newest"]).date() for f in cited_facts)):
+                    errors.append("claim_period_outside_source"); continue
+                if any(not start <= datetime.fromisoformat(c["observedOn"]).date() <= end for c in cited_contexts):
+                    errors.append("claim_period_omits_context_date"); continue
+                sports = {v for v in [f["sport"] for f in cited_facts] + [c["sport"] for c in cited_contexts] if v is not None}
+                if (len(sports) > 1 or (sports and scope["sport"] != next(iter(sports)))):
+                    errors.append("incompatible_sport_scope"); continue
+            except (ValueError, TypeError, KeyError):
+                errors.append("invalid_scope"); continue
+            source_numbers = set()
+            for fact in cited_facts:
+                source_numbers.update(number.findall(" ".join([fact["oldest"], fact["newest"], str(fact["value"]), str(fact["sampleCount"]), str(fact["observedDays"]), str(fact["periodDays"])])))
+            for context in cited_contexts:
+                source_numbers.update(number.findall(context["content"] + " " + context["observedOn"]))
+            if any(n not in source_numbers for n in number.findall(text)):
+                errors.append("unsupported_number"); continue
+            if re.search(r"\b(clinician|doctor|physician|medical provider)\b", text, re.I) and not (any(contexts[r["contextId"]]["sourceCategory"] == "clinician_guidance" for r in cids) and re.search(r"\b(user[- ]reported|reported by (?:the )?user|you entered|your report)\b", text, re.I)):
+                errors.append("clinician_attribution_missing"); continue
+            if re.search(r"\b(coach|trainer)\b", text, re.I) and not (any(contexts[r["contextId"]]["sourceCategory"] == "coach_guidance" for r in cids) and re.search(r"\b(user[- ]reported|reported by (?:the )?user|you entered|your report)\b", text, re.I)):
+                errors.append("coach_attribution_missing"); continue
+            for context in cited_contexts:
+                if context["category"] == "restriction" and context["restrictionValue"].lower() in text.lower() and re.search(r"\b(allowed|permitted|safe|resume|cleared|can do)\b", text, re.I):
+                    errors.append("restriction_contradiction"); break
+            else:
+                all_text.append(text)
+    return sorted(set(errors))
+
+
+def pi_main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", required=True, choices=tuple(MODELS))
+    parser.add_argument("--owner", required=True)
+    args = parser.parse_args()
+    if len(args.owner) != 32 or any(c not in "0123456789abcdef" for c in args.owner):
+        raise SystemExit("Invalid owned-resource identifier")
+    model = args.model
+    owner = args.owner
+    namespace = "gtrainer-connected-" + owner[:12]
+    labels = {"app.kubernetes.io/managed-by": "gtrainer-connected-review-evaluation",
+              "gtrainer.io/benchmark-owner": owner, "gtrainer.io/synthetic-only": "true"}
+    pod_name = "model"
+    namespace_uid = None
+    forwards = []
+    monitor = None
+    completed = 0
+
+    def emit(item):
+        print(json.dumps(item, separators=(",", ":"), allow_nan=False), flush=True)
+
+    def run(*command, timeout=20, data=None):
+        result = subprocess.run(command, input=data, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=timeout)
+        if result.returncode:
+            raise RuntimeError("owned_pi_command_failed")
+        return result.stdout
+
+    def kubectl(*command, timeout=30, data=None):
+        return run("sudo", "-n", "k3s", "kubectl", *command, timeout=timeout, data=data).decode().strip()
+
+    def app_state():
+        obj = json.loads(kubectl("-n", "gtrainer", "get", "pods", "-o", "json", timeout=10))
+        return sorted((p["metadata"]["name"], c["image"], c["ready"], c["restartCount"])
+                      for p in obj["items"] for c in p.get("status", {}).get("containerStatuses", []))
+
+    def host_state():
+        mem = {line.split(":")[0]: int(line.split()[1]) for line in Path("/proc/meminfo").read_text().splitlines()}
+        thermal = Path("/sys/class/thermal/thermal_zone0/temp")
+        return {"host_available_mib": round(mem["MemAvailable"] / 1024, 1),
+                "temperature_c": int(thermal.read_text()) / 1000 if thermal.exists() else None}
+
+    def request_raw(path, body=None, timeout=10):
+        request_body = None if body is None else json.dumps(body, separators=(",", ":"), ensure_ascii=False).encode()
+        req = urllib.request.Request("http://127.0.0.1:11440" + path, data=request_body,
+                                     headers={"Content-Type": "application/json"} if body is not None else {})
+        with urllib.request.urlopen(req, timeout=timeout) as response:
+            raw = response.read(65537)
+            if len(raw) > 65536:
+                raise RuntimeError("provider_response_wrapper_too_large")
+            return raw
+
+    def request(path, body=None, timeout=10):
+        return json.loads(request_raw(path, body, timeout))
+
+    class ResourceMonitor:
+        def __init__(self, expected_app):
+            self.expected_app = expected_app
+            self.failed = threading.Event()
+            self.stop = threading.Event()
+            self.samples = []
+            self.thread = threading.Thread(target=self.collect, daemon=True)
+
+        def sample(self):
+            sample = host_state()
+            sample["app_state_stable"] = app_state() == self.expected_app
+            with urllib.request.urlopen("http://127.0.0.1:11442/healthz", timeout=3) as response:
+                sample["app_health_ok"] = response.status == 200
+                response.read(1024)
+            state = json.loads(kubectl("-n", namespace, "get", "pod", pod_name, "-o", "json", timeout=10))
+            statuses = state.get("status", {}).get("containerStatuses", [])
+            sample["benchmark_pod_healthy"] = (state.get("status", {}).get("phase") == "Running" and
+                len(statuses) == 2 and all(c.get("ready") and c.get("restartCount") == 0 for c in statuses))
+            cgroup = kubectl("-n", namespace, "exec", pod_name, "-c", "ollama", "--", "sh", "-c",
+                             "cat /sys/fs/cgroup/memory.current; cat /sys/fs/cgroup/memory.peak", timeout=10).splitlines()
+            sample["ollama_current_mib"] = round(int(cgroup[0]) / 1024**2, 1)
+            sample["ollama_peak_mib"] = round(int(cgroup[1]) / 1024**2, 1)
+            sample["guard_ok"] = (sample["app_state_stable"] and sample["app_health_ok"] and
+                sample["benchmark_pod_healthy"] and sample["host_available_mib"] >= 768 and
+                (sample["temperature_c"] is None or sample["temperature_c"] < 85))
+            self.samples.append(sample)
+            emit({"phase": "resource_sample", **sample})
+            if not sample["guard_ok"]:
+                self.failed.set()
+
+        def collect(self):
+            while not self.stop.is_set():
+                try:
+                    self.sample()
+                except Exception:
+                    self.failed.set()
+                    emit({"phase": "resource_guard_failed", "reason": "health_or_resource_sample_unavailable"})
+                    return
+                self.stop.wait(5)
+
+        def start(self):
+            self.sample()
+            if self.failed.is_set():
+                raise RuntimeError("resource_guard_failed")
+            self.thread.start()
+
+        def finish(self):
+            self.stop.set()
+            if self.thread.ident is not None:
+                self.thread.join(timeout=15)
+            return self.samples
+
+    def call(payload, case_id, attempt, packet, timeout_seconds):
+        raw_request = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode()
+        if len(raw_request) > MAX_PACKET_BYTES:
+            raise RuntimeError("input_budget_exceeded")
+        prompt_bytes = json.dumps(payload["messages"], separators=(",", ":"), ensure_ascii=False).encode()
+        packet_bytes = payload["messages"][1]["content"].encode()
+        binding = {"packet_sha256": sha(packet_bytes), "prompt_sha256": sha(prompt_bytes)}
+        started = time.monotonic()
+        holder = {}
+
+        def work():
+            try:
+                response_raw = request_raw("/api/chat", payload, timeout=timeout_seconds)
+                response = json.loads(response_raw)
+                holder["response"] = response
+                holder["raw"] = response_raw
+            except Exception as error:
+                holder["error"] = type(error).__name__
+
+        thread = threading.Thread(target=work, daemon=True)
+        thread.start()
+        try:
+            while thread.is_alive():
+                thread.join(timeout=1)
+                if monitor.failed.is_set():
+                    raise RuntimeError("resource_guard_failed")
+                if time.monotonic() - started >= timeout_seconds:
+                    raise RuntimeError("attempt_timeout")
+        except Exception as error:
+            emit({"phase": "attempt_failure", "case": case_id, "attempt": attempt,
+                  "reason": str(error) if str(error) in ("attempt_timeout", "resource_guard_failed") else "provider_unavailable",
+                  "request_sha256": sha(raw_request), "request_base64": base64.b64encode(raw_request).decode(),
+                  **binding,
+                  "response_sha256": sha(holder["raw"]) if "raw" in holder else None,
+                  "response_base64": base64.b64encode(holder["raw"]).decode() if "raw" in holder else None,
+                  "latency_seconds": round(time.monotonic() - started, 3), "cost_usd": None})
+            raise
+        latency = time.monotonic() - started
+        if "error" in holder:
+            emit({"phase": "attempt_failure", "case": case_id, "attempt": attempt,
+                  "reason": "provider_unavailable", "error_type": holder["error"], "latency_seconds": round(latency, 3),
+                  "request_sha256": sha(raw_request), "request_base64": base64.b64encode(raw_request).decode(), **binding})
+            raise RuntimeError("provider_unavailable")
+        response = holder["response"]
+        message = response.get("message") if isinstance(response, dict) else None
+        content = message.get("content") if isinstance(message, dict) else None
+        response_bytes = content.encode() if isinstance(content, str) else b""
+        if not isinstance(content, str) or not isinstance(message, dict):
+            flags = ["invalid_response_shape"]
+        elif len(response_bytes) > MAX_RESPONSE_BYTES:
+            flags = ["response_budget_exceeded"]
+        else:
+            flags = validate_output(content, packet)
+        if not isinstance(response, dict) or response.get("done") is not True or response.get("done_reason") != "stop":
+            flags = sorted(set(flags + ["incomplete_generation"]))
+        if isinstance(message, dict) and message.get("thinking"):
+            flags = sorted(set(flags + ["unexpected_thinking"]))
+        emit({"phase": "attempt_result", "case": case_id, "attempt": attempt,
+              "status": "rejected" if flags else "accepted", "flags": flags,
+              "request_sha256": sha(raw_request), "request_base64": base64.b64encode(raw_request).decode(),
+              **binding,
+              "response_sha256": sha(holder["raw"]), "response_base64": base64.b64encode(holder["raw"]).decode(),
+              "latency_seconds": round(latency, 3), "prompt_eval_count": response.get("prompt_eval_count"),
+              "eval_count": response.get("eval_count"), "total_duration_ns": response.get("total_duration"),
+              "load_duration_ns": response.get("load_duration"), "eval_duration_ns": response.get("eval_duration"),
+              "cost_usd": None, "resource_samples": monitor.samples[-max(1, int(latency / 5) + 2):]})
+        return flags
+
+    try:
+        baseline_app = app_state()
+        if not baseline_app or not all(c[2] and c[3] == 0 for c in baseline_app):
+            raise RuntimeError("live_app_health_baseline_failed")
+        ns_obj = {"apiVersion": "v1", "kind": "Namespace", "metadata": {"name": namespace, "labels": labels}}
+        kubectl("create", "-f", "-", data=json.dumps(ns_obj).encode())
+        namespace_uid = json.loads(kubectl("get", "namespace", namespace, "-o", "json"))["metadata"]["uid"]
+        deny_ingress = {"apiVersion": "networking.k8s.io/v1", "kind": "NetworkPolicy",
+            "metadata": {"name": "no-inbound", "namespace": namespace, "labels": labels},
+            "spec": {"podSelector": {}, "policyTypes": ["Ingress"], "ingress": []}}
+        pod = {"apiVersion": "v1", "kind": "Pod", "metadata": {"name": pod_name, "namespace": namespace, "labels": labels},
+            "spec": {"automountServiceAccountToken": False, "activeDeadlineSeconds": 7200, "restartPolicy": "Never",
+                "nodeSelector": {"kubernetes.io/arch": "arm64"}, "securityContext": {"fsGroup": 10001},
+                "containers": [
+                    {"name": "ollama", "image": OLLAMA_IMAGE, "imagePullPolicy": "IfNotPresent",
+                     "command": ["ollama", "serve"], "securityContext": {"runAsNonRoot": True, "runAsUser": 10001,
+                         "runAsGroup": 10001, "allowPrivilegeEscalation": False, "readOnlyRootFilesystem": True,
+                         "capabilities": {"drop": ["ALL"]}, "seccompProfile": {"type": "RuntimeDefault"}},
+                     "env": [{"name": k, "value": v} for k, v in {"HOME": "/models", "OLLAMA_MODELS": "/models/blobs",
+                         "OLLAMA_HOST": "0.0.0.0:11434", "OLLAMA_NO_CLOUD": "1", "OLLAMA_NUM_PARALLEL": "1",
+                         "OLLAMA_MAX_LOADED_MODELS": "1", "OLLAMA_MAX_QUEUE": "2", "OLLAMA_CONTEXT_LENGTH": "2048"}.items()],
+                     "resources": {"requests": {"cpu": "500m", "memory": "512Mi"}, "limits": {"cpu": "3", "memory": "5Gi"}},
+                     "volumeMounts": [{"name": "models", "mountPath": "/models"}, {"name": "tmp", "mountPath": "/tmp"}],
+                     "readinessProbe": {"exec": {"command": ["ollama", "list"]}, "initialDelaySeconds": 5, "periodSeconds": 10}},
+                    {"name": "probe", "image": PYTHON_IMAGE, "imagePullPolicy": "IfNotPresent",
+                     "command": ["python", "-c", "import time; time.sleep(7200)"],
+                     "securityContext": {"runAsNonRoot": True, "runAsUser": 10001, "runAsGroup": 10001,
+                         "allowPrivilegeEscalation": False, "readOnlyRootFilesystem": True,
+                         "capabilities": {"drop": ["ALL"]}, "seccompProfile": {"type": "RuntimeDefault"}},
+                     "resources": {"requests": {"cpu": "10m", "memory": "24Mi"}, "limits": {"cpu": "50m", "memory": "96Mi"}}}],
+                "volumes": [{"name": "models", "emptyDir": {"sizeLimit": "5Gi"}},
+                            {"name": "tmp", "emptyDir": {"sizeLimit": "64Mi"}}]}}
+        kubectl("create", "-f", "-", data=json.dumps({"apiVersion": "v1", "kind": "List", "items": [deny_ingress, pod]}).encode(), timeout=60)
+        kubectl("-n", namespace, "wait", "--for=condition=Ready", "pod/" + pod_name, "--timeout=240s", timeout=250)
+        ollama_forward = subprocess.Popen(["sudo", "-n", "k3s", "kubectl", "-n", namespace, "port-forward", "pod/" + pod_name, "11440:11434", "--address=127.0.0.1"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        app_forward = subprocess.Popen(["sudo", "-n", "k3s", "kubectl", "-n", "gtrainer", "port-forward", "service/gtrainer", "11442:8080", "--address=127.0.0.1"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        forwards.extend([ollama_forward, app_forward])
+        for _ in range(30):
+            try:
+                version = request("/api/version")["version"]
+                if version != "0.35.0":
+                    raise RuntimeError("ollama_version_mismatch")
+                with urllib.request.urlopen("http://127.0.0.1:11442/healthz", timeout=2) as response:
+                    if response.status != 200:
+                        raise RuntimeError("live_app_health_failed")
+                break
+            except Exception:
+                if ollama_forward.poll() is not None:
+                    raise RuntimeError("port_forward_unavailable")
+                time.sleep(1)
+        else:
+            raise RuntimeError("ollama_health_timeout")
+        monitor = ResourceMonitor(baseline_app)
+        monitor.start()
+        if request("/api/tags").get("models") != []:
+            raise RuntimeError("unexpected_preloaded_model")
+        emit({"phase": "runtime_ready", "model": model, "ollama_version": version,
+              "candidate_digest_expected": MODELS[model], "host": host_state(), "synthetic_only": True})
+        pull_started = time.monotonic()
+        pull_result = {}
+        pull_thread = threading.Thread(target=lambda: pull_result.update(
+            value=request("/api/pull", {"model": model, "stream": False}, timeout=900)), daemon=True)
+        pull_thread.start()
+        pull_started_mono = time.monotonic()
+        while pull_thread.is_alive():
+            pull_thread.join(timeout=1)
+            if monitor.failed.is_set():
+                raise RuntimeError("resource_guard_failed")
+            if time.monotonic() - pull_started_mono >= 900:
+                raise RuntimeError("model_staging_timeout")
+        pulled = pull_result.get("value", {})
+        if pulled.get("status") != "success":
+            raise RuntimeError("model_staging_failed")
+        tags = request("/api/tags").get("models", [])
+        if len(tags) != 1 or tags[0].get("name") != model or tags[0].get("digest") != MODELS[model]:
+            raise RuntimeError("model_digest_mismatch")
+        emit({"phase": "model_staged", "model": model, "digest": tags[0]["digest"],
+              "size_bytes": tags[0].get("size"), "staging_seconds": round(time.monotonic() - pull_started, 3)})
+        deny_egress = {"apiVersion": "networking.k8s.io/v1", "kind": "NetworkPolicy",
+            "metadata": {"name": "no-runtime-egress", "namespace": namespace, "labels": labels},
+            "spec": {"podSelector": {}, "policyTypes": ["Egress"], "egress": []}}
+        kubectl("create", "-f", "-", data=json.dumps(deny_egress).encode())
+        probe = "import socket,json; s=socket.socket(); s.settimeout(2);\ntry:\n s.connect(('1.1.1.1',443)); print(json.dumps({'blocked':False})); raise SystemExit(2)\nexcept OSError:\n print(json.dumps({'blocked':True}))"
+        blocked = json.loads(kubectl("-n", namespace, "exec", pod_name, "-c", "probe", "--", "python", "-c", probe, timeout=8))
+        if not blocked.get("blocked"):
+            raise RuntimeError("runtime_egress_not_blocked")
+        first_prompt = prompt(load_cases()[0])
+        emit({"phase": "evaluation_started", "runtime_egress_blocked": True, "settings": OPTIONS,
+              "attempt_timeout_seconds": ATTEMPT_SECONDS, "case_total_timeout_seconds": CASE_SECONDS,
+              "maximum_attempts_per_case": 2, "inference_cost_usd": None,
+              "evaluation_version": "connected-review-evaluation-v1", "contract_version": "connected-review-v1",
+              "rubric_version": "connected-review-rubric-v1", "artifact_sha256": ARTIFACT_HASHES,
+              "system_prompt_sha256": sha(first_prompt["systemInstructions"].encode())})
+        for case in load_cases():
+            packet = materialize(case)
+            prompt_data = prompt(case)
+            schema = output_schema(packet)
+            case_start = time.monotonic()
+            feedback = None
+            final_status = "not_run"
+            attempts_made = 0
+            for attempt in (1, 2):
+                attempts_made = attempt
+                if monitor.failed.is_set():
+                    raise RuntimeError("resource_guard_failed")
+                if time.monotonic() - case_start >= CASE_SECONDS:
+                    emit({"phase": "case_failure", "case": case["id"], "attempt": attempt,
+                          "reason": "case_timeout", "previous_outcomes_retained": True})
+                    final_status = "failed"
+                    break
+                messages = [{"role": "system", "content": prompt_data["systemInstructions"]},
+                            {"role": "user", "content": prompt_data["userPacketJson"]}]
+                if feedback is not None:
+                    messages.append({"role": "user", "content": "The independent whole-draft validator rejected the prior draft with these fixed categories: " + ", ".join(feedback) + ". Return a corrected complete JSON draft grounded only in the same packet. Do not add unsupported claims."})
+                payload = {"model": model, "messages": messages, "format": schema,
+                    "options": OPTIONS, "stream": False, "think": False, "keep_alive": "0s"}
+                if len(json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode()) > MAX_PACKET_BYTES:
+                    raise RuntimeError("input_budget_exceeded")
+                try:
+                    remaining = CASE_SECONDS - (time.monotonic() - case_start)
+                    if remaining <= 0:
+                        raise RuntimeError("case_timeout")
+                    feedback = call(payload, case["id"], attempt, packet, min(ATTEMPT_SECONDS, remaining))
+                except Exception as error:
+                    emit({"phase": "case_failure", "case": case["id"], "attempt": attempt,
+                          "reason": str(error) if str(error) in ("attempt_timeout", "resource_guard_failed", "provider_unavailable", "input_budget_exceeded") else "provider_unavailable",
+                          "previous_outcomes_retained": True})
+                    raise
+                final_status = "rejected" if feedback else "accepted"
+                if not feedback:
+                    break
+                if set(feedback).intersection(NON_CORRECTABLE_FLAGS):
+                    final_status = "failed"
+                    break
+                if attempt == 1:
+                    emit({"phase": "correction_started", "case": case["id"], "attempt": 2,
+                          "validator_categories": feedback, "rejected_output_in_correction_prompt": False})
+            emit({"phase": "case_complete", "case": case["id"], "status": final_status,
+                  "attempts": attempts_made})
+            completed += 1
+        samples = monitor.finish()
+        monitor = None
+        emit({"phase": "candidate_complete", "model": model, "completed_cases": completed,
+              "resource_samples": samples, "final_live_app_state": app_state(), "host": host_state()})
+    except Exception as error:
+        emit({"phase": "candidate_failed", "model": model, "completed_cases": completed,
+              "reason": str(error) if str(error).isidentifier() else "bounded_execution_failed",
+              "host": host_state()})
+        raise
+    finally:
+        if monitor is not None:
+            emit({"phase": "resource_samples_final", "samples": monitor.finish()})
+        for process in forwards:
+            process.terminate()
+            try: process.wait(timeout=5)
+            except subprocess.TimeoutExpired: process.kill(); process.wait(timeout=5)
+        if namespace_uid is not None:
+            current = json.loads(kubectl("get", "namespace", namespace, "-o", "json"))
+            if current["metadata"]["uid"] != namespace_uid or current["metadata"].get("labels", {}).get("gtrainer.io/benchmark-owner") != owner:
+                raise RuntimeError("owned_namespace_identity_changed")
+            kubectl("delete", "namespace", namespace, "--wait=true", "--timeout=90s", timeout=100)
+            emit({"phase": "owned_cleanup_complete", "namespace_removed": True,
+                  "final_live_app_state": app_state(), "host": host_state()})
+
+
+def _remote_core() -> str:
+    source = Path(__file__).read_text()
+    start = source.index("def sha(")
+    end = source.index("\ndef _remote_core(")
+    return source[start:end]
+
+
+def _remote_source() -> str:
+    """Build a self-contained Pi-side runner without sending model outputs to the repo."""
+    core = _remote_core()
+    packet_source = (ROOT / "connected_review_packets.py").read_text()
+    cases_raw = (ROOT / "cases-v1.json").read_text()
+    artifacts = {
+        "evaluation": sha((ROOT / "evaluation-v1.json").read_bytes()),
+        "cases": sha(cases_raw.encode()),
+        "packet_adapter": sha(packet_source.encode()),
+        "contract_source": sha((ROOT.parents[1] / "backend/src/main/kotlin/com/gtrainer/InterpretationContractV1.kt").read_bytes()),
+        "runner": sha(Path(__file__).read_bytes()),
+        "settings": sha(json.dumps(OPTIONS, sort_keys=True, separators=(",", ":")).encode()),
+    }
+    return (
+        "import sys,types,json\n"
+        "u=__import__('urllib'); u.request=__import__('urllib.request',fromlist=['Request'])\n"
+        "p=types.ModuleType('connected_review_packets'); p.__file__='connected_review_packets.py'; exec(compile(" + repr(packet_source) + ", p.__file__, 'exec'),p.__dict__); sys.modules[p.__name__]=p\n"
+        "cases=json.loads(" + repr(cases_raw) + ")[\"cases\"]\n"
+        "ns={'__name__':'pi_runner','Path':__import__('pathlib').Path,'json':json,'hashlib':__import__('hashlib'),'re':__import__('re'),'datetime':__import__('datetime').datetime,'timezone':__import__('datetime').timezone,'time':__import__('time'),'subprocess':__import__('subprocess'),'threading':__import__('threading'),'uuid':__import__('uuid'),'base64':__import__('base64'),'os':__import__('os'),'sys':sys,'argparse':__import__('argparse'),'urllib':u,'MODELS':" + repr(MODELS) + ",'OLLAMA_IMAGE':" + repr(OLLAMA_IMAGE) + ",'PYTHON_IMAGE':" + repr(PYTHON_IMAGE) + ",'OPTIONS':" + repr(OPTIONS) + ",'NON_CORRECTABLE_FLAGS':{'response_budget_exceeded','incomplete_generation','unexpected_thinking'},'ARTIFACT_HASHES':" + repr(artifacts) + ",'MAX_PACKET_BYTES':32768,'MAX_RESPONSE_BYTES':12288,'ATTEMPT_SECONDS':300,'CASE_SECONDS':600,'load_cases':lambda:cases,'materialize':p.materialize,'prompt':p.prompt}\n"
+        "exec(compile(" + repr(core) + ", 'connected_review_pi_core.py', 'exec'),ns)\n"
+        "ns['pi_main']()\n"
+    )
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--run", action="store_true")
+    parser.add_argument("--approve-synthetic-run", action="store_true")
+    parser.add_argument("--models", nargs="+", choices=tuple(MODELS), required=True)
+    args = parser.parse_args()
+    if not args.run:
+        print("No inference. Use --run --approve-synthetic-run and explicitly selected --models.")
+        return
+    if not args.approve_synthetic_run:
+        raise SystemExit("Explicit synthetic inference approval flag is required")
+    if len(set(args.models)) != len(args.models):
+        raise SystemExit("Duplicate candidate selection")
+    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
+    run_dir = Path.home() / (".gtrainer-connected-review-" + run_id)
+    run_dir.mkdir(mode=0o700)
+    os.chmod(run_dir, 0o700)
+    remote = _remote_source().encode()
+    for model in args.models:
+        capture = run_dir / (model.replace(":", "-") + ".jsonl")
+        env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
+        with capture.open("wb") as stream:
+            os.chmod(capture, 0o600)
+            process = subprocess.Popen(SSH + ["python3", "-", "--model", model, "--owner", uuid.uuid4().hex],
+                                       stdin=subprocess.PIPE, stdout=stream, stderr=subprocess.DEVNULL, env=env)
+            process.communicate(remote)
+        if process.returncode:
+            print(f"{model}: stopped; private capture retained at {capture}")
+            raise SystemExit(process.returncode)
+        print(f"{model}: complete; private capture retained at {capture}")
+    print(f"Private run directory: {run_dir}")
+
+
+if __name__ == "__main__":
+    main()
