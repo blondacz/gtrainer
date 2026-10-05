@@ -69,8 +69,8 @@ in linked evidence.
   [dashboard guide](../../../docs/dashboard.md).
 - Source merge is recorded in PR [#21](https://github.com/blondacz/gtrainer/pull/21).
   Container-input test fixes are in PR
-  [#22](https://github.com/blondacz/gtrainer/pull/22). This is not image
-  publication, promotion, or Pi deployment evidence.
+  [#22](https://github.com/blondacz/gtrainer/pull/22); its CI passed. This is not
+  image publication, promotion, or Pi deployment evidence.
 
 ### Transferred acceptance criteria
 
