@@ -252,6 +252,13 @@ There is no hosted provider or consent bypass in this prototype. A future hosted
 option must disclose provider, data categories, destination, retention/sharing
 risks, and the intended request, and obtain explicit informed consent before
 transfer. Selecting a local model, logging in, installing this code, or opening
-the input endpoint is **not** hosted consent. Task 4.5 remains unchecked.
-Manual events, the full dashboard, actual-health end-to-end verification,
-hosted-provider behavior, and production model qualification remain unfinished.
+the input endpoint is **not** hosted consent. Manual events and the phase-one
+dashboard are now implemented; their completed work is recorded in the
+[archived foundation ledger](../../openspec/changes/archive/2026-10-03-garmin-training-guidance-foundation/tasks.md).
+The original model/provider acceptance criteria transferred to
+[connected-insights-context](../../openspec/changes/connected-insights-context/tasks.md);
+evaluation and independent human qualification remain incomplete. Actual-health
+end-to-end verification is tracked separately in
+[foundation-release-verification](../../openspec/changes/foundation-release-verification/tasks.md).
+This legacy local-only prototype does not gain hosted execution or production
+qualification from newer adapter implementation.

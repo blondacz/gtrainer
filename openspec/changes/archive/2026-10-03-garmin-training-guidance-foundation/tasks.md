@@ -57,16 +57,16 @@ in linked evidence.
 ### Completed work evidence
 
 - Guarded review contracts, frozen experiments, and local-model limitations:
-  [code-prepared experiment](../../../docs/decisions/code-prepared-review-experiment.md),
-  [guarded local analysis](../../../docs/decisions/guarded-local-analysis.md),
-  [actual app test](../../../docs/decisions/guarded-app-ministral-test.md),
-  [Granite app test](../../../docs/decisions/guarded-app-granite42-test.md).
+  [code-prepared experiment](../../../../docs/decisions/code-prepared-review-experiment.md),
+  [guarded local analysis](../../../../docs/decisions/guarded-local-analysis.md),
+  [actual app test](../../../../docs/decisions/guarded-app-ministral-test.md),
+  [Granite app test](../../../../docs/decisions/guarded-app-granite42-test.md).
 - Deterministic facts, guarded interpretation, presets/scheduler/queue:
-  [factual reviews](../../../docs/decisions/deterministic-factual-reviews.md),
-  [guarded interpretation](../../../docs/decisions/guarded-review-interpretation.md),
-  [scheduler and queue](../../../docs/decisions/review-presets-and-scheduler.md).
+  [factual reviews](../../../../docs/decisions/deterministic-factual-reviews.md),
+  [guarded interpretation](../../../../docs/decisions/guarded-review-interpretation.md),
+  [scheduler and queue](../../../../docs/decisions/review-presets-and-scheduler.md).
 - Dashboard, events, privacy and operator behavior:
-  [dashboard guide](../../../docs/dashboard.md).
+  [dashboard guide](../../../../docs/dashboard.md).
 - Source merge is recorded in PR [#21](https://github.com/blondacz/gtrainer/pull/21).
   Container-input test fixes are in PR
   [#22](https://github.com/blondacz/gtrainer/pull/22); its CI passed. This is not

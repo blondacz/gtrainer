@@ -87,4 +87,7 @@ independent qualification tasks 6.2/6.3 remain unchanged. No live inference, per
 history inference, model download, deployment, Q3 benchmark continuation or private
 capture rewrite was performed. Only the new public Linux OS image was downloaded
 for the approved non-inference sandbox. Real-runtime stop/recovery smoke testing still needs
-separate explicit approval; changes remain uncommitted.
+separate explicit approval. The development implementation was subsequently merged
+in PR [#24](https://github.com/blondacz/gtrainer/pull/24) and its
+[change archived](../../openspec/changes/archive/2026-10-05-connected-review-development-ollama/tasks.md).
+Source merge did not enable inference, qualify a model or authorize deployment.

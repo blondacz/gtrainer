@@ -12,11 +12,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from connected_review_packets_v2 import load_cases, prompt
+from connected_review_capture_chain import reconcile
 
 ROOT = Path(__file__).parent
 DIMENSIONS = ("grounding", "attribution", "relevance", "useful_connections_and_questions", "uncertainty", "inappropriate_advice")
 CSV_COLUMNS = ("candidate", "case", "attempt", "role", "machine_status", *DIMENSIONS,
-              "critical_failure_codes", "notes")
+              "critical_failure_codes", "notes", "capture_part", "capture_sha256", "final_for_case")
 
 
 def sha(data: bytes) -> str:
@@ -84,7 +85,11 @@ def main():
                     help="Private local/Pi JSONL capture; repeat for multiple candidates")
     ap.add_argument("--luna-manifest", type=Path, help="Legacy alias for a Luna reference manifest")
     ap.add_argument("--hosted-manifest", action="append", type=Path, default=[],
-                    help="Hosted conversational reference manifest; repeat for multiple models")
+                     help="Hosted conversational reference manifest; repeat for multiple models")
+    ap.add_argument("--capture-chain", action="append", nargs="+", default=[], metavar="NAME_OR_PATH",
+                    help="Explicit candidate label followed by ordered original Q3 capture paths; offline only")
+    ap.add_argument("--named-capture", action="append", nargs=2, default=[], metavar=("LABEL", "PATH"),
+                    help="Keep a standalone historical run as a separately labeled candidate")
     args = ap.parse_args()
     cases = load_cases()
     cases_by_id = {c["id"]: c for c in cases}
@@ -92,8 +97,9 @@ def main():
     expected_hash = {k: sha(v.encode()) for k, v in canonical.items()}
 
     candidates = []
-    for capture in args.pi_capture:
-        name = capture.stem
+    capture_inputs = [(capture.stem, capture) for capture in args.pi_capture]
+    capture_inputs += [(label, Path(path)) for label, path in args.named_capture]
+    for name, capture in capture_inputs:
         if any(candidate["name"] == name for candidate in candidates):
             raise ValueError(f"duplicate candidate {name}; supply one selected capture per candidate")
         kind, runtime = capture_runtime(capture)
@@ -107,6 +113,27 @@ def main():
                 raise ValueError(f"packet does not match frozen V2 prompt for {name}/{case_id}")
             grouped[case_id].append({"event": event, "content": content, "response": raw})
         candidates.append({"name": name, "kind": kind, "runtime": runtime, "grouped": grouped})
+
+    chains = []
+    for selection in args.capture_chain:
+        if len(selection) < 2 or any(candidate["name"] == selection[0] for candidate in candidates):
+            raise ValueError("Capture chain requires a unique candidate label and source paths")
+        name = selection[0]
+        chain = reconcile([Path(path) for path in selection[1:]])
+        grouped = {case_id: [] for case_id in cases_by_id}
+        for item in chain["attempts"]:
+            event = item["event"]
+            packet, content, raw = decode_event(event)
+            if packet != canonical[event["case"]]:
+                raise ValueError("Capture chain packet does not match frozen V2 prompt")
+            grouped[event["case"]].append({**item, "content": content, "response": raw})
+        kind, runtime = capture_runtime(Path(selection[1]))
+        sources = [{"path": part["path"], "sha256": part["sha256"],
+                    "artifact_sha256": part["header"]["artifact_sha256"]} for part in chain["parts"]]
+        chains.append({"candidate": name, "sources": sources,
+                       "accepted_cases": chain["accepted_cases"], "not_run_cases": chain["not_run_cases"]})
+        candidates.append({"name": name, "kind": kind, "runtime": runtime, "grouped": grouped,
+                           "capture_chain": sources})
 
     manifest_paths = ([args.luna_manifest] if args.luna_manifest else []) + args.hosted_manifest
     labels = {"openai/gpt-5.6-luna": "luna-reference", "openai/gpt-6.1-sol": "sol-reference"}
@@ -156,7 +183,8 @@ def main():
             "No automatic inference is justified by absent records, and no causal certainty follows from descriptive data. User-reported clinician restrictions are not independently verified. In context-present cases assess whether the relevant symptom, restriction, or preference is used appropriately—not merely copied. These are review considerations, not prescribed scores. Do not treat implementation claims as evidence.", "",
             "Compare each matched group across facts-only, context-present, and context-absent variants. Facts-only and context-absent packets may be identical: similar answers are expected. Do not penalize a model for declining to invent a connection when personal context is absent. With relevant context present, judge whether it adds useful, cautious interpretation rather than generic repetition.", "",
              "Hosted references used fresh subagents, not Ollama constrained decoding. Temperature, output budget, and harness instructions differ or were uncontrolled. Judge their content, but do not treat scores as proof of equal runtime settings or a speed/cost comparison.", "",
-             "Mac captures are a separate Intel CPU reference with larger timeout/memory budgets than Pi V3. Runtime metadata is shown per candidate. Empty interpretations/questions can pass the contract but provide no substantive review; assess usefulness independently.", "",
+              "Mac captures are a separate Intel CPU reference with larger timeout/memory budgets than Pi V3. Runtime metadata is shown per candidate. Empty interpretations/questions can pass the contract but provide no substantive review; assess usefulness independently.", "",
+            "Q3 capture chains retain every original attempt and timeout, with source hashes and part numbers. A resumed attempt 1 is a new first pass, not a correction. `final_for_case` identifies the last observed attempt only, not a qualified result. Chains and initial runs with different budgets remain separate candidates; six accepted finals do not constitute nine-case coverage.", "",
            "## Cases", ""]
     for case in cases:
         cid = case["id"]
@@ -169,14 +197,16 @@ def main():
             else:
                 label = "Intel Mac CPU reference" if candidate["kind"] == "mac" else "Raspberry Pi"
                 md += [f"Runtime: **{label}**; recorded metadata:", "", "```json", pretty(candidate["runtime"]), "```", ""]
+            if candidate.get("capture_chain"):
+                md += ["Preserved original capture chain:", "", "```json", pretty(candidate["capture_chain"]), "```", ""]
             if not attempts:
                 md += ["**NOT_RUN** — no attempt record observed; absence is not evidence of a particular cause. No quality score; cannot qualify.", ""]
-                rows.append([candidate["name"], cid, "", "not_run", "NOT_RUN", *( ["N/A"]*6), "", "No attempt record observed; cannot score."])
+                rows.append([candidate["name"], cid, "", "not_run", "NOT_RUN", *( ["N/A"]*6), "", "No attempt record observed; cannot score.", "", "", "false"])
                 continue
             for ix, att in enumerate(attempts):
                 ev = att["event"]
                 is_hosted = candidate["kind"] == "hosted"
-                role = "first_pass" if is_hosted or ix == 0 else "correction"
+                role = "first_pass" if is_hosted or ev.get("attempt", ix + 1) == 1 else "correction"
                 if ev.get("phase") == "attempt_failure": role = "failure"
                 status = ("accepted (recorded Python/Kotlin replay)" if ev.get("validator_errors") == [] and ev.get("kotlin_accepted") is True
                           else "reference: inspect recorded validation") if is_hosted else ev.get("status", ev.get("reason", "unknown"))
@@ -185,6 +215,8 @@ def main():
                     md += [f"Attempt 1 — recorded manifest validators: Python V3 errors `{ev.get('validator_errors')}`, Kotlin accepted `{ev.get('kotlin_accepted')}`. These are algorithmic outcomes, not quality scores. Response SHA-256 verified; trailing newline: {'present' if att['newline'] else 'absent'}. Session: `{ev.get('session_id')}`.", ""]
                 else:
                     md += [f"Attempt {ev.get('attempt', ix+1)} — phase `{ev.get('phase')}`, machine status `{status}`, original flags `{pretty(flags)}`. Reason: `{ev.get('reason', '—')}`. This outcome is not a human quality judgment.", ""]
+                    if att.get("capture_sha256"):
+                        md += [f"Source part: `{att['capture_part']}`; capture SHA-256: `{att['capture_sha256']}`; original line: `{att['source_line']}`; role: `{role}`.", ""]
                 content = att.get("content")
                 if content is None:
                     md += ["**No response text received.**", ""]
@@ -202,7 +234,9 @@ def main():
                     md += [f"Failure reason: `{ev.get('reason', 'unknown')}`.", ""]
                 # First-pass rows remain distinct; final-qualifying score is a reviewer decision.
                 rows.append([candidate["name"], cid, ev.get("attempt", 1), role, status,
-                             *( ["N/A" if draft_incomplete else ""]*6), "", "Incomplete/failure: document; no qualification." if draft_incomplete or role == "failure" else ""])
+                             *( ["N/A" if draft_incomplete else ""]*6), "", "Incomplete/failure: document; no qualification." if draft_incomplete or role == "failure" else "",
+                             att.get("capture_part", ""), att.get("capture_sha256", ""),
+                             "true" if ix == len(attempts) - 1 else "false"])
         md += ["#### Human review notes", "", "Scores / critical codes / notes: use the worksheet. Quote the response and give its JSON path plus the packet-grounded correct interpretation.", ""]
     (out / "review.md").write_text("\n".join(md) + "\n", encoding="utf-8")
     with (out / "scores.csv").open("w", newline="", encoding="utf-8") as stream:
@@ -213,7 +247,10 @@ def main():
                 "cases_sha256": sha((ROOT / "cases-v2.json").read_bytes()),
                 "candidate_attempt_rows": len(rows), "case_count": len(cases),
                 "candidate_runtimes": {c["name"]: {"kind": c["kind"], **c.get("runtime", {})} for c in candidates},
-                 "inputs": [str(p) for p in args.pi_capture] + [str(p) for p in manifest_paths],
+                 "inputs": [str(path) for _, path in capture_inputs] + [str(p) for p in manifest_paths],
+                "capture_sources": [{"candidate": name, "path": str(path), "sha256": sha(path.read_bytes())}
+                                    for name, path in capture_inputs],
+                "capture_chains": chains,
                 "output_files": ["review.md", "scores.csv", "metadata.json"]}
     (out / "metadata.json").write_text(pretty(metadata) + "\n", encoding="utf-8")
     for p in out.iterdir(): os.chmod(p, 0o600)

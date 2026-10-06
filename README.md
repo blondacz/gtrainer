@@ -115,5 +115,8 @@ Runtime, encrypted Mac backups (NAS later), and private GitOps delivery decision
 are documented in
 [`docs/decisions/runtime-and-delivery.md`](docs/decisions/runtime-and-delivery.md).
 
-Progress is tracked in
-[`openspec/changes/garmin-training-guidance-foundation/tasks.md`](openspec/changes/garmin-training-guidance-foundation/tasks.md).
+Current work is tracked in
+[`connected-insights-context`](openspec/changes/connected-insights-context/tasks.md),
+and [`foundation-release-verification`](openspec/changes/foundation-release-verification/tasks.md).
+Completed foundation work is recorded in its
+[archived ledger](openspec/changes/archive/2026-10-03-garmin-training-guidance-foundation/tasks.md).

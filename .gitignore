@@ -6,6 +6,8 @@
 *.pem
 secrets/
 private-data/
+# Repo-local private captures, model outputs and human-review artifacts.
+/.private/
 
 # Local build and tool output.
 __pycache__/

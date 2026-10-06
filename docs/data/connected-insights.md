@@ -26,6 +26,24 @@ Usefulness ratings/corrections are dated, attributed `review_feedback` context l
 
 The frozen, synthetic evaluation definition is in `benchmarks/connected-review/`. It contains three matched groups (facts-only, context-present, context-absent), nine cases, a six-dimension independent rubric, an 80% aggregate threshold, and zero tolerance for listed critical failures. It includes no model outputs; validation only checks the frozen artifacts and makes no provider calls. Before any future inference evaluation, obtain separate explicit approval, review the qualification/runtime/consent gate, use identical synthetic packets for explicit candidates, retain first-pass/correction/failure outcomes with hashes/latency/resource/cost metadata in the approved private store, and obtain independent human review. Schema validity or model self-approval alone cannot qualify a candidate.
 
+Before cleanup, the full offline human-review handoff contained twelve separately
+labeled candidates and 136 worksheet rows. Q3's initial 480-second run is separate from
+its parent-hash-linked 600-second retry/continuation. Python and actual Kotlin
+replay agreed on all seven Q3 drafts (six accepted, one attribution rejection);
+three response-free timeouts remain preserved. The linked reference has only six
+accepted final cases, a timeout for case seven and no attempt for cases eight/nine.
+All human score cells remained blank or N/A. At that handoff, earlier captures and
+review packs were unchanged. Tasks 6.2/6.3 remain incomplete; this handoff neither qualifies a model
+nor authorizes new inference, continuation, deployment or production wiring.
+
+The subsequent approved cleanup removed seven older unscored human-review packs
+and their home-directory duplicates. Only the latest readable three-candidate,
+39-row shortlist remains for scoring. Original model captures, failures and unrun
+cases remain preserved; the full pack's Q3 replay/reconciliation metadata was
+relocated byte-identically into the private reconciliation directory. The private
+workspace README and cleanup record describe current paths. No score or
+qualification decision was created by cleanup.
+
 ## Verification boundary
 
 Frontend tests use synthetic API fixtures; backend/API/provider tests use synthetic records and fake transports. Backup tests validate isolated synthetic/fixture databases. Do not paste personal context, prompts, provider credentials, or outputs into source fixtures, logs, CI artifacts, or public benchmark records. Existing `benchmarks/ollama` captures are separate immutable baselines.

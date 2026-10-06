@@ -79,7 +79,9 @@ Both Mac candidates completed all nine cases. Qwen3 8B passed three first attemp
 
 The actual Kotlin decoder replay matched Python outcomes for all 24 Mac drafts (18 accepted, six rejected), with private replay results bound to response hashes. Median observed attempt latency was 270.5 seconds for Qwen and 77.1 seconds for Llama; empty Llama output makes this unsuitable as a useful-answer speed ranking. Captured container memory peaks reached 6469.7 MiB during Qwen and 6656 MiB during Llama. Peaks are cumulative over the shared pod lifetime, not isolated per-model measurements. The pod remained healthy with zero restarts after the run; model storage and runtime egress isolation remain in place.
 
-The latest private human review pack includes ten candidates and 116 worksheet rows, using the latest 60-second-monitoring Gemma attempt and both completed Mac references. It labels Mac/Pi/hosted provenance separately, verifies frozen packet and request/response hashes, and leaves human scores blank (N/A for unavailable/incomplete drafts). Earlier packs and all prior captures remain unchanged. Independent human scoring remains outstanding; production inference remains disabled.
+At the qualification handoff, an earlier private human review pack contained ten candidates and 116 worksheet rows, using the latest 60-second-monitoring Gemma attempt and both completed Mac references. Offline Q3 reconciliation produced a twelve-candidate, 136-row full pack, retaining the initial 480-second Q3 run separately from the linked 600-second retry/continuation. Packs labeled Mac/Pi/hosted provenance separately, verified frozen packet and request/response hashes, and left human scores blank (N/A for unavailable/incomplete drafts). Earlier packs and captures were unchanged at that handoff. Independent human scoring remains outstanding; production inference remains disabled.
+
+Subsequent user-approved cleanup removed seven older unscored packs and their duplicate originals. Only the latest readable three-candidate, 39-row shortlist remains for scoring. Original model captures remain preserved; the full pack's Q3 replay/reconciliation metadata was retained byte-identically in the private reconciliation directory. The private workspace README and cleanup record identify current paths. Cleanup neither generated scores nor qualified a model.
 
 ## Pi Qwen3 8B Q3 reduced-context reference
 
@@ -105,6 +107,42 @@ The 5376 MiB / 600-second retry completed its first two cases, both accepted on 
 On explicit user request, resume from the third case was launched with unchanged settings and `--resume-capture <original-private-jsonl>`. Resume verifies the prior settings, frozen-case/validator hashes, accepted-prefix request/response hashes and current validation, and confirmed cleanup before any remote work. It writes a separate capture with an `evaluation_resumed` record binding the original capture SHA-256 and selected remaining case IDs; it never overwrites or copies the earlier outcomes. Cases restart with fresh per-attempt budgets, so this is a separately recorded continuation, not one uninterrupted evaluation. Continuations must be reconciled explicitly for human review; automatic multi-capture-chain resume is not supported. The job uses `caffeinate -dimsu` for its lifetime.
 
 That continuation completed four further cases, all with accepted final drafts: running/context-absent (589.941 seconds), rest-limit/facts-only (479.579), rest-limit/context-present (488.366-second rejection for `clinician_attribution_invalid`, then 400.755-second corrected acceptance), and rest-limit/context-absent (475.953). It stopped at load-question/facts-only (overall case seven) after 600.099 seconds without a complete response. Logs show generation still progressing at about 2.07 tokens/second; both containers remained ready with zero restarts and no logged OOM evidence. All 498 sampled guards passed (1773.3 MiB minimum host headroom, 5376.0 MiB container peak, 74.35°C maximum temperature); owned cleanup succeeded and the app remained ready with unchanged restart count. Across the preserved original retry and its hash-linked continuation, six distinct cases have accepted final drafts, case seven timed out, and cases eight/nine were not run. This is not a single completed evaluation or a human-quality qualification. The job-scoped `caffeinate` ended with the stopped run; another continuation requires explicit authorization and capture-chain reconciliation.
+
+### Offline capture-chain reconciliation and human handoff
+
+`connected_review_capture_chain.py` reconciles preserved Q3 bytes without calling a
+provider, contacting the Pi or enabling inference resumption. It requires the
+original capture followed by exact parent-hash-linked continuations, matching
+model/settings/budgets, current frozen artifacts, a contiguous accepted prefix,
+the exact remaining-case suffix and recorded cleanup. Runner hashes may differ
+and remain preserved per source; runtime or budget differences cannot be pooled.
+The earlier initial run lacks some later runtime metadata: leave those fields
+unknown rather than inventing them or mixing it into the later reference.
+
+Generate a new owner-only pack alongside the selected existing candidates:
+
+```sh
+python3 benchmarks/connected-review/prepare_human_review.py \
+  --capture /private/path/existing-candidate.jsonl \
+  --named-capture q3-initial-480s /private/path/initial-q3.jsonl \
+  --capture-chain q3-linked-600s /private/path/retry-q3.jsonl /private/path/continuation-q3.jsonl
+```
+
+The pack retains every observed first pass, correction and timeout. Source part,
+capture SHA-256 and original line identify each chained outcome. A resumed attempt
+1 remains `first_pass`, not `correction`; `final_for_case` marks the last observed
+attempt for inspection, not qualification or permission to erase earlier failures.
+Human score cells remain blank or N/A. Existing packs and scores are never edited.
+
+Offline replay on the approved isolated Linux sandbox used the unchanged Python
+V3 guard and the actual Kotlin decoder for all seven captured Q3 drafts: six
+accepted and one rejected for clinician attribution, with complete agreement.
+Three response-free timeouts across the initial/retry/continuation remain retained.
+The linked reference still has only six accepted finals, a timeout for case seven
+and two unrun cases. The 47 Python regressions, including offline chain/handoff
+tests, passed in that sandbox. No inference, owning-node contact, model download,
+runtime smoke test or additional continuation occurred. Complete coverage and
+independent human scoring remain required; no candidate is qualified.
 
 After Qwen finished, `openai/gpt-5.6-luna` produced one response in each of nine fresh `general` subagent sessions. `prepare_luna_reference.py` prepares private task files with the exact synthetic packets, application instructions, and output schema. Each candidate was allowed one read of its task file and instructed to use no other tools. Expected outcomes, rubric scores, prior model outputs, and validation feedback were not supplied. There were no corrections or retries. Private manifests retain task/packet/response hashes, invocation prompts, and session IDs. Raw responses stay outside the repository.
 

@@ -203,8 +203,9 @@ fixed snapshots, stale labeling, cancellation, publication locking, zoned dates,
 parent cancellation and restart recovery. Frontend controls have **81 synthetic
 tests**; full UI/build and documentation checks are recorded in the task ledger.
 
-Task 7.4 was completed at **23/33**; later local task progress is tracked in
-[the task ledger](../../openspec/changes/garmin-training-guidance-foundation/tasks.md).
+The **23/33** task-7.4 count is a historical implementation milestone, not current
+progress. Completed foundation work is recorded in
+[the archived ledger](../../openspec/changes/archive/2026-10-03-garmin-training-guidance-foundation/tasks.md).
 The user approved publishing the tested source for PR review only; it is not
 deployed or qualified for actual-data inference. Image publication/promotion,
 live migration and inference remain outside this approval.
