@@ -24,4 +24,16 @@ def select(profile="context-intake-extraction-v4"):
             here=suite.HERE, edition="v5", revision=revision, replay=replay, oracle=suite,
             validate=replay.kotlin_results,
             max_batches=1, max_scored=8, max_probes=1)
+    if profile == "guarded-live-intake-pilot-v1":
+        import sys
+        path = str(old.HERE.parent / "live-intake-pilot")
+        if path not in sys.path:
+            sys.path.insert(0, path)
+        import pilot_profile as pilot
+        import revision_pilot as revision
+        import replay_pilot as replay
+        return SimpleNamespace(profile=pilot.PROFILE, ids=pilot.IDS, verify=pilot.verify,
+            here=pilot.HERE, edition="pilot", revision=revision, replay=replay, oracle=pilot,
+            validate=replay.kotlin_results, max_batches=1, max_scored=1, max_probes=1,
+            campaign_seconds=3600)
     raise ValueError("Unknown intake evaluation suite")

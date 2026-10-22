@@ -65,3 +65,13 @@ tasks.register<JavaExec>("runSyntheticIntakePilot") {
     workingDir = rootProject.projectDir
     jvmArgs("--enable-native-access=ALL-UNNAMED")
 }
+
+tasks.register<JavaExec>("runLiveIntakePilot") {
+    group = "application"
+    description = "Opt-in bounded inspector for an admitted synthetic intake capture"
+    dependsOn(tasks.testClasses)
+    classpath = sourceSets.test.get().runtimeClasspath
+    mainClass.set("com.gtrainer.LiveIntakePilot")
+    workingDir = rootProject.projectDir
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
+}

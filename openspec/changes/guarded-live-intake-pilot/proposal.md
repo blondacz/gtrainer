@@ -60,9 +60,15 @@ cleanup. These operations interrupt the shared service. They are proposed, not
 authorized. If that explicit pause/restore and pod lifecycle are not approved,
 live acquisition stays blocked; it must not fall back to shared-server inference.
 
-**Current approval is planning only.** The user's “ok, do it” follows the explicit
-offer to prepare this proposal. Implementation requires a new apply instruction;
-actual probes, model calls and owned runtime operations require a later exact grant.
+**Approval update, 2026-10-22:** the user explicitly approves committing/pushing all
+accumulated code, applying this proposal and running its bounded test after checks.
+The user also confirms Ollama is used only by this development work and restoration
+is unnecessary unless needed for development. The original planning-only approval
+has therefore been superseded. Freeze and verify implementation first, then record
+a fresh exact conditional execution grant against those sources and limits. Default
+new-pilot cleanup to verified owned termination with the deployment left paused;
+restoration is optional only when explicitly selected before admission. Historical
+restore-required grants are unchanged. The user requests a visible UI demo afterward.
 No existing database access/reset/migration, model download, VM resize, independent
 service restart/takeover, publication, deployment, commit/push, spec sync or archive
 is authorized. Any live runtime transition needed by inherited guards must first be

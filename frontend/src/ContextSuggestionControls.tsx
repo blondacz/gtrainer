@@ -6,7 +6,7 @@ type Recurrence = { frequency: 'one_off' | 'daily' | 'weekly'; interval: number 
 type CommitmentPayload = { label: string; kind: 'commitment' | 'availability' | null; startsLocal: string | null; endsLocal: string | null; timeZone: string | null; recurrence: Recurrence | null }
 export type TypedSuggestion = { kind: 'context'; sourceStart: number; sourceEnd: number; sourceExcerpt: string; context: ContextPayload; commitment: null; unresolvedFields: string[] } |
   { kind: 'commitment'; sourceStart: number; sourceEnd: number; sourceExcerpt: string; context: null; commitment: CommitmentPayload; unresolvedFields: string[] }
-export type SuggestionView = { status: 'available' | 'unavailable'; draft: TypedSuggestion[]; questions: string[] }
+export type SuggestionView = { status: 'available' | 'unavailable'; draft: TypedSuggestion[]; questions: string[]; provenanceLabel?: string }
 export type SuggestionLoader = (note: Intake, signal: AbortSignal) => Promise<SuggestionView>
 
 function fail(): never { throw new Error('Invalid saved suggestions') }
@@ -111,6 +111,7 @@ export function ContextSuggestionControls({ note, onEdit, loadSuggestions = load
     {error && <p role="alert">{error}</p>}
     {view?.status === 'unavailable' && <p>Suggestions are unavailable. Use the manual fallback to review the original note.</p>}
     {view?.status === 'available' && <div><p>Read-only suggestions for source revision {note.revision}; not staged or confirmed.</p>
+      {view.provenanceLabel && <p aria-label="Acquisition provenance">{view.provenanceLabel}</p>}
       <p>Attributed source: {note.authorAttribution} ({note.sourceCategory}); observed {note.observedOn}, recorded {note.recordedUtc}. Attribution is preserved from the saved note, not verified by a model.</p>
       {view.draft.map((item, i) => <article key={i}><h4>{item.kind} suggestion</h4><p>Original source excerpt: {note.content.slice(item.sourceStart, item.sourceEnd)}</p>
         <p>Proposed draft: {item.kind === 'context' ? item.context.content : item.commitment.label}</p>

@@ -32,6 +32,26 @@ No reliable generation or factual-truth claim follows from this known one-case p
 
 ## Decisions
 
+### Approval and cleanup amendment of 2026-10-22
+
+The user now explicitly approves implementation and the bounded live test, including
+the previously explained service interruption. The user states the deployed Ollama
+is used only by this development work and need not be restored. This supersedes the
+earlier requirement to return for a further approval conversation after offline checks,
+but not the checks or source-bound grant. Freeze sources at task 2.3, then record
+this conditional permission in a fresh exact grant before any live observation/send.
+
+For this new profile only, bind `restoreOriginalService: false` by default. Cleanup
+must still stop all owned clients/descendants and both owned pod identities and prove
+UID absence, empty cgroups and absent running CRI identities. Verify the original
+deployment identity/spec remains unchanged except its authorized replica count zero;
+leave it paused. Do not manufacture a restoration-success record. Selecting restoration
+before admission retains exact-original-spec/readiness/resource checks. All earlier
+v4/v5 grants and default runtime behavior stay restore-required. References below to
+mandatory restoration and renewed approval are historical design context superseded
+by this explicit amendment for the new grant only. The user requests a hands-on UI
+demo after implementation/test; use only synthetic/disposable data.
+
 ### 1. Acquire once and inspect a sealed result
 
 Use a distinct `guarded-live-intake-pilot-v1` acquisition/inspection profile with an

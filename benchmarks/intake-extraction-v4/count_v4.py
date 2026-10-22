@@ -31,7 +31,8 @@ def count(document, library_path, model_path, tokenizer):
     need(model_path.name == "sha256-" + MODEL_BLOB and model_path.is_file())
     need(type(document) is dict and set(document) == {"version", "cases"})
     ids = {"intake-conformance-token-input-v4": [f"i{i:02}" for i in range(1, 9)],
-           "intake-conformance-token-input-v5": [f"u{i:02}" for i in range(1, 9)]}
+           "intake-conformance-token-input-v5": [f"u{i:02}" for i in range(1, 9)],
+           "intake-conformance-token-input-pilot": ["u02"]}
     need(document["version"] in ids)
     need(type(document["cases"]) is list and [row["caseId"] for row in document["cases"]] == ids[document["version"]] + ["probe"])
     need(tokenizer["librarySha256"] == LIBRARY_SHA256 and tokenizer["modelBlobSha256"] == MODEL_BLOB)

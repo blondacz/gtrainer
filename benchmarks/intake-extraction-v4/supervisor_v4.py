@@ -18,15 +18,17 @@ BASE = Path("/private/var/folders/bk/s3pfblw91vs39ffzns_67jfh0000gn/T/opencode")
 
 
 def validate(spec):
-    life.need(spec["mode"] in ("live", "synthetic_fake", "offline_tests"))
+    life.need(spec["mode"] in ("live", "pilot_fake", "synthetic_fake", "offline_tests"))
     life.need(spec["clockIdentity"] == c.clock_identity())
     profile = spec.get("profile", c.e.PROFILE)
     life.need(spec["toolingSha256"] == c.tooling(profile))
     life.need(c.native_clock.monotonic() < spec["workCutoff"] and time.time() < spec["expiresUnix"])
-    if spec["mode"] == "live":
+    if spec["mode"] in ("live", "pilot_fake"):
         scope = c.private.read_json(Path(spec["campaign"]) / "campaign.json")
         life.need(scope["profile"] == profile)
-        life.need(scope["executionMode"] == "live" and scope["toolingSha256"] == spec["toolingSha256"])
+        expected_mode = "live" if spec["mode"] == "live" else "synthetic_fake"
+        life.need(scope["executionMode"] == expected_mode and scope["toolingSha256"] == spec["toolingSha256"])
+        life.need(spec["mode"] != "pilot_fake" or profile == "guarded-live-intake-pilot-v1")
         life.need(spec["campaignSha256"] == c.e.digest(c.private.private_read(Path(spec["campaign"]) / "campaign.json")))
         life.need(scope["workCutoffMonotonic"] == spec["workCutoff"])
         approval = c.private.read_json(Path(spec["campaign"]) / "scope-approval.json")
@@ -208,7 +210,7 @@ def serve(directory):
         finalizer = Finalizer(directory, spec)
         try:
             validate(spec)
-            if spec["mode"] == "live":
+            if spec["mode"] in ("live", "pilot_fake"):
                 selected = c.v.suites.select(spec.get("profile", c.e.PROFILE))
                 command = [sys.executable, str(selected.here / ("run_mac_" + selected.edition + ".py")), "--directory", spec["campaign"],
                            "--revision", spec["revision"], "--supervised-worker", str(directory)]
@@ -342,7 +344,7 @@ def perform_cleanup(directory, spec, native_end, wall_end, *, allow_restore=True
             if spec["mode"] != "live":
                 # Synthetic fixtures never create a MacRuntime or invoke kubectl.
                 life.write(directory / "synthetic-cleanup.json", {"newInferenceRequests": 0})
-                return {"verified": healthy, "syntheticOnly": spec["mode"] == "synthetic_fake",
+                return {"verified": healthy, "syntheticOnly": spec["mode"] in ("synthetic_fake", "pilot_fake"),
                         "offlineOnly": spec["mode"] == "offline_tests"}
             result = life.cleanup(directory, binding, native_end, wall_end,
                                   allow_restore=healthy, local_end=local_end)
@@ -398,11 +400,12 @@ def connect(directory):
 def run(campaign, revision, *, wait=False):
     # Validate without spending a claim; worker opens the ledger only once.
     with c.Campaign(campaign) as checked:
-        life.need(checked.scope["executionMode"] == "live")
+        life.need(checked.scope["executionMode"] == "live" or
+                  checked.scope["profile"] == "guarded-live-intake-pilot-v1" and checked.scope["executionMode"] == "synthetic_fake")
         life.need(not (checked.directory / "terminal.json").exists())
         scope, approval, ordinal = checked.scope, checked.approval, len(checked.receipts) + 1
     directory = Path(tempfile.mkdtemp(prefix="v4w-", dir=BASE))
-    spec = {"mode": "live", "campaign": str(campaign.absolute()), "revision": str(revision.absolute()),
+    spec = {"mode": "live" if scope["executionMode"] == "live" else "pilot_fake", "campaign": str(campaign.absolute()), "revision": str(revision.absolute()),
         "campaignSha256": c.e.digest(c.private.private_read(campaign / "campaign.json")),
         "clockIdentity": scope["clockIdentity"], "workCutoff": scope["workCutoffMonotonic"],
         "expiresUnix": c.private.timestamp(approval["expiresUtc"]).timestamp(),

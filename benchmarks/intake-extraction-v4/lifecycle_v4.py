@@ -76,7 +76,8 @@ class Worker:
         self.spec = private.read_json(self.directory / "job.json")
         self.suite = v.suites.select(self.spec.get("profile", e.PROFILE))
         ready = private.read_json(self.directory / "ready.json")
-        need(self.spec["mode"] == "live" and self.spec["campaign"] == str(campaign_directory))
+        need(self.spec["mode"] in ("live", "pilot_fake") and self.spec["campaign"] == str(campaign_directory))
+        need(self.spec["mode"] != "pilot_fake" or self.suite.edition == "pilot")
         need(ready["jobSha256"] == e.digest(private.private_read(self.directory / "job.json")))
         need(ready["clockIdentity"] == clock.identity() and ready["launchdParent"] == 1)
         need(ready["supervisorPid"] == os.getppid())
@@ -103,6 +104,10 @@ class Worker:
         now = clock.monotonic()
         maximum = {"preflight": 120, "probe": 900, "validation": 600, "report": 30}.get(name, 900)
         need(now < deadline <= min(self.spec["workCutoff"], now + maximum))
+        if self.suite.edition == "pilot" and name == "preflight" and self.index:
+            previous = private.read_json(self.directory / f"phase-{self.index:04}.json")
+            need(previous["name"] == "preflight" and previous["deadline"] == deadline)
+            return
         self.index += 1
         write(self.directory / f"phase-{self.index:04}.json", {"name": name, "deadline": deadline, "started": now})
 
@@ -280,6 +285,12 @@ def cleanup(directory, binding, native_end, wall_end, *, factory=CleanupRuntime,
         try: write(directory / "cleanup-stop-evidence.json", {"events": events, "state": runtime.safety_state()})
         except BaseException: need(False)
     restored = runtime.baseline()
+    if run.get("profile") == "guarded-live-intake-pilot-v1" and run.get("restoreOriginalService") is False:
+        expected = copy.deepcopy(original["spec"])
+        expected["replicas"] = 0
+        need(restored["spec"] == expected and runtime.document(["get", "pods"])["items"] == [])
+        need(time.monotonic() <= runtime.deadline and time.time() <= wall_end)
+        return {"verified": True, "events": events, "restored": False, "deploymentLeftPaused": True}
     need(restored["spec"] == original["spec"] and restored["status"]["readyReplicas"] == 1)
     pods = runtime.document(["get", "pods"])["items"]
     need(len(pods) == 1 and pods[0]["metadata"].get("labels", {}).get("app") == "ollama")

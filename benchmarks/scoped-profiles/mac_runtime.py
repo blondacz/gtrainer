@@ -1,5 +1,6 @@
 """Owned, synthetic-only Mac pod adapter. Importing this module performs no operations."""
 import base64
+import datetime as dt
 import hashlib
 import http.client
 import json
@@ -107,7 +108,7 @@ class PipeSocket:
 class MacRuntime:
     def __init__(self, *, request_builder=None, context_validator=None, request_profile="context-intake-extraction-v3"):
         need((request_builder is None) == (context_validator is None))
-        need(request_builder is None or request_profile in ("context-intake-extraction-v3", "context-intake-extraction-v4", "context-intake-extraction-v5"))
+        need(request_builder is None or request_profile in ("context-intake-extraction-v3", "context-intake-extraction-v4", "context-intake-extraction-v5", "guarded-live-intake-pilot-v1"))
         self.request_builder = request_builder
         self.context_validator = context_validator
         self.request_profile = request_profile
@@ -168,9 +169,15 @@ class MacRuntime:
     def manifest(self, run):
         self.serial += 1
         name = "scoped-intake-" + run["runId"].replace("-", "")[:20] + "-" + str(self.serial)
+        lifetime = acquire.LIMITS["batchTimeoutSeconds"] + 60
+        if run.get("profile") == "guarded-live-intake-pilot-v1":
+            remaining = (dt.datetime.fromisoformat(run["runtimeExpiresUtc"].replace("Z", "+00:00")).timestamp() - time.time())
+            need(15 < remaining <= 3600)
+            # Leave room for the bounded create request rather than restarting the grant.
+            lifetime = int(remaining) - 15
         return {"apiVersion": "v1", "kind": "Pod", "metadata": {"name": name, "namespace": NS,
                 "labels": {"gtrainer-scoped-run": run["runId"]}}, "spec": {
-            "restartPolicy": "Never", "activeDeadlineSeconds": acquire.LIMITS["batchTimeoutSeconds"] + 60,
+            "restartPolicy": "Never", "activeDeadlineSeconds": lifetime,
             "automountServiceAccountToken": False, "nodeSelector": {"kubernetes.io/hostname": "gtrainer-mac-vm"},
             "securityContext": {"fsGroup": 10001}, "containers": [{"name": "ollama", "image": IMAGE,
                 "imagePullPolicy": "Never", "command": ["ollama", "serve"],
@@ -510,6 +517,12 @@ class MacRuntime:
         self.stop_pod(deadline, emit)
         if self.paused or self.pause_pending or self.restore_pending:
             dep = self.baseline()
+            if run.get("profile") == "guarded-live-intake-pilot-v1" and run.get("restoreOriginalService") is False:
+                need(dep["spec"]["replicas"] == 0 and not self.restore_pending)
+                need(self.document(["get", "pods"])["items"] == [])
+                self.paused = self.pause_pending = False
+                need(time.monotonic() <= deadline)
+                return {"verified": True, "restored": False, "deploymentLeftPaused": True}
             if not self.restore_pending:
                 need(dep["spec"]["replicas"] == 0)
                 self.restore_pending = True

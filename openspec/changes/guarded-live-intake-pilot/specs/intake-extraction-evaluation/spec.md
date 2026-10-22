@@ -11,8 +11,9 @@ historical execution allowances or the completed handwritten-fixture harness.
 
 ### Requirement: Live intake pilot approval is separate from planning and implementation
 
-The synthetic live pilot SHALL require a new implementation instruction and a later
-exact execution grant. Planning, offline checks and historical authorities SHALL NOT
+The synthetic live pilot SHALL require explicit implementation approval and a fresh
+exact execution grant bound to verified sources. Conditional user approval before
+implementation SHALL NOT bypass the offline checkpoint. Planning or historical authorities SHALL NOT
 permit model/tokenizer execution, live API probes or runtime mutations. Production
 and personal-data admission SHALL remain closed.
 
@@ -22,7 +23,7 @@ and personal-data admission SHALL remain closed.
 - **AND** successful offline checks stop at the execution approval gate
 
 #### Scenario: Required service interruption is not approved
-- **WHEN** the grant omits the inherited runtime's deployment pause/restore or owned pod lifecycle
+- **WHEN** the grant omits the inherited runtime's deployment pause, chosen cleanup policy or owned pod lifecycle
 - **THEN** live execution remains blocked without switching to an unowned shared runtime
 
 ### Requirement: The live intake pilot has a single immutable acquisition allowance
@@ -74,8 +75,9 @@ Missing or drifting evidence SHALL block or stop work without fallback or resize
 Cancellation, deadline or health failure SHALL fence late output and invoke bounded
 owned cleanup independently of observer lifetime. Successful cleanup SHALL prove
 owned clients/descendants stopped, pod UID absent, cgroup empty and running CRI
-identity absent, then verify authorized exact-original-service restoration.
-Uncertain stop or restoration SHALL block import, not be labeled success.
+identity absent, then verify the grant's cleanup policy. The grant SHALL explicitly
+choose restoration or leaving the original deployment paused without other spec
+changes. Uncertain required cleanup SHALL block import, not be labeled success.
 
 #### Scenario: Socket closes but an owned descendant remains
 - **WHEN** transport ends without complete owned-process and runtime stop proof

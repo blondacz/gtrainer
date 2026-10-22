@@ -72,9 +72,11 @@ def definition(campaign_id, mode, identity, start, recorded, recovery=None, prof
     suite = v.suites.select(profile)
     suite.verify()
     limits = dict(LIMITS, maxBatches=suite.max_batches, maxScoredRequests=suite.max_scored, maxProbes=suite.max_probes)
+    seconds = getattr(suite, "campaign_seconds", 14400)
+    limits["campaignSeconds"] = seconds
     result = {"version": "intake-conformance-campaign-" + suite.edition, "campaignId": campaign_id, "executionMode": mode,
             "profile": suite.profile, "clockIdentity": identity, "startMonotonic": start,
-            "endMonotonic": start + 14400, "workCutoffMonotonic": start + 14400 - 240,
+            "endMonotonic": start + seconds, "workCutoffMonotonic": start + seconds - 240,
             "recordedUtc": recorded, "caseIds": suite.ids, "limits": limits,
             "manifestSha256": e.digest((suite.here / ("manifest-" + suite.edition + ".json")).read_bytes()),
             "oracleSha256": e.digest((suite.here / ("oracle-" + suite.edition + ".json")).read_bytes()),
@@ -143,7 +145,7 @@ class Campaign:
         approval = {"version": "intake-conformance-campaign-approval-v4", "campaignSha256": e.digest(e.compact(scope)),
                     "purpose": "synthetic_bounded_campaign_and_automatic_validation" if mode == "live" else "synthetic_fake_campaign_only",
                     "recordedBy": recorded_by, "approvalEvidence": approval_evidence,
-                    "recordedUtc": scope["recordedUtc"], "expiresUtc": (recorded + dt.timedelta(hours=4)).isoformat().replace("+00:00", "Z"),
+                    "recordedUtc": scope["recordedUtc"], "expiresUtc": (recorded + dt.timedelta(seconds=scope["limits"]["campaignSeconds"])).isoformat().replace("+00:00", "Z"),
                     "automaticLocalValidation": True, "allowCancellationProbes": True, "allowCorrection": False,
                     "allowRecoveryRestart": False, "allowResponseRepair": False}
         durable(directory / "campaign.json", scope)
@@ -204,7 +206,7 @@ class Campaign:
         need(a["automaticLocalValidation"] is True and a["allowCancellationProbes"] is True)
         need(a["allowCorrection"] is False and a["allowRecoveryRestart"] is False and a["allowResponseRepair"] is False)
         start, end = private.timestamp(a["recordedUtc"]), private.timestamp(a["expiresUtc"])
-        need(a["recordedUtc"] == scope["recordedUtc"] and end - start == dt.timedelta(hours=4))
+        need(a["recordedUtc"] == scope["recordedUtc"] and end - start == dt.timedelta(seconds=scope["limits"]["campaignSeconds"]))
         need(start <= self.now() and (allow_expired or self.now() < end))
         self._time()
 
@@ -352,7 +354,9 @@ class Campaign:
             import lifecycle_v4 as life
             need(type(lifecycle) is life.Worker)
             lifecycle.guard()
-        else: need(lifecycle is None)
+        else:
+            need(lifecycle is None or self.suite.edition == "pilot")
+            if lifecycle is not None: lifecycle.guard()
         self._static(allow_expired=True); receipts = self._ledger()
         if self.scope.get("recovery") is not None: need(not receipts)
         need(self.active is None and not (self.directory / "terminal.json").exists())
@@ -368,7 +372,8 @@ class Campaign:
             need(all(e.digest(prepared["systemInstructions"].encode()) != report["instructionsSha256"] for _, report in receipts))
         else: need(prepared["previousRevisionSha256"] is None)
         ordinal = len(receipts) + 1
-        run = v.make_run(str(uuid.uuid4()), self.scope["executionMode"], prepared, evidence, e.digest(self.scope_raw))
+        run = v.make_run(str(uuid.uuid4()), self.scope["executionMode"], prepared, evidence, e.digest(self.scope_raw),
+                         grant_expires_utc=self.approval["expiresUtc"])
         approval = {"version": "intake-conformance-batch-approval-v4", "runSha256": e.digest(e.compact(run)),
             "purpose": "synthetic_campaign_batch_with_automatic_validation" if run["executionMode"] == "live" else "synthetic_fake_batch_only",
             "campaignSha256": e.digest(self.scope_raw), "recordedBy": self.approval["recordedBy"],
@@ -415,8 +420,10 @@ class Campaign:
                     runtime = runtime_factory(run, self.guard, self.request_guard)
                     need(getattr(runtime, "synthetic_fake", False) is True)
                 self.guard(run)
-                if lifecycle is not None: lifecycle.phase("preflight", min(self._time() + 120, self.scope["workCutoffMonotonic"]))
-                runtime.deadline = self._runtime_deadline(self.scope["workCutoffMonotonic"])
+                preflight_end = min(self._time() + 120, self.scope["workCutoffMonotonic"])
+                if self.suite.edition == "pilot": preflight_end = min(preflight_end, self.scope["startMonotonic"] + 120)
+                if lifecycle is not None: lifecycle.phase("preflight", preflight_end)
+                runtime.deadline = self._runtime_deadline(preflight_end if self.suite.edition == "pilot" else self.scope["workCutoffMonotonic"])
                 emit({"type": "preflight", "evidence": runtime.preflight(run)})
                 self.guard(run)
                 deadline = min(self._time() + 900, self.scope["workCutoffMonotonic"])
@@ -522,9 +529,9 @@ class Campaign:
                   "runtimeSafetyState": runtime.safety_state() if runtime is not None and hasattr(runtime, "safety_state") else None,
                   "evaluationMethod": "deterministic_extractive", "independentHuman": False, "humanAssessment": None,
                   "developmentSetTuning": True, "unseenInputReliabilityProven": False, "productionAdmission": "closed"}
-        if self.suite.edition == "v5":
+        if self.suite.edition in ("v5", "pilot"):
             report.update(profile=self.suite.profile, manifestSha256=self.scope["manifestSha256"],
-                          prospectiveSyntheticEvaluation=True, independentBlindHoldout=False, developmentSetTuning=False)
+                           prospectiveSyntheticEvaluation=self.suite.edition == "v5", independentBlindHoldout=False, developmentSetTuning=False)
             for row in cases:
                 row["packetSha256"] = prepared["packetSha256"][row["caseId"]]
         durable(self.batch_directory / "report.json", report)

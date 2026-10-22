@@ -32,24 +32,30 @@ def tooling(profile=e.PROFILE):
     return {name: e.digest((e.ROOT / name).read_bytes()) for name in TOOLING}
 
 
-def make_run(run_id, mode, prepared, evidence, campaign_sha256):
+def make_run(run_id, mode, prepared, evidence, campaign_sha256, *, grant_expires_utc=None):
     suite = suites.select(prepared.get("profile"))
     suite.revision.check_revision(prepared, evidence)
     need(type(run_id) is str and str(uuid.UUID(run_id)) == run_id)
     need(mode in ("live", "synthetic_fake") and type(mode) is str)
     need(replay.private.sha(campaign_sha256))
-    return copy.deepcopy({"version": "intake-conformance-batch-run-" + suite.edition, "runId": run_id,
+    result = {"version": "intake-conformance-batch-run-" + suite.edition, "runId": run_id,
         "executionMode": mode, "profile": suite.profile, "caseIds": suite.ids, "campaignSha256": campaign_sha256,
         "revisionSha256": e.digest(e.compact(prepared)), "contextEvidenceSha256": e.digest(e.compact(evidence)),
         "manifestSha256": prepared["manifestSha256"], "oracleSha256": prepared["oracleSha256"],
         "toolingSha256": tooling(suite.profile), "model": replay.MODEL if mode == "live" else replay.FAKE_MODEL,
         "settings": dict(replay.SETTINGS, formatSchemaSha256=prepared["schemaSha256"]),
-        "resourceLimits": shared_acquire.LIMITS, "runtime": mac.IDENTITY, "runnerPolicy": RUNNER_POLICY})
+        "resourceLimits": shared_acquire.LIMITS, "runtime": mac.IDENTITY, "runnerPolicy": RUNNER_POLICY}
+    if suite.edition == "pilot":
+        replay.private.timestamp(grant_expires_utc)
+        need(prepared["contextEvidenceMode"] == ("live_vocab_only" if mode == "live" else "synthetic_fake"))
+        result.update(runtimeExpiresUtc=grant_expires_utc, restoreOriginalService=False)
+    return copy.deepcopy(result)
 
 
 def authorize(run, approval, prepared, evidence, now):
     need(type(run) is dict)
-    expected = make_run(run.get("runId"), run.get("executionMode"), prepared, evidence, run.get("campaignSha256"))
+    expected = make_run(run.get("runId"), run.get("executionMode"), prepared, evidence, run.get("campaignSha256"),
+                        grant_expires_utc=run.get("runtimeExpiresUtc"))
     need(oracle_v4.same(run, expected))
     need(type(approval) is dict and set(approval) == {"version", "purpose", "runSha256", "campaignSha256",
         "recordedBy", "recordedAt", "expiresUtc", "approvalEvidence", "allowCancellationProbe",
@@ -62,6 +68,8 @@ def authorize(run, approval, prepared, evidence, now):
     start, end = replay.private.timestamp(approval["recordedAt"]), replay.private.timestamp(approval["expiresUtc"])
     need(type(now) is dt.datetime and now.tzinfo is not None and start <= now < end)
     need(dt.timedelta(0) < end - start <= dt.timedelta(hours=4))
+    if run["profile"] == "guarded-live-intake-pilot-v1":
+        need(run["runtimeExpiresUtc"] == approval["expiresUtc"] and end - start == dt.timedelta(seconds=3600))
 
 
 class Runtime(ObservedMmapRuntime):
