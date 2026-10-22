@@ -106,16 +106,46 @@ All tasks here are blocked by task 2.3 and a fresh exact grant recording the use
 bounded-test approval. No old authority, successful test alone, implementation
 approval alone or model catalog listing opens this gate.
 
-- [ ] 3.1 Record the exact non-renewable execution grant against the verified source closure, private root, model/image/runtime identities, one probe/one u02 request, fixed deadlines and separate one-session app budget. The grant records the user's approved tokenizer/live metadata observations, temporary Ollama deployment pause from one replica to zero, owned probe/extraction pod creation/termination and verified cleanup leaving the original deployment paused, without restoration, per the user's later instruction. Verify durable root consumption and fresh real token-count/context/resource/ownership admission under the grant before generation. If any permission, safety evidence or budget is absent, record blocked admission with zero unauthorized sends or mutations; do not silently revise the plan or reuse an old root.
+- [x] 3.1 Record the exact non-renewable execution grant against the verified source closure, private root, model/image/runtime identities, one probe/one u02 request, fixed deadlines and separate one-session app budget. The grant records the user's approved tokenizer/live metadata observations, temporary Ollama deployment pause from one replica to zero, owned probe/extraction pod creation/termination and verified cleanup leaving the original deployment paused, without restoration, per the user's later instruction. Verify durable root consumption and fresh real token-count/context/resource/ownership admission under the grant before generation. If any permission, safety evidence or budget is absent, record blocked admission with zero unauthorized sends or mutations; do not silently revise the plan or reuse an old root.
   Context: [fixed caps](design.md#3-fix-budgets-at-every-boundary),
   [required runtime operations](design.md#4-treat-the-inherited-service-interruption-as-an-explicit-gate).
+  Acceptance: source commit `ad33ab24784da4968ee9c5e575405de8eb9e0c9e` was clean
+  and pushed before the exact one-root grant was consumed. Private root:
+  `guarded-live-intake-approved-c14tlkl3/campaign`; parent exact grant SHA-256
+  `1a58d70ed2d70efdf5692acf9728c98740f88e6216a929538723e90d15caf573`.
+  Fresh supervised vocabulary-only counts: u02 2281, probe47; context sum
+  2281+1536+256=4073, below4096. Actual runtime/context/resource ownership checks
+  admitted the unchanged requests. No old authority or replacement root was used.
 
-- [ ] 3.2 Primary starts the durable owned worker only after task 3.1 admits it. Run at most the one mandatory stop probe and one u02 generation, with no correction, retry, alternate packet, fallback or replacement root. Retain raw response, strict stages, case comparison, claim/ownership/resource events and all failure/unrun evidence. Verify actual request count, deadlines, source/request/raw bindings, both owned stop proofs and exact authorized restoration; seal the terminal acquisition receipt and independently record its expected digest. On rejection, timeout, unusable output or uncertain cleanup, close/fence the allowance and report the actual outcome without import or another run.
+- [x] 3.2 Primary starts the durable owned worker only after task 3.1 admits it. Run at most the one mandatory stop probe and one u02 generation, with no correction, retry, alternate packet, fallback or replacement root. Retain raw response, strict stages, case comparison, claim/ownership/resource events and all failure/unrun evidence. Verify actual request count, deadlines, source/request/raw bindings, both owned stop proofs and the authorized cleanup policy; seal the terminal acquisition receipt and independently record its expected digest. On rejection, timeout, unusable output or uncertain cleanup, close/fence the allowance and report the actual outcome without import or another run.
   Context: [acquire once](design.md#1-acquire-once-and-inspect-a-sealed-result),
   [durable safety](design.md#2-reuse-durable-safety-with-a-new-exact-profile),
   [cleanup](design.md#4-treat-the-inherited-service-interruption-as-an-explicit-gate),
   [receipt trust](design.md#5-import-trusted-acquisition-evidence-rather-than-an-arbitrary-response-file).
+  Acceptance: the durable supervisor reports normal completion, worker exit0,
+  exactly one cleanup invocation, healthy evidence, no deadline breach and no
+  error. Exactly `probe.launched.json` and `u02.launched.json` exist. Both owned
+  pod UIDs have empty-cgroup and absent-running-CRI stop proofs; original deployment
+  remains paused without restoration, as authorized. u02 strict wire/binding/semantic
+  stages and predeclared comparison pass. Response:2281 input/341 output tokens,
+  reported generation481772ms;97 resource samples, largest observed memory.current
+  805052416bytes. These samples are not a measured process peak RSS.
+  Raw response SHA-256 `334fac9de24fe8ce5acf0c51d8e19b7c2f7fe95b0a6fb72cf777afbf691d6978`.
+  Independent sealed capture SHA-256
+  `317047329afffef8aa0ebbbbbc32da726484f4b8f3436e298e3184a8cbbf1f85`.
+  Original generation and comparison remain immutable; no retries or substitutions.
 
 - [ ] 3.3 If and only if genuine usable output and cleanup are admitted, primary imports that sealed capture into the one authorized bounded loopback session and exercises actual generated suggestion inspection/editing/unknown resolution/staging/explicit confirmation/reload. Verify all authoritative table counts unchanged until explicit confirmation, selected writes only afterward, no duplicate/reload/model requests and zero production execution rows. Stop the exact owned server/descendants and dispose only its generated store. Preserve original generation/comparison and edited confirmation separately; report actual success/failure/incomplete status, source/private/frozen checks and cleanup without a reliability or qualification claim. If live output cannot support the journey, record that failure without using fake evidence to complete it. No deployment, git, spec sync/archive or additional inference follows automatically.
   Context: [separate bounded interaction](design.md#6-reuse-the-interaction-boundary-and-keep-modes-distinct),
   [honest outcomes](specs/intake-extraction-evaluation/spec.md#requirement-the-live-pilot-has-bounded-private-inspection-and-honest-outcomes).
+  Interaction checkpoint: genuine sealed capture passed actual app startup and
+  strict revalidation. Real browser inspected both actual generated suggestions,
+  edited the training item, supplied/acknowledged four unknowns and staged it.
+  Every table count remained identical through staging. One explicit selected
+  confirmation created exactly one commitment revision and receipt. Reload preserved
+  that item without staging, confirmation or suggestion requests; production execution
+  rows remain zero. Evidence: `approved-versioning-and-live-pilot-qyuj6g75/`
+  `live-browser-journey.json`, `live-store-*.json` and `live-import-selection.json`.
+  The one bounded app session remains active for the requested hands-on demo until
+  2026-10-22T14:17:31.398Z. Final exact-server exit/store disposal is pending; do not
+  mark this task complete before that cleanup is independently verified.

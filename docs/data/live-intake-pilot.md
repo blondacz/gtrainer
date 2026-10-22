@@ -96,3 +96,23 @@ The user's 2026-10-22 approval permits the bounded test after offline checks and
 allows the original Ollama deployment to remain paused. Owned pod/process/cgroup/CRI
 stop proofs remain mandatory. No retry, fallback, response repair, download, resize,
 personal-data access, deployment or production admission follows from these checks.
+
+## Actual bounded acquisition, 2026-10-22
+
+The authorized one-probe/one-u02 run completed with accepted strict wire, binding
+and semantic stages and a passed predeclared case comparison. Fresh input count was
+2281 tokens; the unchanged request produced341 output tokens in approximately482
+seconds. No retry, response repair, fallback or replacement root was used. Both
+owned pods have verified UID/cgroup/CRI stop proofs. The original deployment remains
+paused as authorized; restoration was not claimed.
+
+The genuine sealed capture then passed actual startup admission into the separate
+loopback app. Real-browser inspection/editing/unknown acknowledgments/staging changed
+no table counts. Explicit confirmation created one selected commitment revision and
+one receipt; reload made no further write or suggestion request. The reviewer supplied
+the training time, timezone and recurrence; those are not extracted model facts.
+The original model response and comparison remain unchanged. This known synthetic
+case does not establish reliability or production qualification.
+
+The single bounded app session remains available for the requested UI demo until
+2026-10-22T14:17:31.398Z. Final session cleanup is tracked separately in task3.3.
