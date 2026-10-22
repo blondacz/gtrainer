@@ -135,7 +135,7 @@ approval alone or model catalog listing opens this gate.
   `317047329afffef8aa0ebbbbbc32da726484f4b8f3436e298e3184a8cbbf1f85`.
   Original generation and comparison remain immutable; no retries or substitutions.
 
-- [ ] 3.3 If and only if genuine usable output and cleanup are admitted, primary imports that sealed capture into the one authorized bounded loopback session and exercises actual generated suggestion inspection/editing/unknown resolution/staging/explicit confirmation/reload. Verify all authoritative table counts unchanged until explicit confirmation, selected writes only afterward, no duplicate/reload/model requests and zero production execution rows. Stop the exact owned server/descendants and dispose only its generated store. Preserve original generation/comparison and edited confirmation separately; report actual success/failure/incomplete status, source/private/frozen checks and cleanup without a reliability or qualification claim. If live output cannot support the journey, record that failure without using fake evidence to complete it. No deployment, git, spec sync/archive or additional inference follows automatically.
+- [x] 3.3 If and only if genuine usable output and cleanup are admitted, primary imports that sealed capture into the one authorized bounded loopback session and exercises actual generated suggestion inspection/editing/unknown resolution/staging/explicit confirmation/reload. Verify all authoritative table counts unchanged until explicit confirmation, selected writes only afterward, no duplicate/reload/model requests and zero production execution rows. Stop the exact owned server/descendants and dispose only its generated store. Preserve original generation/comparison and edited confirmation separately; report actual success/failure/incomplete status, source/private/frozen checks and cleanup without a reliability or qualification claim. If live output cannot support the journey, record that failure without using fake evidence to complete it. No deployment, git, spec sync/archive or additional inference follows automatically.
   Context: [separate bounded interaction](design.md#6-reuse-the-interaction-boundary-and-keep-modes-distinct),
   [honest outcomes](specs/intake-extraction-evaluation/spec.md#requirement-the-live-pilot-has-bounded-private-inspection-and-honest-outcomes).
   Interaction checkpoint: genuine sealed capture passed actual app startup and
@@ -146,6 +146,11 @@ approval alone or model catalog listing opens this gate.
   that item without staging, confirmation or suggestion requests; production execution
   rows remain zero. Evidence: `approved-versioning-and-live-pilot-qyuj6g75/`
   `live-browser-journey.json`, `live-store-*.json` and `live-import-selection.json`.
-  The one bounded app session remains active for the requested hands-on demo until
-  2026-10-22T14:17:31.398Z. Final exact-server exit/store disposal is pending; do not
-  mark this task complete before that cleanup is independently verified.
+  Final cleanup: the one bounded app session stopped automatically at its fixed
+  2026-10-22T14:17:31.398Z deadline. Wrapper exit0, exact server and Gradle client
+  absent, no live inspector descendants or port8082 listener, and only the owned
+  generated store directory removed. Acquisition/claim/evidence files remain intact.
+  Independent evidence: `live-app-cleanup-verification.json` and
+  `live-browser-journey-final.json` in the same private evidence base. No second
+  session or additional inference occurred. The approved known-case pilot is
+  complete; no production qualification, deployment, spec sync or archive follows.

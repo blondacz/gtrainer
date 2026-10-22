@@ -114,5 +114,9 @@ the training time, timezone and recurrence; those are not extracted model facts.
 The original model response and comparison remain unchanged. This known synthetic
 case does not establish reliability or production qualification.
 
-The single bounded app session remains available for the requested UI demo until
-2026-10-22T14:17:31.398Z. Final session cleanup is tracked separately in task3.3.
+The single bounded app session was available for the requested UI demo until
+2026-10-22T14:17:31.398Z, then stopped automatically. Independent checks verified
+exit0, absent exact server/client/descendants and listener, and removal of only the
+owned generated store. Acquisition and approval evidence remain intact. The demo
+link is no longer active; no second session or additional inference was started.
+All eight pilot tasks are complete. Production admission remains closed.
