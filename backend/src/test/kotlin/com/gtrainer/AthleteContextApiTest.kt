@@ -29,7 +29,7 @@ class AthleteContextApiTest {
             snapshot.evidenceDigest, snapshot.context, snapshot.provider, snapshot.model, snapshot.contractVersion)
         try {
             testApplication {
-                application { module(SingleUserAuth(syntheticVerifier(), origin, false, true), history, analysis = AnalysisService(emptyList())) }
+                application { module(SingleUserAuth(syntheticVerifier(), origin, false, true), history) }
                 assertEquals(HttpStatusCode.Unauthorized, client.get("/api/contexts").status)
                 assertEquals(HttpStatusCode.Unauthorized, client.post("/api/contexts") { header(HttpHeaders.Origin, origin) }.status)
                 val login = client.post("/api/login") { header(HttpHeaders.Origin, origin); setBody("""{"password":"$SYNTHETIC_PASSWORD"}""") }

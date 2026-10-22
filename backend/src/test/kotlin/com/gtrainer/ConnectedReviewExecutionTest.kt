@@ -196,14 +196,16 @@ class ConnectedReviewExecutionTest {
     @Test fun `total timeout is bounded independently of per-attempt timeout`() = runBlocking {
         val repository = repository()
         var calls = 0
+        var nanos = 0L
         val provider = provider(repository) { _, _, _, _ ->
             calls++
-            delay(200)
-            ConnectedReviewProviderReply(validOutput, null)
+            awaitCancellation()
         }
-        val limits = ConnectedReviewExecutionLimits(attemptTimeoutMillis = 30, totalTimeoutMillis = 50)
-        val gate = ConnectedReviewExecutionGate { _, _ -> delay(45); null }
-        val result = ConnectedReviewExecutor(repository, gate, limits)
+        // Account for pre-send time without racing a 45 ms gate against a 50 ms wall-clock timer.
+        // The send has only 50 ms of total budget left, independently of its 30-second attempt bound.
+        val limits = ConnectedReviewExecutionLimits(attemptTimeoutMillis = 30_000, totalTimeoutMillis = 50_000)
+        val gate = ConnectedReviewExecutionGate { _, _ -> nanos = 49_950_000_000L; null }
+        val result = ConnectedReviewExecutor(repository, gate, limits, monotonicNanos = { nanos })
             .executeManually(repository.status.snapshotId, selection(repository), provider)
         assertEquals("UNAVAILABLE", result.state)
         assertEquals("total_timeout", result.reason)
@@ -255,16 +257,17 @@ class ConnectedReviewExecutionTest {
     @Test fun `gate revocation after first rejection prevents correction attempt`() = runBlocking {
         val repository = repository()
         var calls = 0
-        var gateChecks = 0
+        var rejected = false
         val provider = provider(repository) { _, _, _, _ ->
             calls++
             ConnectedReviewProviderReply("not json", null)
         }
         val gate = ConnectedReviewExecutionGate { _, _ ->
-            gateChecks++
-            if (gateChecks == 1) null else "consent_revoked"
+            if (rejected) "consent_revoked" else null
         }
-        val result = ConnectedReviewExecutor(repository, gate)
+        val result = ConnectedReviewExecutor(repository, gate,attemptObserver=ConnectedReviewAttemptObserver {
+            if(it.phase==ConnectedReviewAttemptPhase.REJECTED) rejected=true
+        })
             .executeManually(repository.status.snapshotId, selection(repository), provider)
         assertEquals("REFUSED", result.state)
         assertEquals("consent_revoked", result.reason)

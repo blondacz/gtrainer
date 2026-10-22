@@ -109,22 +109,12 @@ class FactualReviewsTest {
         }
     }
 
-    @Test fun `model rejection and invalidation leave complete deterministic facts unchanged without retries`() = runBlocking {
-        val report = analysisReport()
-        val facts = FactualReviews.prepare(Trends.analysisInput(report))
-        val model = SyntheticAnalysisModel(generate = { validClaims().replace("co_occurrence", "diagnosis") })
-        val service = AnalysisService(listOf(model))
-        val selected = service.select(model.option.id)
-        val result = service.analyze(analysisRequest(report, selected), report) { report }
-        assertEquals("unusable_model_output", result.reason)
-        assertTrue(result.observations.isEmpty())
-        assertEquals(1, model.calls) // Existing optional interpretation keeps zero corrective retries; no new model contract.
-        assertEquals(facts, FactualReviews.prepare(Trends.analysisInput(report)))
-        val stale = report.copy(evaluatedOnUtc = "2020-06-11")
-        assertNotEquals(facts.evidenceReportSha256, FactualReviews.prepare(Trends.analysisInput(stale)).evidenceReportSha256)
-        service.select(null)
-        assertEquals("model_not_selected", service.analyze(analysisRequest(report, selected), report) { report }.reason)
-        assertEquals(1, model.calls)
-        assertEquals(facts, FactualReviews.prepare(Trends.analysisInput(report)))
+    @Test fun `invalid model claims do not alter deterministic factual evidence`() {
+        val input = Trends.analysisInput(analysisReport())
+        val facts = FactualReviews.prepare(input)
+        val snapshot = AnalysisClaims.prepare(input)
+        val invalid = validClaims().replace("co_occurrence", "diagnosis")
+        assertNull(AnalysisClaims.validateAndRender(invalid, snapshot))
+        assertEquals(facts, FactualReviews.prepare(input))
     }
 }

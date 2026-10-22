@@ -1,9 +1,12 @@
 # Pi operations: encrypted backup, restore, rollback, removal
 
-Status: task 2.6 verified: encrypted synthetic Pi-to-Mac backup/restore, Mac
-scheduler, protected Git image-revert rollback and return to authentication.
-The import release now has an actual empty version-1 app database and a verified
-encrypted recovery point/isolated restore. No personal records have been imported.
+Status: historical operational evidence below does not establish compatibility
+with the current consolidated application database. The current source restore
+validator is read-only and checks the current manifest, schema/FK integrity, and
+minimal state sanity; it is not runtime acceptance. Installed helpers have not
+been updated. Operators must explicitly run setup from the checkout to copy the
+public manifest. No live backup, reset, decryption, or helper installation is
+authorized by this documentation change.
 
 ## Install and upgrade
 
@@ -103,6 +106,11 @@ provisioned. File permissions/encryption do not certify FileVault, the router,
 Pi datastore encryption, or a complete independent disaster-recovery location.
 
 ## Restore (isolated first, never an automatic live overwrite)
+
+Current application databases are fresh schema version 1. Obsolete application
+database versions 1–8 are refused; there is no automatic migration or deletion.
+The older schema-specific validation instructions and evidence below are dated
+historical records and must not be treated as current compatibility claims.
 
 ```bash
 python3 scripts/mac_backup.py restore \

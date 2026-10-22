@@ -54,14 +54,19 @@ data class RemovalRequest(val confirmation: String)
 
 fun Application.module(auth: SingleUserAuth = SingleUserAuth.fromEnvironment(),
                         history: HistoryService? = HistoryService.fromEnvironment(),
-                        analysis: AnalysisService = AnalysisService.fromEnvironment(),
-                        reviews: ReviewInterpretationService = ReviewInterpretationService.fromEnvironment(analysis.inferenceGate()),
+                        reviews: ReviewInterpretationService = ReviewInterpretationService.fromEnvironment(),
                         schedules: ReviewScheduler? = history?.reviewScheduler(reviews),
                         reviewQueue: ReviewQueueService? = history?.reviewQueue(reviews),
                         events: ManualEventService? = history?.manualEvents(),
                          contexts: AthleteContextService? = history?.athleteContexts(),
-                         connectedReviews: ConnectedReviewService? = null) {
+                          connectedReviews: ConnectedReviewService? = null,
+                          intakes: ContextIntakeService? = history?.contextIntakes(),
+                          contextLifecycle: ContextLifecycleService? = history?.contextLifecycle(),
+                          commitments: CommitmentService? = history?.commitments(),
+                          contextDeletion: ContextDeletionService? = history?.contextDeletion(),
+                          plans: PlanService? = history?.plans()) {
     val access = PrivateApiAccess(auth)
+    val scopedExecutions=history?.scopedExecutions()
     val schedulerJob = schedules?.let { scheduler -> launch {
         while (isActive) {
             delay(30_000)
@@ -75,7 +80,7 @@ fun Application.module(auth: SingleUserAuth = SingleUserAuth.fromEnvironment(),
         }
     } }
     monitor.subscribe(ApplicationStopping) { schedulerJob?.cancel(); reviewQueue?.close() }
-    monitor.subscribe(ApplicationStopped) { history?.close(); analysis.close(); reviews.close() }
+    monitor.subscribe(ApplicationStopped) { history?.close(); reviews.close() }
     installPrivateHttpSecurity()
     install(ContentNegotiation) {
         json()
@@ -88,12 +93,23 @@ fun Application.module(auth: SingleUserAuth = SingleUserAuth.fromEnvironment(),
         route("/api/{path...}") {
             handle {
                 val path = call.request.path()
-                val token = call.request.cookies[SESSION_COOKIE]
                 val session = access.authorize(call) ?: return@handle
                 if (!access.respondToSessionRequest(call, session)) {
                     try {
                         when {
                             call.respondConnectedReview(path, connectedReviews) -> Unit
+                            call.respondContextIntake(path, intakes) -> Unit
+                            call.respondContextLifecycle(path, contextLifecycle) -> Unit
+                            call.respondCommitment(path, commitments) -> Unit
+                            call.respondContextDeletion(path, contextDeletion) -> Unit
+                            call.respondPlan(path, plans) -> Unit
+                             call.respondScopedEvidence(path, history) -> Unit
+                             call.respondScopedExecution(path,scopedExecutions) -> Unit
+                             path=="/api/review-profiles" && call.request.local.method==HttpMethod.Get -> {
+                                 val parameters=call.request.queryParameters
+                                 require(parameters.names().all { it=="profile" && parameters.getAll(it)?.size==1 })
+                                 call.respond(parameters["profile"]?.let { listOf(ScopedProfileAdmission.inspect(it)) } ?: ScopedProfileAdmission.inspectAll())
+                             }
                             contexts != null && path == "/api/context-retrieval" && call.request.local.method == HttpMethod.Get -> {
                                 val parameters = call.request.queryParameters
                                 val asOf = LocalDate.parse(requireNotNull(parameters["asOf"]))
@@ -154,42 +170,12 @@ fun Application.module(auth: SingleUserAuth = SingleUserAuth.fromEnvironment(),
                                 if (selected.selectionVersion != prior) reviewQueue?.invalidate("model_selection_changed")
                                 call.respond(ReviewFocusProtocol.json.encodeToJsonElement(selected))
                             }
-                            history != null && path == "/api/review-interpretation" && call.request.local.method == HttpMethod.Post -> {
-                                val request = call.privateJson<ReviewInterpretationRequest>()
-                                val range = TrendRange(LocalDate.parse(request.oldest), LocalDate.parse(request.newest))
-                                val result = reviews.interpret(request, history.trends(range, request.sport)) { history.trends(range, request.sport) }
-                                if (auth.session(token) == null) call.respond(HttpStatusCode.Unauthorized, ApiError("authentication_required"))
-                                else if (result.status == "available" && !reviews.current(result))
-                                    call.respond(result.copy(status = "unavailable", reason = "model_selection_changed", interpretations = emptyList()))
-                                else call.respond(result)
-                            }
-                            path == "/api/models" && call.request.local.method == HttpMethod.Get -> call.respond(analysis.status())
-                            path == "/api/models" && call.request.local.method == HttpMethod.Put ->
-                                call.respond(analysis.select(call.privateJson<ModelSelectionRequest>().modelId))
-                            history != null && path == "/api/analysis" && call.request.local.method == HttpMethod.Post -> {
-                                val request = call.privateJson<AnalysisRequest>()
-                                val range = TrendRange(LocalDate.parse(request.oldest), LocalDate.parse(request.newest))
-                                val result = analysis.analyze(request, history.trends(range, request.sport)) { history.trends(range, request.sport) }
-                                if (auth.session(token) == null) call.respond(HttpStatusCode.Unauthorized, ApiError("authentication_required"))
-                                else call.respond(result)
-                            }
-                            history != null && path == "/api/imports" && call.request.local.method == HttpMethod.Get ->
-                                call.respond(history.statuses())
-                            history != null && path in setOf("/api/trends", "/api/analysis-input", "/api/review-facts") && call.request.local.method == HttpMethod.Get -> {
-                                val range = TrendRange(LocalDate.parse(requireNotNull(call.request.queryParameters["oldest"])),
-                                    LocalDate.parse(requireNotNull(call.request.queryParameters["newest"])))
-                                val report = history.trends(range, call.request.queryParameters["sport"])
-                                val input = Trends.analysisInput(report)
-                                call.response.headers.append("X-Evidence-Report-Sha256", input.evidenceReportSha256)
-                                if (path == "/api/review-facts") {
-                                    val binding = requireNotNull(call.request.queryParameters["evidenceReportSha256"])
-                                    require(binding.matches(Regex("[a-f0-9]{64}")))
-                                    val focus = call.request.queryParameters["focus"] ?: "daily_combined"
-                                    require(focus in FactualReviews.supportedFocuses)
-                                    if (auth.session(token) == null) call.respond(HttpStatusCode.Unauthorized, ApiError("authentication_required"))
-                                    else if (binding != input.evidenceReportSha256) call.respond(HttpStatusCode.Conflict, ApiError("evidence_changed"))
-                                    else call.respond(FactualReviews.prepare(input, focus))
-                                } else if (path == "/api/analysis-input") call.respond(input) else call.respond(report)
+                            history != null && path == "/api/imports" && call.request.local.method == HttpMethod.Get -> call.respond(history.statuses())
+                            history != null && path == "/api/reviews/options" && call.request.local.method == HttpMethod.Get -> {
+                                val parameters = call.request.queryParameters
+                                require(parameters.names().all { it in setOf("oldest", "newest", "offset") } && parameters.names().all { parameters.getAll(it)?.size == 1 })
+                                val offset = parameters["offset"]?.let { requireNotNull(it.toIntOrNull()) } ?: 0
+                                call.respond(ReviewFocusProtocol.json.encodeToJsonElement(history.scopedReviewOptions(parameters["oldest"], parameters["newest"], offset)))
                             }
                             history != null && path == "/api/history" && call.request.local.method == HttpMethod.Get -> {
                                 val oldest = LocalDate.parse(requireNotNull(call.request.queryParameters["oldest"]))
@@ -215,7 +201,35 @@ fun Application.module(auth: SingleUserAuth = SingleUserAuth.fromEnvironment(),
                         throw cancelled
                     } catch (_: SyncBusy) {
                         call.respond(HttpStatusCode.Conflict, ApiError("private_operation_running"))
-                    } catch (_: ReviewScheduleConflict) {
+                      } catch (_: ScopedEvidenceConflict) {
+                          call.respond(HttpStatusCode.Conflict, mapOf("error" to "Evidence changed; inspect or prepare again without inference"))
+                      } catch (_: ScopedEvidenceNotFound) {
+                          call.respond(HttpStatusCode.NotFound, mapOf("error" to "Evidence snapshot is unavailable or was removed"))
+                      } catch (_: ScopedEvidenceInspectionLimit) {
+                          call.respond(HttpStatusCode.PayloadTooLarge, mapOf("error" to "Evidence inspection exceeds its local storage bound; factual reports remain available"))
+                      } catch (_: PlanConflict) {
+                         call.respond(HttpStatusCode.Conflict, ApiError("plan_or_selection_changed"))
+                     } catch (_: PlanNotFound) {
+                         call.respond(HttpStatusCode.NotFound, ApiError("plan_not_found"))
+                     } catch (_: ContextDeletionConflict) {
+                         call.respond(HttpStatusCode.Conflict, ApiError("deletion_dependencies_changed"))
+                     } catch (_: ContextDeletionLimit) {
+                         call.respond(HttpStatusCode.PayloadTooLarge, ApiError("deletion_dependencies_exceed_bound"))
+                     } catch (_: CommitmentConflict) {
+                         call.respond(HttpStatusCode.Conflict, ApiError("commitment_or_source_changed"))
+                     } catch (_: CommitmentTimeUncertain) {
+                         call.respond(HttpStatusCode.Conflict, ApiError("commitment_time_needs_confirmation"))
+                     } catch (_: CommitmentProjectionLimit) {
+                         call.respond(HttpStatusCode.PayloadTooLarge, ApiError("choose_shorter_commitment_horizon"))
+                     } catch (_: CommitmentNotFound) {
+                         call.respond(HttpStatusCode.NotFound, ApiError("commitment_not_found"))
+                     } catch (_: ContextRevisionConflict) {
+                         call.respond(HttpStatusCode.Conflict, ApiError("context_changed"))
+                     } catch (_: ContextIntakeConflict) {
+                         call.respond(HttpStatusCode.Conflict, ApiError("context_intake_changed"))
+                     } catch (_: ContextIntakeNotFound) {
+                         call.respond(HttpStatusCode.NotFound, ApiError("context_intake_not_found"))
+                     } catch (_: ReviewScheduleConflict) {
                         call.respond(HttpStatusCode.Conflict, ApiError("review_configuration_changed"))
                     } catch (_: ReviewQueueCapacity) {
                         call.respond(HttpStatusCode.Conflict, ApiError("review_queue_capacity"))

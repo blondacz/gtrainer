@@ -5,6 +5,7 @@ import { ReviewControls } from './ReviewControls'
 import { OverviewTiles } from './OverviewTiles'
 import { ManualEventPanel } from './ManualEventPanel'
 import { AthleteContextPanel } from './AthleteContextPanel'
+import { PlansPanel } from './PlansPanel'
 import { ConnectedReviewPanel } from './ConnectedReviewPanel'
 
 type Session = { authenticated: true; csrfToken: string; intervalsConfigured: boolean }
@@ -26,6 +27,14 @@ export function SessionPanel({ onAuthenticatedChange }: { onAuthenticatedChange?
   const [message, setMessage] = useState('')
   const [historyRevision, setHistoryRevision] = useState(0)
   const [section, setSection] = useState<'overview' | 'charts' | 'imports' | 'reviews' | 'events' | 'context' | 'connected'>('overview')
+  const [planNavigationLocked, setPlanNavigationLocked] = useState(false)
+  function navigate(next: typeof section): boolean {
+    if(next!==section && planNavigationLocked) {
+      setMessage('Finish or discard the authored plan draft, or reload to inspect its uncertain save outcome, before leaving Events & plans.')
+      return false
+    }
+    setMessage('');setSection(next);return true
+  }
   useEffect(() => { onAuthenticatedChange?.(session !== null) }, [session, onAuthenticatedChange])
 
   useEffect(() => {
@@ -82,6 +91,7 @@ export function SessionPanel({ onAuthenticatedChange }: { onAuthenticatedChange?
       })
       if (!response.ok && response.status !== 401) throw new Error('Logout failed')
       setSession(null)
+      setPlanNavigationLocked(false)
     } catch {
       setMessage('Could not sign out. Retry while the connection is available.')
     } finally {
@@ -102,22 +112,22 @@ export function SessionPanel({ onAuthenticatedChange }: { onAuthenticatedChange?
       </aside>
       <nav className="dashboard-tabs section-tabs" role="tablist" aria-label="Dashboard sections">
         {(['overview', 'charts', 'imports', 'reviews', 'events', 'context', 'connected'] as const).map(name => <button type="button" role="tab" key={name}
-          id={`dashboard-tab-${name}`} aria-selected={section === name} aria-controls="dashboard-section" tabIndex={section === name ? 0 : -1} onClick={() => setSection(name)}
+          id={`dashboard-tab-${name}`} aria-selected={section === name} aria-controls="dashboard-section" tabIndex={section === name ? 0 : -1} onClick={() => navigate(name)}
           onKeyDown={event => {
             const names = ['overview', 'charts', 'imports', 'reviews', 'events', 'context', 'connected'] as const
             const index = names.indexOf(name)
             const next = event.key === 'ArrowRight' ? (index + 1) % names.length : event.key === 'ArrowLeft' ? (index + names.length - 1) % names.length :
               event.key === 'Home' ? 0 : event.key === 'End' ? names.length - 1 : null
-            if (next !== null) { event.preventDefault(); setSection(names[next]); document.getElementById(`dashboard-tab-${names[next]}`)?.focus() }
+            if (next !== null) { event.preventDefault(); if(navigate(names[next])) document.getElementById(`dashboard-tab-${names[next]}`)?.focus() }
           }}>
-          {{ overview: 'Overview', charts: 'Trends', imports: 'Source', reviews: 'Reviews', events: 'Events', context: 'Context', connected: 'Connected insights' }[name]}</button>)}
+          {{ overview: 'Overview', charts: 'Trends', imports: 'Source', reviews: 'Reviews', events: 'Events & plans', context: 'Context', connected: 'Connected insights' }[name]}</button>)}
       </nav>
       <div id="dashboard-section" className="dashboard-content" role="tabpanel" aria-labelledby={`dashboard-tab-${section}`}>
-        {section === 'overview' && <OverviewTiles revision={historyRevision} onNavigate={setSection} />}
+        {section === 'overview' && <OverviewTiles revision={historyRevision} csrfToken={session.csrfToken} onNavigate={navigate} />}
         {section === 'imports' && <ImportPanel compact csrfToken={session.csrfToken} configured={session.intervalsConfigured} onChanged={() => setHistoryRevision(value => value + 1)} />}
-        {section === 'charts' && <TrendPanel compact revision={historyRevision} csrfToken={session.csrfToken} />}
+        {section === 'charts' && <TrendPanel revision={historyRevision} csrfToken={session.csrfToken} />}
         {section === 'reviews' && <ReviewControls revision={historyRevision} csrfToken={session.csrfToken} />}
-        {section === 'events' && <ManualEventPanel csrfToken={session.csrfToken} onChanged={() => setHistoryRevision(value => value + 1)} />}
+        {section === 'events' && <><PlansPanel csrfToken={session.csrfToken} onNavigationLockChange={setPlanNavigationLocked}/><ManualEventPanel csrfToken={session.csrfToken} onChanged={() => setHistoryRevision(value => value + 1)} /></>}
         {section === 'context' && <AthleteContextPanel csrfToken={session.csrfToken} />}
         {section === 'connected' && <ConnectedReviewPanel />}
       </div>

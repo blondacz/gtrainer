@@ -13,6 +13,7 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from urllib.parse import quote
 
 from verify_pi_deployment import SSH, kubectl
@@ -28,6 +29,23 @@ LIMIT = 512 * 1024 * 1024
 
 class BackupError(ValueError):
     pass
+
+
+def canonical_schema():
+    """Read the public DDL manifest shipped beside this helper or in source."""
+    candidates = (Path(__file__).with_name('history-schema.json'),
+                  Path(__file__).resolve().parents[1] / 'backend/src/main/resources/history-schema.json')
+    for path in candidates:
+        if path.is_file():
+            value = json.loads(path.read_text())
+            require(isinstance(value, list) and all(isinstance(sql, str) for sql in value),
+                    'Canonical schema manifest is invalid.')
+            return value
+    raise BackupError('Canonical schema manifest is unavailable.')
+
+
+def normalize_sql(sql):
+    return re.sub(r'\s+', ' ', sql).strip()
 
 
 def require(value, message):
@@ -169,102 +187,91 @@ def restore(ciphertext, output, key=KEY):
         uri = 'file:' + quote(str(temporary), safe='/') + '?mode=ro&immutable=1'
         with sqlite3.connect(uri, uri=True) as database:
             require(database.execute('PRAGMA integrity_check').fetchone() == ('ok',), 'Restored database integrity failed.')
-            version = database.execute('PRAGMA user_version').fetchone()[0]
-            require(version in (1, 2, 3, 4, 5, 6, 7), 'Select a compatible database schema/app version.')
-            tables = {row[0] for row in database.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-            require({'schema_migrations', 'activities', 'wellness', 'events', 'sync_status'} <= tables,
-                    'Expected record/event/migration schema is missing.')
-            for table, expected in {
-                'activities': {'source', 'source_id', 'observed_date', 'record_json'},
-                'wellness': {'source', 'source_id', 'observed_date', 'record_json'},
-                'events': {'id', 'start_date', 'end_date', 'sport', 'goal', 'notes'},
-                'sync_status': {'category', 'last_attempt_utc', 'last_success_utc', 'read_status', 'rejected', 'incomplete'},
-            }.items():
-                columns = {row[1] for row in database.execute(f'PRAGMA table_info({table})')}
-                require(expected <= columns, 'Restored schema is not compatible with the record/event store.')
-            require(database.execute('SELECT version FROM schema_migrations WHERE version=1').fetchone() == (1,),
-                    'Restored migration record is missing.')
-            if version == 2:
-                require({'review_schedule', 'review_import_changes'} <= tables, 'Expected review scheduling schema is missing.')
-                for table, expected in {
-                    'review_schedule': {'singleton', 'state_json'},
-                    'review_import_changes': {'revision', 'category', 'observed_date', 'received_utc',
-                                              'identity_sha256', 'sport', 'sleep_changed', 'sleep_available'},
-                }.items():
-                    columns = {row[1] for row in database.execute(f'PRAGMA table_info({table})')}
-                    require(expected <= columns, 'Restored review schema is not compatible.')
-                require(database.execute('SELECT version FROM schema_migrations WHERE version=2').fetchone() == (2,),
-                        'Restored review migration record is missing.')
-            if version == 3:
-                require({'review_schedule', 'review_import_changes', 'athlete_context'} <= tables,
-                        'Expected review/context schema is missing.')
-                for table, expected in {
-                    'review_schedule': {'singleton', 'state_json'},
-                    'review_import_changes': {'revision', 'category', 'observed_date', 'received_utc',
-                                              'identity_sha256', 'sport', 'sleep_changed', 'sleep_available'},
-                    'athlete_context': {'context_id', 'revision', 'category', 'author_attribution', 'entered_by',
-                                        'observed_on', 'applicable_from', 'applicable_until', 'sport',
-                                        'activity_id', 'review_id', 'content'},
-                }.items():
-                    columns = {row[1] for row in database.execute(f'PRAGMA table_info({table})')}
-                    require(expected <= columns, 'Restored review/context schema is not compatible.')
-                require(database.execute('SELECT version FROM schema_migrations WHERE version=2').fetchone() == (2,),
-                        'Restored review migration record is missing.')
-                require(database.execute('SELECT version FROM schema_migrations WHERE version=3').fetchone() == (3,),
-                        'Restored context migration record is missing.')
-            if version == 4:
-                require({'review_schedule', 'review_import_changes', 'athlete_context'} <= tables,
-                        'Expected review/context schema is missing.')
-                columns = {row[1] for row in database.execute('PRAGMA table_info(athlete_context)')}
-                require({'context_id', 'revision', 'category', 'author_attribution', 'entered_by', 'observed_on',
-                         'applicable_from', 'applicable_until', 'sport', 'activity_id', 'review_id', 'content', 'retired'} <= columns,
-                        'Restored context schema is not compatible.')
-                require(database.execute('SELECT version FROM schema_migrations WHERE version=2').fetchone() == (2,),
-                        'Restored review migration record is missing.')
-                require(database.execute('SELECT version FROM schema_migrations WHERE version=3').fetchone() == (3,),
-                        'Restored context migration record is missing.')
-                require(database.execute('SELECT version FROM schema_migrations WHERE version=4').fetchone() == (4,),
-                        'Restored context lifecycle migration record is missing.')
-            if version == 5:
-                require({'review_schedule', 'review_import_changes', 'athlete_context'} <= tables,
-                        'Expected review/context schema is missing.')
-                columns = {row[1] for row in database.execute('PRAGMA table_info(athlete_context)')}
-                require({'context_id', 'revision', 'category', 'source_category', 'author_attribution', 'entered_by',
-                         'observed_on', 'applicable_from', 'applicable_until', 'sport', 'activity_id', 'review_id',
-                         'content', 'retired'} <= columns, 'Restored context schema is not compatible.')
-                for version_marker in (2, 3, 4, 5):
-                    require(database.execute('SELECT version FROM schema_migrations WHERE version=?',
-                                             (version_marker,)).fetchone() == (version_marker,),
-                            'Restored context migration record is missing.')
-            if version == 6:
-                require({'review_schedule', 'review_import_changes', 'athlete_context'} <= tables,
-                        'Expected review/context schema is missing.')
-                columns = {row[1] for row in database.execute('PRAGMA table_info(athlete_context)')}
-                require({'context_id', 'revision', 'category', 'source_category', 'author_attribution', 'entered_by',
-                         'observed_on', 'applicable_from', 'applicable_until', 'sport', 'activity_id', 'review_id',
-                         'content', 'retired', 'restriction_kind', 'restriction_value', 'restriction_unit'} <= columns,
-                        'Restored context schema is not compatible.')
-                for version_marker in (2, 3, 4, 5, 6):
-                    require(database.execute('SELECT version FROM schema_migrations WHERE version=?',
-                                             (version_marker,)).fetchone() == (version_marker,),
-                            'Restored context migration record is missing.')
-            if version == 7:
-                require({'review_schedule', 'review_import_changes', 'athlete_context', 'connected_review_snapshots',
-                         'connected_review_snapshot_state', 'connected_review_requests', 'connected_review_context_refs'} <= tables,
-                        'Expected connected-review snapshot schema is missing.')
-                for table, expected in {
-                    'connected_review_snapshots': {'snapshot_id', 'request_id', 'generation', 'packet_json', 'packet_sha256',
-                        'evidence_digest', 'refs_json', 'coverage_from', 'coverage_until', 'provider', 'model', 'contract_version', 'created_utc'},
-                    'connected_review_snapshot_state': {'snapshot_id', 'state', 'stale_reason', 'published_output'},
-                    'connected_review_requests': {'request_id', 'active_generation'},
-                    'connected_review_context_refs': {'snapshot_id', 'context_id', 'revision'},
-                }.items():
-                    columns = {row[1] for row in database.execute(f'PRAGMA table_info({table})')}
-                    require(expected <= columns, 'Restored connected-review schema is not compatible.')
-                for version_marker in (2, 3, 4, 5, 6, 7):
-                    require(database.execute('SELECT version FROM schema_migrations WHERE version=?',
-                                             (version_marker,)).fetchone() == (version_marker,),
-                            'Restored connected-review migration record is missing.')
+            require(database.execute('PRAGMA user_version').fetchone() == (1,) and
+                    database.execute('PRAGMA application_id').fetchone() == (0x47544E52,),
+                    'Select a compatible database schema/app identity.')
+            expected = {normalize_sql(sql) for sql in canonical_schema()}
+            actual = {normalize_sql(row[0]) for row in database.execute(
+                "SELECT sql FROM sqlite_schema WHERE type IN ('table','index','trigger','view') "
+                "AND name NOT GLOB 'sqlite_*'")}
+            require(actual == expected, 'Restored schema does not exactly match the canonical schema.')
+            rows = database.execute('SELECT singleton,state_json FROM review_schedule').fetchall()
+            require(len(rows) == 1 and rows[0][0] == 1, 'Restored scheduler singleton is missing or invalid.')
+            try:
+                state = json.loads(rows[0][1])
+                require(isinstance(state, dict) and set(state) == {'configuration', 'version', 'cursor', 'modelVersion', 'modelId', 'armedUtc', 'memories', 'deferredChanges', 'queue', 'purposeHighWater'}
+                        and type(state['version']) is int and state['version'] >= 0
+                        and type(state['cursor']) is int and state['cursor'] >= 0,
+                        'Restored scheduler state is invalid.')
+                config = state['configuration']
+                require(isinstance(config, dict) and set(config) == {'enabled', 'paused', 'timeZone', 'presets', 'queuePolicy', 'purposeSlots'}
+                        and type(config['enabled']) is bool and type(config['paused']) is bool
+                        and isinstance(config['timeZone'], str) and 0 < len(config['timeZone']) <= 80
+                        and isinstance(config['presets'], list) and 1 <= len(config['presets']) <= 12
+                        and isinstance(config['purposeSlots'], list)
+                        and isinstance(config['queuePolicy'], dict), 'Restored scheduler configuration is invalid.')
+                ZoneInfo(config['timeZone'])
+                slots = config['purposeSlots']
+                require(len(slots) <= 2 and all(isinstance(slot, dict) for slot in slots),
+                        'Restored daily slot configuration is invalid.')
+                require(len({slot.get('slotId') for slot in slots}) == len(slots)
+                        and len({slot.get('purpose') for slot in slots}) == len(slots),
+                        'Restored daily slots are not unique.')
+                for slot in slots:
+                    require(set(slot) == {'slotId', 'purpose', 'enabled', 'localTime', 'profile', 'providerSelection'}
+                            and isinstance(slot['slotId'], str)
+                            and re.fullmatch(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', slot['slotId'])
+                            and slot['purpose'] in ('morning', 'evening') and type(slot['enabled']) is bool
+                            and isinstance(slot['localTime'], str) and re.fullmatch(r'(?:[01][0-9]|2[0-3]):[0-5][0-9]', slot['localTime'])
+                            and slot['profile'] == 'scoped-descriptive-v1',
+                            'Restored daily slot configuration is invalid.')
+                    selected_provider = slot['providerSelection']
+                    require(selected_provider is None or isinstance(selected_provider, dict)
+                            and set(selected_provider) == {'providerId', 'modelId', 'providerKind'}
+                            and isinstance(selected_provider['providerId'], str) and re.fullmatch(r'[A-Za-z0-9_.-]{1,64}', selected_provider['providerId'])
+                            and isinstance(selected_provider['modelId'], str) and re.fullmatch(r'[A-Za-z0-9_.:-]{1,128}', selected_provider['modelId'])
+                            and selected_provider['providerKind'] in ('local', 'hosted'),
+                            'Restored preview preference is invalid.')
+                require((state['modelVersion'] is None or type(state['modelVersion']) is int)
+                        and (state['modelId'] is None or isinstance(state['modelId'], str))
+                        and (state['armedUtc'] is None or isinstance(state['armedUtc'], str))
+                        and isinstance(state['memories'], dict) and isinstance(state['deferredChanges'], list)
+                        and isinstance(state['queue'], dict) and isinstance(state['purposeHighWater'], dict),
+                        'Restored scheduler state is invalid.')
+            except (ValueError, TypeError, ZoneInfoNotFoundError):
+                raise BackupError('Restored scheduler state is invalid.') from None
+            scoped = database.execute('SELECT singleton,timezone_confirmed FROM scoped_review_configuration').fetchall()
+            require(len(scoped) == 1 and scoped[0][0] == 1 and scoped[0][1] in (0, 1),
+                    'Restored scoped configuration singleton is missing or invalid.')
+            selected = database.execute('SELECT singleton,generation,selected_plan_id,selected_revision FROM plan_selection').fetchall()
+            require(len(selected) == 1 and selected[0][0] == 1 and type(selected[0][1]) is int and selected[0][1] >= 0
+                    and ((selected[0][2] is None and selected[0][3] is None)
+                         or (isinstance(selected[0][2], str) and re.fullmatch(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', selected[0][2])
+                             and type(selected[0][3]) is int and 1 <= selected[0][3] <= 1000)),
+                    'Restored plan selection singleton is missing or invalid.')
+            metadata = database.execute('SELECT singleton,source_revision,plan_reason_revision FROM scoped_queue_metadata').fetchall()
+            require(len(metadata) == 1 and metadata[0][0] == 1
+                    and type(metadata[0][1]) is int and metadata[0][1] >= 0
+                    and type(metadata[0][2]) is int and metadata[0][2] >= 0,
+                     'Restored scoped queue metadata singleton is missing or invalid.')
+            owner = database.execute('SELECT singleton,epoch,generation FROM personal_review_runtime_owner').fetchall()
+            require(len(owner) == 1 and owner[0][0] == 1
+                    and isinstance(owner[0][1], str)
+                    and re.fullmatch(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', owner[0][1])
+                    and type(owner[0][2]) is int and owner[0][2] >= 0,
+                    'Restored personal runtime owner singleton is missing or invalid.')
+            signal_epoch = database.execute('SELECT singleton,removal_generation FROM signal_evidence_epoch').fetchall()
+            require(len(signal_epoch) == 1 and signal_epoch[0][0] == 1
+                    and type(signal_epoch[0][1]) is int and signal_epoch[0][1] >= 0,
+                     'Restored signal evidence epoch singleton is missing or invalid.')
+            constraint_metadata = database.execute('SELECT singleton,mutation_sequence,deletion_generation,retained_from_sequence,available FROM constraint_observation_metadata').fetchall()
+            require(len(constraint_metadata) == 1 and constraint_metadata[0][0] == 1
+                    and all(type(value) is int for value in constraint_metadata[0][1:])
+                    and constraint_metadata[0][1] >= 0 and constraint_metadata[0][2] >= 0
+                    and 1 <= constraint_metadata[0][3] <= constraint_metadata[0][1] + 1 and constraint_metadata[0][4] in (0, 1),
+                    'Restored constraint observation metadata singleton is missing or invalid.')
+            require(database.execute('PRAGMA foreign_key_check').fetchone() is None,
+                    'Restored database foreign-key integrity failed.')
         # Exclusive publication: even a concurrent restore cannot overwrite a
         # pre-existing target after the initial existence check.
         os.link(temporary, output)
@@ -287,9 +294,12 @@ def setup():
     # silently change the scheduled backup implementation.
     installed = HOME / '.local/share/gtrainer/backup'
     private_directory(installed)
-    for name in ('mac_backup.py', 'pi_snapshot.py', 'verify_pi_deployment.py'):
+    sources = {'mac_backup.py': Path(__file__), 'pi_snapshot.py': Path(__file__).with_name('pi_snapshot.py'),
+               'verify_pi_deployment.py': Path(__file__).with_name('verify_pi_deployment.py'),
+               'history-schema.json': Path(__file__).resolve().parents[1] / 'backend/src/main/resources/history-schema.json'}
+    for name, source in sources.items():
         target = installed / name
-        shutil.copyfile(Path(__file__).with_name(name), target)
+        shutil.copyfile(source, target)
         target.chmod(0o600)
     agents = HOME / 'Library/LaunchAgents'
     agents.mkdir(parents=True, exist_ok=True)

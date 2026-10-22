@@ -1,0 +1,28 @@
+{
+  "version": "scoped-profile-manifest-v1",
+  "modelCallsPermitted": false,
+  "files": {
+    "benchmarks/scoped-profiles/protocols-v1.json": "3005a3345cc2beca91f279ad0ea7be1e0e9fc90328abea1095b25603533f159b",
+    "benchmarks/scoped-profiles/artifacts-v1.json": "793e34d82e7c7c3644426bd1aa82552dcfa0a4736f5c7c06d00f7e2c646cf4e8",
+    "benchmarks/scoped-profiles/protocol.py": "098e32821c198f8299d100c43ccf07ad3b7d93c31ba93d7dac2519d4d728828b",
+    "benchmarks/scoped-profiles/test_protocol.py": "3fc9237c5631748443b31c8b6457cc3c9938f5cf0a12989fd715762b97fceaa8",
+    "benchmarks/scoped-profiles/README.md": "af2a23e5e8da8d07ada41e1cd78c3f861bbdd7e5fc86d3a8f6b91fdcd60ce243",
+    "backend/src/test/kotlin/com/gtrainer/ScopedEvaluationFixtures.kt": "407c15023c38af38d734ddd299077bfca1ea1bb49c56b2b223ae055c195d38c2",
+    "backend/src/test/kotlin/com/gtrainer/ScopedEvaluationArtifactsTest.kt": "a666dad139b98e5491f7a71cc78aa5b2ecb96b93d7d7efd3d86052128eff56a3",
+    "backend/src/main/kotlin/com/gtrainer/ScopedDescriptiveContractV1.kt": "abfb2ed61ce95987f3bfdecfe210091d110d4bea4c8969a2af47c8a682767279",
+    "backend/src/main/kotlin/com/gtrainer/ContextIntakeSuggestionContractV1.kt": "8c3fa36ccea687eeb30d7a1f188c7b28f8a204d87698e9ad45a6891ab7d6be2f",
+    "backend/src/main/kotlin/com/gtrainer/AmendmentSelectionContractV1.kt": "f0b51042841680d3dfc1b1af86bf727573e3a5a247f059cd95500b33fafa431a",
+    "backend/src/main/kotlin/com/gtrainer/ConnectedReviewInvocation.kt": "c16d313138cb8f2dfa4aed5b6e429869063e41b19a074915cb0b812ac741c657",
+    "backend/src/main/kotlin/com/gtrainer/ScopedEvidencePreparation.kt": "3a85486a890afded0a932860f8ee0de15928b2fc73bcdc099d1de2f6cb16ca62",
+    "backend/src/main/kotlin/com/gtrainer/ScopedEvidenceBudget.kt": "26e49926d3f9638986fc0eaa9032019b43b07275717f2b9f3344f63cfa42af2c",
+    "backend/src/main/kotlin/com/gtrainer/ScopedReviewScopes.kt": "d049923bf4f6b8c21916c018e1b3208002e820e0a7e3d4a95fbec53aeda5484c",
+    "backend/src/main/kotlin/com/gtrainer/ScopedTrends.kt": "4afb7d16c4c040462f99985f6a0125d674f45aa1228c97e1f64ef15e7f63a4b5",
+    "backend/src/main/kotlin/com/gtrainer/ScopedReviewEvidence.kt": "6d09356ea9ef83dd864c24a98b421848d146b7c2d8f461e68d2b7b5e4617f8f0",
+    "backend/src/main/kotlin/com/gtrainer/ScopedLatestWellness.kt": "052e54a94045ec8a35af2c2d95f74e48d6e34a15061414ecc89ba54b4dd5034c",
+    "backend/src/main/kotlin/com/gtrainer/ScopedWellnessEvidence.kt": "0bb2e2c0d0edf602d4367e37e8ce3291df0a9ceb8f2be23350093119d0fc272a",
+    "backend/src/main/kotlin/com/gtrainer/ScopedContextRetrieval.kt": "104d812c34caa072e79acbac7539fef9580e163c573443b36b8f5331f42d9ccc",
+    "backend/src/main/kotlin/com/gtrainer/PlanAmendmentPolicy.kt": "0f23b87c8d36f2ca433aa6620db44c3aa589deb5d74e0a450faed96d32d26477",
+    "backend/src/main/kotlin/com/gtrainer/CommitmentProjection.kt": "ad5c10c91b16cacb30344bece1d8756467d350044a4484b5598f1c3890b65ea0",
+    "backend/src/main/kotlin/com/gtrainer/HealthRecords.kt": "b392d79ca538ec76e6cbb94d3cf15216ac2f382659c1af5ca0ddca862009468f"
+  }
+}

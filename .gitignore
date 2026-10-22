@@ -19,6 +19,7 @@ __pycache__/
 **/node_modules/
 **/dist/
 frontend/dist-development/
+frontend/dist-synthetic-intake-pilot/
 **/coverage/
 *.db
 *.db-*

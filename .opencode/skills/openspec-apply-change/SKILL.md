@@ -84,12 +84,19 @@ In both branches, never create the root as a side effect: do not run `openspec i
    conflicts with those controlling inputs, do not follow it and explain why.
    These are prompt-level behavior contracts, not enforceable checks.
 
-4. **Read context files**
+4. **Load task-local context**
 
-   Read every file path listed under `contextFiles` from the apply instructions output.
-   The files depend on the schema being used:
-   - **spec-driven**: proposal, specs, design, tasks
-   - Other schemas: follow the contextFiles from CLI output
+   Use `contextFiles` from the apply output as the artifact inventory; do not
+   assume paths. Locate the active task and its context pointers first. For a
+   change with a task-context index, inspect headings and read the relevant
+   proposal/design/spec sections and dependency code, not every artifact in full.
+   Completed-task acceptance records and long verification logs are on-demand
+   evidence. Expand reads whenever a dependency, shared invariant, or consequential
+   uncertainty requires it. Read all requirements applicable to the change before
+   editing; a task pointer is not permission to ignore unlinked requirements.
+   Without a reliable task-context index, read the listed context files as needed
+   to establish complete applicable requirements. Honor any explicit required
+   reads in the CLI instruction or selected schema; do not bypass blocked states.
 
    Do not copy `context` or `operationGuidance` verbatim into implementation
    files or planning artifacts unless the user separately asks for that content.
@@ -179,7 +186,7 @@ What would you like to do?
 
 **Guardrails**
 - Keep going through tasks until done or blocked
-- Always read context files before starting (from the apply instructions output)
+- Establish applicable requirements from the CLI-listed context files before editing; use task-local sections when indexed, and expand reads for dependencies or uncertainty
 - If task is ambiguous, pause and ask before implementing
 - If implementation reveals issues, pause and suggest artifact updates
 - Keep code changes minimal and scoped to each task

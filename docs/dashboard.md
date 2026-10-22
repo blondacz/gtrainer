@@ -24,20 +24,20 @@ Left/Right/Home/End switch sections. Only the active section mounts its private
 controls. Ordinary views aim to fit the viewport; tiny displays, zoom and keyboards
 may still need accessible overflow rather than clipping content.
 
-- **Trends → period** selects 1–366 inclusive dates and an optional activity sport;
-  wellness remains independent of the sport filter. Loading facts makes no source
-  read or model call.
-- **Trends → metrics** selects any retained sport/metric. Chart, comparison and
-  evidence tabs separate plotted values, arithmetic changes and source records.
-  Evidence is paged one record at a time; long provenance is paged losslessly.
-  Charts plot only received values and do not fill missing dates with zero.
-- **Trends → facts** presents every comparison, including missing/unchanged/zero
-  values, as **Factual review — no AI**. Select comparison, previous/current period
-  and values/provenance/coverage/focus/limits. Paging does not remove comparisons
-  or repair a rejected factual response.
-- **Trends → coverage** retains date basis, period flags, unknown source freshness
-  and unavailable proprietary Garmin metrics. Recorded activity time is not
-  Garmin intensity minutes; Intervals.icu load is not a proprietary Garmin score.
+- **Trends** and **Reviews** share one factual review form: exact activities or
+  periods, review/compare intent, wellness policy and factual focus. Periods cover
+  day/night, calendar week/month/year, rolling 7/30/365 and custom 1–366 dates.
+  **Request factual report** prepares facts only; it never syncs or infers.
+- Results share a metric selector and **Chart / Comparison / Evidence** views.
+  Evidence pages retain 25 source records each. Charts plot observed measurements,
+  never invented zeros. Full selected totals and actual comparable windows remain
+  distinct, including shorter calendar prefixes.
+- Application-generated facts retain every supplied comparison, sparse/missing
+  coverage, rule-selected focus, provenance and limitations. Unknown proprietary
+  Garmin metrics remain unavailable, not estimates.
+- **Overview** automatically prepares inert facts using the same authenticated,
+  CSRF-protected client after the saved time zone is confirmed. Dates come from
+  the server in that zone, not the browser. No model call is made on opening.
 
 ## Read-only source
 
@@ -77,21 +77,76 @@ SQLite event table and encrypted backups; removing imports leaves them intact.
 Notes/goals never enter model packets. No Google Calendar credentials, event
 prioritization, training plans, automatic workouts or readiness judgments.
 
-## Optional AI: two deliberately separate selections
+## Morning/evening preparation and exact previews
 
-**Trends → Experimental AI prototype** uses the original `/api/models` selection
-and validator. It starts off; choosing a model does not generate. Only **Generate
-observations** submits the exact displayed date/evidence binding. Accepted
-observations are labeled AI-selected and separately paged from their supporting
-metrics/dates, artifact and limitations. A failed, sparse, unavailable or invalid
-whole response is withheld; switch back to metrics/facts without losing charts.
-This prototype has no corrective retry or hosted fallback.
+In **Reviews → Morning / evening slots**, configure each desired local time and the
+saved timezone, then explicitly save/re-arm. There are no guessed times, automatic
+source reads or missed-day replay. Restart requires re-arming. Pause affects routing;
+it does not turn old snapshots into fresh evidence.
+
+Each slot defaults to **Factual only**. An optional local/hosted **preview preference**
+requires explicit provider/model identifiers; it neither proves configuration or
+qualification nor permits sending anything. Queued/running here means local evidence
+preparation, not inference. Hosted previews show awaiting exact consent with execution
+still closed; no consent/send/run action is available. Local execution is blocked too.
+
+**Completed coverage** distinguishes routing cutoff, actual evidence-read cutoff,
+preparation finish and preview creation. Morning shows separately dated latest
+wellness plus today's saved plan/context; evening covers the day so far. Neither
+promises complete imports or treats absent activity as skipped. Inspect factual
+evidence or an exact preview explicitly; polling/inspection does not prepare, retry,
+sync, infer or change the plan. Stale/discarded previews are unavailable for consent.
+
+Old unexecuted **automatic** preview copies expire when their outcome leaves the
+24-entry queue history. Original workouts/wellness/context/plans, manual previews,
+attempted reviews and unresolved runtime ownership are protected. Preparing a fresh
+packet later is separate from replaying an old automatic occurrence.
+
+## Exact local amendment review
+
+In **Plans → Stored plan amendments**, explicitly browse stored proposal metadata,
+then inspect one exact record. Browsing never generates a proposal, runs a model,
+transfers data or changes the plan. Stored disposition is not a freshness claim.
+
+Review every affected session's before/after values, authored permissions,
+provenance, explanations, citations, uncertainty, expiry and base revision. Inspect
+the bound source evidence and the complete captured local constraints, including
+inputs absent from the immutable source packet. These are mechanical checks, not
+medical suitability or verified coach approval. External calendar coverage remains
+unavailable. Reading record pages revokes readiness until snapshot status is
+refreshed successfully.
+
+Only a current pending proposal for the displayed selected base can be approved.
+Attest to the exact review, then select **Approve exact local amendment**. This
+creates one local authored revision; it does not authorize inference, hosted
+transfer or external calendar/workout writes. **Reject exact proposal** leaves the
+active plan unchanged. A pending calendar overlay says **Draft proposal—not
+applied** and never replaces authoritative entries. Stale, expired, no-change,
+needs-confirmation, rejected and applied states cannot be approved.
+
+Source failures, relevant refreshes, selection changes and expiry revoke readiness
+and remove cached draft details/overlays. Reinspect rather than assuming an old
+attestation still applies. Other plan edits and navigation remain locked during
+review. Close a settled review to release that lock.
+
+If a mutation response is lost or invalid, no automatic retry occurs. Keep the
+review open; inspect authoritative state or explicitly resolve the original request
+with the same payload and operation identity. A pending inspection alone does not
+prove the original request stopped. A confirmed applied receipt is final even if
+refreshing plans/calendar fails; close the review and reload authoritative plans,
+not approve again. Reloading the browser does not preserve in-memory recovery
+state; inspect authoritative records before taking any further action.
+
+## Optional guarded review execution
+
+The development-only experimental AI panel and prototype APIs have been removed.
+Frozen evaluation packets and historical results remain independent of runtime UI.
 
 **Reviews → Model selection** configures the separate `review-focus-app-v1`
 catalogue. Choosing, enabling or allowing one correction changes drafts only;
 use **Save model choices** explicitly. A correction also needs operator permission
 and the preset budget. The missing qualification guard disables enabling/generation
-in normal wiring. Selection does not silently change the original prototype.
+in normal wiring. Factual preparation does not change this selection or authorize inference.
 
 **Reviews → Preset editor** offers daily-combined, after-activity and weekly
 presets, all initially disabled. Preset identity and coverage/focus have separate

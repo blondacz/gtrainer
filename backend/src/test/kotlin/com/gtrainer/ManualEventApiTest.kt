@@ -22,7 +22,7 @@ class ManualEventApiTest {
         val origin = "http://127.0.0.1:8080"
         try {
             testApplication {
-                application { module(SingleUserAuth(syntheticVerifier(), origin, false, true), history, analysis = AnalysisService(emptyList())) }
+                application { module(SingleUserAuth(syntheticVerifier(), origin, false, true), history) }
                 for (method in listOf(HttpMethod.Get, HttpMethod.Post, HttpMethod.Put, HttpMethod.Delete)) {
                     assertEquals(HttpStatusCode.Unauthorized, client.request("/api/events") { this.method = method }.status)
                 }

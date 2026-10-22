@@ -208,32 +208,34 @@ class ReviewInterpretationServiceTest {
         assertEquals(1, result.attempts.size)
     }
 
-    @Test fun `disable model switch and caller cancellation prevent publication and release shared prototype slot`() = runBlocking {
+    @Test fun `disable model switch and caller cancellation prevent publication and release shared review slot`() = runBlocking {
         val report = analysisReport()
         val started = Channel<Unit>(Channel.UNLIMITED)
         val model = SyntheticReviewModel { _, _ -> started.send(Unit); awaitCancellation() }
-        val prototype = AnalysisService(listOf(SyntheticAnalysisModel()))
-        val service = ReviewInterpretationService(listOf(model), correctionPolicy, { true }, prototype.inferenceGate())
+        val gate = kotlinx.coroutines.sync.Mutex()
+        val service = ReviewInterpretationService(listOf(model), correctionPolicy, { true }, gate)
         val status = service.select(reviewSelection(correction = true))
         val request = reviewRequest(report, status)
+        val competitor = ReviewInterpretationService(listOf(SyntheticReviewModel()), correctionPolicy, { true }, gate)
+        val competitorSelection = competitor.select(reviewSelection())
         val pending = async { service.interpret(request, report) { report } }
         withTimeout(5000) { started.receive() }
-        assertEquals("analysis_busy", service.interpret(request, report) { report }.reason)
-        val prototypeStatus = prototype.select(syntheticModelOption.id)
-        assertEquals("analysis_busy", prototype.analyze(analysisRequest(report, prototypeStatus), report) { report }.reason)
+        assertEquals("interpretation_busy", service.interpret(request, report) { report }.reason)
+        assertEquals("interpretation_busy", competitor.interpret(reviewRequest(report, competitorSelection), report) { report }.reason)
         assertEquals(16, FactualReviews.prepare(Trends.analysisInput(report)).groups.sumOf { it.facts.size })
         service.select(reviewSelection(enabled = false))
         val denied = withTimeout(5000) { pending.await() }
         assertEquals("model_selection_changed", denied.reason)
         assertTrue(denied.interpretations.isEmpty())
         assertFalse(service.current(denied))
-        assertEquals("available", prototype.analyze(analysisRequest(report, prototypeStatus), report) { report }.status)
         val next = service.select(reviewSelection())
         val cancelled = async { service.interpret(reviewRequest(report, next), report) { report } }
         withTimeout(5000) { started.receive() }
         cancelled.cancelAndJoin()
         assertTrue(cancelled.isCancelled)
         assertEquals(2, model.packets.size)
-        prototype.close(); service.close()
+        assertEquals("available", competitor.interpret(reviewRequest(report, competitorSelection), report) { report }.status)
+        competitor.close()
+        service.close()
     }
 }

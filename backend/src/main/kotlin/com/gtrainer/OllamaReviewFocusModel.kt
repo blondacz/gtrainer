@@ -25,7 +25,7 @@ data class ReviewLocalConfiguration(val profile: String, val endpoint: String, v
     }
 }
 
-/** Separate wire protocol; the original OllamaAnalysisModel is unchanged. No retries inside the adapter. */
+/** Separate wire protocol; the retired analysis adapter is not used. No retries inside the adapter. */
 class OllamaReviewFocusModel(client: HttpClient, private val endpoint: String, override val option: LocalModelOption) : ReviewFocusModel {
     private val client = client.config { followRedirects = false; expectSuccess = false }
     init { require(endpoint in LocalModelConfiguration.LOCAL_ENDPOINTS) }
@@ -51,7 +51,7 @@ class OllamaReviewFocusModel(client: HttpClient, private val endpoint: String, o
         require(feedback == null || feedback in ReviewFocusProtocol.correctionReasons)
         val input = ReviewFocusProtocol.json.encodeToString(packet)
         require(input.toByteArray(Charsets.UTF_8).size <= 6000)
-        if (get("/api/version", 1024)["version"] != JsonPrimitive(OllamaAnalysisModel.RUNTIME_VERSION)) throw ModelUnavailable()
+        if (get("/api/version", 1024)["version"] != JsonPrimitive(LocalModelConfiguration.RUNTIME_VERSION)) throw ModelUnavailable()
         checkArtifact() // No summarized input goes to an unverified runtime/artifact.
         val payload = buildJsonObject {
             put("model", option.tag); put("stream", false); put("think", false); put("keep_alive", "0s")

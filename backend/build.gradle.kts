@@ -55,3 +55,13 @@ tasks.register<JavaExec>("runDevelopmentReview") {
     mainClass.set("com.gtrainer.DevelopmentReviewLauncher")
     jvmArgs(application.applicationDefaultJvmArgs)
 }
+
+tasks.register<JavaExec>("runSyntheticIntakePilot") {
+    group = "application"
+    description = "Opt-in isolated handwritten-witness intake pilot"
+    dependsOn(tasks.testClasses)
+    classpath = sourceSets.test.get().runtimeClasspath
+    mainClass.set("com.gtrainer.SyntheticIntakePilot")
+    workingDir = rootProject.projectDir
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
+}

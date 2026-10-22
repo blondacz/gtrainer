@@ -53,14 +53,9 @@ internal object ReviewScheduleRules {
             // A future HRV-only correction must not erase an as-yet unhandled sleep arrival.
             latest.copy(sleepChanged = latest.sleepChanged || unhandledFutureSleep(latest))
         }
-        fun scopeDates(scope: ReviewScope, date: LocalDate): Pair<LocalDate, LocalDate> = when (scope.kind) {
-            "week" -> date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).let { it to it.plusDays(6).coerceAtMost(today) }
-            "rolling" -> date.minusDays(scope.days.toLong() - 1) to date
-            else -> date to date
-        }
         fun emit(preset: ReviewPreset, trigger: ReviewTrigger, date: LocalDate, occurrence: String, activity: String? = null, notBefore: String? = null) {
             if (date > today) return // Future-dated source records are not a review of future physiology.
-            val (oldest, newest) = scopeDates(preset.scope, date)
+            val (oldest, newest) = ReviewScopeResolver.legacy(preset.scope, date, today)
             if (oldest > newest) return
             val identity = "${state.version}:${preset.id}:${trigger.id}:${preset.scope.kind}:${preset.scope.days}:${preset.scope.sport ?: ""}:$oldest:$newest:$occurrence:${activity ?: ""}"
             due += ReviewDue(AnalysisClaims.hash(identity), preset.id, state.version, requireNotNull(model.selectedModelId),
@@ -88,28 +83,13 @@ internal object ReviewScheduleRules {
             var nextReview: Instant? = null
             when (trigger.kind) {
                 "daily_time", "weekly_time" -> {
-                    val scheduledDate = if (trigger.kind == "daily_time") today
-                        else today.with(TemporalAdjusters.previousOrSame(DayOfWeek.of(requireNotNull(trigger.dayOfWeek))))
-                    // atZone moves a DST gap forward and chooses the earlier offset in an overlap.
-                    fun at(date: LocalDate) = date.atTime(LocalTime.parse(trigger.localTime)).atZone(zone).toInstant()
-                    val occurrence = at(scheduledDate)
-                    if (occurrence > armed && occurrence <= now && (memory.lastOccurrence == null || scheduledDate.toString() > requireNotNull(memory.lastOccurrence))) {
-                        emit(preset, trigger, scheduledDate, scheduledDate.toString())
-                        memory = memory.copy(lastOccurrence = scheduledDate.toString())
+                    val occurrence=ReviewTimeOccurrences.resolve(now,zone,LocalTime.parse(trigger.localTime),armed,memory.lastOccurrence,
+                        if(trigger.kind=="weekly_time") DayOfWeek.of(requireNotNull(trigger.dayOfWeek)) else null)
+                    if(occurrence.due) {
+                        emit(preset,trigger,occurrence.localDate,occurrence.localDate.toString())
+                        memory=memory.copy(lastOccurrence=occurrence.localDate.toString())
                     }
-                    val increment = if (trigger.kind == "daily_time") 1L else 7L
-                    var nextDate = if (occurrence > now && occurrence > armed &&
-                        (memory.lastOccurrence == null || scheduledDate.toString() > requireNotNull(memory.lastOccurrence))) scheduledDate
-                        else scheduledDate.plusDays(increment)
-                    memory.lastOccurrence?.let { nextDate = nextDate.coerceAtLeast(LocalDate.parse(it).plusDays(increment)) }
-                    if (at(nextDate) <= armed) {
-                        val armDate = armed.atZone(zone).toLocalDate()
-                        nextDate = if (trigger.kind == "daily_time") armDate else armDate.with(
-                            TemporalAdjusters.nextOrSame(DayOfWeek.of(requireNotNull(trigger.dayOfWeek))))
-                        if (at(nextDate) <= armed) nextDate = nextDate.plusDays(increment)
-                        memory.lastOccurrence?.let { nextDate = nextDate.coerceAtLeast(LocalDate.parse(it).plusDays(increment)) }
-                    }
-                    nextReview = at(nextDate)
+                    nextReview=occurrence.nextUtc
                 }
                 "changed_data" -> {
                     memory = memory.copy(changed = memory.changed || relevant.isNotEmpty(),
@@ -209,16 +189,18 @@ class ReviewScheduler(private val store: HistoryStore, private val reviews: Revi
                       private val clock: Clock = Clock.systemUTC(), private val verifiedStepSources: Set<String> = emptySet(),
                       private val accept: ((List<ReviewDue>) -> Boolean)? = null, private val durableQueue: Boolean = false) {
     private var armed = false
+    private var scopedArmedAt: Instant? = null
 
     suspend fun configure(update: ReviewScheduleUpdate): ReviewScheduleStatus = withContext(Dispatchers.IO) {
         synchronized(this@ReviewScheduler) {
             val model = reviews.status()
             val config = update.configuration
             require(config.presets.all { reviews.permitsScheduleBudget(it.budget) }) { "Budget exceeds operator policy" }
-            if (config.enabled && !config.paused) require(model.enabled && model.selectedModelId != null &&
+            if (config.enabled && !config.paused && config.presets.any { it.enabled }) require(model.enabled && model.selectedModelId != null &&
                 model.profile == ReviewFocusProtocol.PROFILE && model.models.any { it.id == model.selectedModelId }) { "Explicit local model required" }
             store.updateReviewSchedule(update.expectedVersion, config, clock.instant(), model.selectedModelId, model.selectionVersion)
             armed = config.enabled && !config.paused
+            scopedArmedAt=clock.instant().takeIf { config.enabled && !config.paused }
             evaluate(false)
         }
     }
@@ -226,17 +208,40 @@ class ReviewScheduler(private val store: HistoryStore, private val reviews: Revi
     suspend fun status(): ReviewScheduleStatus = withContext(Dispatchers.IO) { synchronized(this@ReviewScheduler) { evaluate(false) } }
     suspend fun tick(): ReviewScheduleStatus = withContext(Dispatchers.IO) { synchronized(this@ReviewScheduler) { evaluate(true) } }
 
-    private fun evaluate(commit: Boolean): ReviewScheduleStatus = store.evaluateReviewSchedule { state, changes, revision, history ->
+    private fun evaluate(commit: Boolean): ReviewScheduleStatus {
+      val evaluate: (ReviewSchedulerState,List<ImportedReviewChange>,Long,(LocalDate,LocalDate)->HistoryResponse)->Pair<ReviewSchedulerState,ReviewScheduleStatus> = { state, changes, revision, history ->
         val model = reviews.status()
-        if (model.selectionVersion != state.modelVersion || model.selectedModelId != state.modelId || !model.enabled) armed = false
+        val selectionCurrent=model.selectionVersion==state.modelVersion && model.selectedModelId==state.modelId && model.enabled
+        if(commit && !selectionCurrent) armed=false
         val now = clock.instant()
-        val (next, result) = ReviewScheduleRules.evaluate(state, changes, revision, history, now, model, armed, verifiedStepSources, durableQueue)
+        val (next, result) = ReviewScheduleRules.evaluate(state, changes, revision, history, now, model, armed && selectionCurrent, verifiedStepSources, durableQueue)
         // Routing never calls a provider. Queue state and consumed occurrences commit together.
         val accepted = commit && (durableQueue || result.due.isEmpty() || (accept != null && accept.invoke(result.due)))
         val updated = if (accepted && durableQueue) next.copy(queue = ReviewQueueRules.enqueue(ReviewQueueRules.reconcileImports(next.queue, changes, now), result.due,
             state.configuration.queuePolicy, now)) else next
         val reason = if (result.reason == "scheduler_ready" && accept == null && !durableQueue) "queue_not_configured" else result.reason
         (if (accepted) updated else state) to result.copy(reason = reason, executionAvailable = durableQueue && model.enabled &&
-            model.runtimeGuardConfigured && !state.configuration.paused)
+             model.runtimeGuardConfigured && !state.configuration.paused)
+      }
+      val status=store.evaluatePersonalSchedule(clock.instant(),scopedArmedAt,commit,durableQueue,evaluate)
+      val routing=when {
+          !durableQueue -> "durable_queue_not_configured"
+          !commit -> "inspection_only_not_admission"
+          !status.configuration.enabled || status.configuration.paused -> "schedules_disabled_or_paused"
+          scopedArmedAt==null -> "restart_requires_explicit_rearm"
+          else -> try {
+              val captured=store.captureSignalAdaptation(clock.instant())
+              if(captured.root.reconciliation.plan?.definition?.policy==null) "selected_plan_policy_required" else {
+                  val prepared=PreparedSignalAdaptation.prepare(captured)
+                  val admitted=store.commitSignalAdaptation(prepared,clock)
+                  if(prepared.work==null) "constraint_proof_unavailable" else if(admitted.admittedReasonIds.isEmpty()) "current_or_already_admitted" else "factual_adaptation_queued"
+              }
+          } catch(_: PlanConflict) { "evidence_changed_retry_next_tick" }
+            catch(_: ReviewQueueCapacity) { "queue_capacity_blocked" }
+            catch(_: ScopedEvidenceInspectionLimit) { "proof_capacity_blocked" }
+            catch(_: ConstraintProofLimit) { "proof_capacity_blocked" }
+            catch(_: IllegalArgumentException) { "bounded_evidence_unavailable" }
+      }
+      return status.copy(adaptationRouting=routing)
     }
 }

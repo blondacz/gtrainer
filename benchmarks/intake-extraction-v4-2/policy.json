@@ -1,0 +1,1 @@
+{"version":"intake-conformance-oracle-v4.2-contextual-question","parentPolicy":"intake-conformance-oracle-v4.1-label-casefold","additionalQuestionTexts":{"i06":{"training_unknowns":["What are the practice date, start and end times, timezone, and recurrence details?"]}},"otherPredicates":"unchanged-v4.1","globalNounReplacement":false,"historicalReportsMutable":false}

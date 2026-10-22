@@ -128,7 +128,7 @@ class AthleteContextService(private val repository: AthleteContextRepository, pr
 
 class ContextNotFound : IllegalStateException("Context not found")
 fun validateContextId(id: String) { require(Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}").matches(id)) { "Invalid context identifier" } }
-private fun validateContextDate(value: String) {
+internal fun validateContextDate(value: String) {
     require(Regex("[0-9]{4}-[0-9]{2}-[0-9]{2}").matches(value)) { "Invalid context date" }
     try { LocalDate.parse(value) } catch (_: DateTimeParseException) { throw IllegalArgumentException("Invalid context date") }
 }

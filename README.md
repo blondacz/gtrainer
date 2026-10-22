@@ -12,9 +12,8 @@ SQLite history, factual charts, and source-linked comparisons. Tested ARM64
 images reach the Pi through protected promotion PRs and Flux; access uses an
 authenticated SSH tunnel, not direct LAN/public application ingress.
 
-This source adds an **opt-in experimental local analysis prototype**, with typed
-claim validation and code-rendered facts. It does not deploy a model service or
-select a default. See
+The optional local analysis prototype is guarded and separate from factual
+reviews. It does not deploy a model service or select a default. See
 [`docs/decisions/guarded-local-analysis.md`](docs/decisions/guarded-local-analysis.md)
 for configuration, limits, and outstanding hardware qualification. Hosted
 inference and full phase-one verification remain unfinished. Local manual-event
@@ -54,22 +53,17 @@ is in `frontend/dist/`. Both are ignored by Git.
 
 ## Local development
 
-The code-owned **Factual review — no AI** view retains all comparisons and selects
-descriptive focus using deterministic rules, with no model or upstream call.
-It is separate from the optional experimental AI path and is not yet deployed
-on the Pi. See [deterministic factual reviews](docs/decisions/deterministic-factual-reviews.md)
-for focus rules, snapshot binding and the remaining integration boundary.
-The [separate guarded interpretation API](docs/decisions/guarded-review-interpretation.md)
-keeps the existing AI prototype contract unchanged, defaults off, and refuses
-inference without a qualified resource/live-health guard. No production guard or
-live inference service is wired; this is local implementation, not rollout.
-The [editable presets and scheduler API](docs/decisions/review-presets-and-scheduler.md)
-adds opt-in, explicit-zone trigger routing, a durable coalescing queue and
-schema-2 persistence. Review controls show presets, eligibility, running state and
-completed coverage metadata; inference still requires the absent production guard.
+The canonical scoped factual-review API is `GET /api/reviews/options` and
+`POST /api/reviews/prepare`. It uses shared review controls and bounded factual
+reports; see [scoped factual reviews](docs/data/scoped-reviews-and-comparisons.md).
+The [review presets and scheduler](docs/decisions/review-presets-and-scheduler.md)
+documents preserved, guarded personal review-now/queue/model capabilities; there
+is no automatic inference or review on opening the dashboard.
 See [dashboard and manual events](docs/dashboard.md) for section navigation,
 lossless evidence paging, explicit writes and the two separate model selections.
 Live schema/helper migration is not authorized by these changes.
+The application database is a fresh version-1 schema; obsolete prior application
+schemas are refused, not migrated or reset. No live database operation is implied.
 
 In separate terminals:
 
@@ -116,6 +110,7 @@ are documented in
 [`docs/decisions/runtime-and-delivery.md`](docs/decisions/runtime-and-delivery.md).
 
 Current work is tracked in
+[`scoped-reviews-and-adaptive-planning`](openspec/changes/scoped-reviews-and-adaptive-planning/tasks.md),
 [`connected-insights-context`](openspec/changes/connected-insights-context/tasks.md),
 and [`foundation-release-verification`](openspec/changes/foundation-release-verification/tasks.md).
 Completed foundation work is recorded in its

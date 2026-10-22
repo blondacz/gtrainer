@@ -8,6 +8,7 @@ data class ConnectedReviewPreview(
     val providerSelection: ConnectedReviewProviderSelection,
     val packetDigest: String,
     val exactPrompt: InterpretationPromptV1,
+    val exactCorrectionPrompt: InterpretationPromptV1? = null,
 ) {
     override fun toString() = "ConnectedReviewPreview([REDACTED])"
 }
@@ -48,6 +49,10 @@ class ConnectedReviewConsentLedger {
         selection.providerKind == "hosted" && consents[snapshotId] == Consent(selection, packetDigest)
 
     @Synchronized fun revoke(snapshotId: String): Boolean = consents.remove(snapshotId) != null
+
+    /** Synchronous publication and revocation have one linearization boundary; no lock spans inference. */
+    @Synchronized internal fun <T> publishIfPermitted(snapshotId: String,selection: ConnectedReviewProviderSelection,
+        packetDigest: String,publish: ()->T): T? = if(permits(snapshotId,selection,packetDigest)) publish() else null
 }
 
 /** Composes qualification/health and packet-scoped consent before every hosted send. */
@@ -58,10 +63,14 @@ class ConnectedReviewService(
     private val qualificationAndHealth: ConnectedReviewExecutionGate =
         ConnectedReviewExecutionGate { _, _ -> "qualification_gate_disabled" },
     private val limits: ConnectedReviewExecutionLimits = ConnectedReviewExecutionLimits(),
+    private val monotonicNanos: ()->Long=System::nanoTime,
+    private val durableClaimOriginNanos: Long?=null,
+    private val personalAttemptAuthority: (suspend (Int)->Boolean)?=null,
 ) {
     init {
-        require(limits.policy == ConnectedReviewExecutionPolicy.ORDINARY) {
-            "Production connected-review service requires ordinary execution policy"
+        require(limits.policy == ConnectedReviewExecutionPolicy.ORDINARY ||
+            (limits.policy==ConnectedReviewExecutionPolicy.PERSONAL && durableClaimOriginNanos!=null && personalAttemptAuthority!=null)) {
+            "Connected-review service requires ordinary or explicitly owned personal execution policy"
         }
     }
 
@@ -79,9 +88,9 @@ class ConnectedReviewService(
         val snapshot = repository.connectedReviewStatus(snapshotId)
         val selection = storedSelection(snapshot)
         require(catalog.resolve(selection) != null) { "Selected provider is unavailable" }
-        val packet = repository.connectedReviewPacket(snapshotId)
-        require(InterpretationContractV1.promptSha256(packet) == snapshot.packetDigest) { "Review packet changed" }
-        return ConnectedReviewPreview(snapshotId, selection, snapshot.packetDigest, InterpretationContractV1.prompt(packet))
+        val invocation = repository.connectedReviewInvocation(snapshotId)
+        require(invocation.profile==snapshot.contractVersion && invocation.consentDigest == snapshot.packetDigest) { "Review packet changed" }
+        return ConnectedReviewPreview(snapshotId, selection, snapshot.packetDigest, invocation.exactPrompt,invocation.exactCorrectionPrompt)
     }
 
     fun consent(snapshotId: String, request: ConnectedReviewConsentRequest): Boolean {
@@ -105,9 +114,23 @@ class ConnectedReviewService(
             qualificationAndHealth.refusalReason(snapshot, provider)?.let { return@ConnectedReviewExecutionGate it }
             if (provider.hosted) {
                 val exactSelection = storedSelection(snapshot)
-                if (!consent.permits(snapshot.snapshotId, exactSelection, snapshot.packetDigest)) "consent_required" else null
+                if (!consent.permits(snapshot.snapshotId, exactSelection, snapshot.packetDigest)) {
+                    if(snapshot.state=="RUNNING") "consent_revoked" else "consent_required"
+                } else null
             } else null
         }
-        return ConnectedReviewExecutor(repository, gate, limits).executeManually(snapshotId, selection, catalog)
+        val fenced=object : ConnectedReviewExecutionRepository by repository {
+            override fun prepareConnectedReviewPublication(snapshotId: String,output: ValidatedConnectedReviewOutput,currentEvidenceDigest: String,
+                currentContext: List<ContextRevisionRefV1>,provider: String,model: String,contractVersion: String): ()->ConnectedReviewStatus {
+                val publish=repository.prepareConnectedReviewPublication(snapshotId,output,currentEvidenceDigest,currentContext,provider,model,contractVersion)
+                if(selection.providerKind!="hosted") return publish
+                val current=repository.connectedReviewStatus(snapshotId)
+                return { consent.publishIfPermitted(snapshotId,selection,current.packetDigest,publish)
+                    ?: repository.failConnectedReview(snapshotId,"consent_revoked")
+                }
+            }
+        }
+        return ConnectedReviewExecutor(fenced,gate,limits,monotonicNanos,durableClaimOriginNanos,
+            personalAttemptAuthority=personalAttemptAuthority).executeManually(snapshotId, selection, catalog)
     }
 }

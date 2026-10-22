@@ -51,60 +51,10 @@ class ReviewSchedulePersistenceTest {
         .digest(Json.encodeToString(listOf(source, id)).toByteArray(Charsets.UTF_8))
         .joinToString("") { "%02x".format(it.toInt() and 0xff) }
 
-    private fun seedVersionOne(path: Path) = database(path) { connection ->
-        connection.createStatement().use {
-            it.execute("CREATE TABLE schema_migrations(version INTEGER PRIMARY KEY, applied_utc TEXT NOT NULL)")
-            it.execute("INSERT INTO schema_migrations VALUES (1,'2020-06-01T00:00:00Z')")
-            for (table in listOf("activities", "wellness")) {
-                it.execute("CREATE TABLE $table(source TEXT NOT NULL, source_id TEXT NOT NULL, observed_date TEXT NOT NULL, record_json TEXT NOT NULL, PRIMARY KEY(source,source_id))")
-                it.execute("CREATE INDEX ${table}_dates ON $table(observed_date)")
-            }
-            it.execute("CREATE TABLE events(id TEXT PRIMARY KEY, start_date TEXT NOT NULL, end_date TEXT NOT NULL, sport TEXT NOT NULL, goal TEXT NOT NULL, notes TEXT)")
-            it.execute("INSERT INTO events VALUES ('synthetic-event','2020-06-01','2020-06-02','Ride','synthetic',NULL)")
-            it.execute("CREATE TABLE sync_status(category TEXT PRIMARY KEY, last_attempt_utc TEXT, last_success_utc TEXT, read_status TEXT NOT NULL, rejected INTEGER NOT NULL DEFAULT 0, incomplete INTEGER NOT NULL DEFAULT 0)")
-            it.execute("INSERT INTO sync_status VALUES ('activities','2020-06-01T00:00:00Z','2020-06-01T00:00:00Z','SUCCESS',2,3)")
-            it.execute("PRAGMA user_version=1")
-        }
-        connection.prepareStatement("INSERT INTO activities VALUES (?,?,?,?)").use {
-            val record = syntheticActivity()
-            it.setString(1, record.source); it.setString(2, record.sourceRecordId)
-            it.setString(3, record.startLocal.take(10)); it.setString(4, Json.encodeToString(record)); it.executeUpdate()
-        }
-        connection.prepareStatement("INSERT INTO wellness VALUES (?,?,?,?)").use {
-            val record = syntheticWellness()
-            it.setString(1, record.source); it.setString(2, record.sourceRecordId)
-            it.setString(3, record.date); it.setString(4, Json.encodeToString(record)); it.executeUpdate()
-        }
-    }
-
     @Test
-    fun `version one migration preserves history events and sync without enabling or replaying imports`() = fixture { path ->
-        seedVersionOne(path)
-        HistoryStore(path).use { store ->
-            assertEquals(listOf(syntheticActivity()), store.history(oldest, newest).activities)
-            assertEquals(listOf(syntheticWellness()), store.history(oldest, newest).wellness)
-            assertEquals(ReviewSchedulerState(), store.reviewScheduleState())
-            assertTrue(changes(store).isEmpty())
-            val sync = store.statuses(newest).first()
-            assertEquals("SUCCESS", sync.readStatus)
-            assertEquals("2020-06-01T00:00:00Z", sync.lastSuccessUtc)
-            assertEquals(2, sync.rejected)
-            assertEquals(3, sync.incomplete)
-            database(path) { connection -> connection.createStatement().use {
-                it.executeQuery("PRAGMA user_version").use { rows -> rows.next(); assertEquals(7, rows.getInt(1)) }
-                it.executeQuery("SELECT version FROM schema_migrations ORDER BY version").use { rows ->
-                    assertTrue(rows.next()); assertEquals(1, rows.getInt(1))
-                    assertTrue(rows.next()); assertEquals(2, rows.getInt(1))
-                    assertTrue(rows.next()); assertEquals(3, rows.getInt(1))
-                    assertTrue(rows.next()); assertEquals(4, rows.getInt(1))
-                    assertTrue(rows.next()); assertEquals(5, rows.getInt(1))
-                    assertTrue(rows.next()); assertEquals(6, rows.getInt(1))
-                    assertTrue(rows.next()); assertEquals(7, rows.getInt(1)); assertFalse(rows.next())
-                }
-                it.executeQuery("SELECT goal FROM events").use { rows -> rows.next(); assertEquals("synthetic", rows.getString(1)) }
-            } }
-        }
-        HistoryStore(path).use { assertEquals(ReviewSchedulerState(), it.reviewScheduleState()) }
+    fun `legacy nonempty schema is refused`() = fixture { path ->
+        database(path) { it.createStatement().use { s -> s.execute("PRAGMA user_version=1"); s.execute("CREATE TABLE fixture(value TEXT)") } }
+        assertFailsWith<HistorySchemaMismatch> { HistoryStore(path).close() }
     }
 
     @Test
@@ -123,7 +73,7 @@ class ReviewSchedulePersistenceTest {
                 }
             } }
         }
-        database(path) { it.createStatement().use { statement -> statement.execute("PRAGMA user_version=8") } }
+        database(path) { it.createStatement().use { statement -> statement.execute("PRAGMA user_version=9") } }
         assertFailsWith<IllegalStateException> { HistoryStore(path).close() }
     }
 
@@ -337,8 +287,8 @@ class ReviewSchedulePersistenceTest {
 
     @Test
     fun `removing imports preserves configuration and events but disarms and clears scheduler state`() = fixture { path ->
-        seedVersionOne(path)
         HistoryStore(path).use { store ->
+            store.saveEvent(ManualEvent("00000000-0000-4000-8000-000000000001", "2020-06-01", "2020-06-01", "Run", "Synthetic event", null))
             val configuration = ReviewScheduleConfiguration(enabled = true, paused = true, timeZone = "Europe/Prague")
             store.updateReviewSchedule(0, configuration, at, "synthetic-model", 4)
             store.completeActivities(ReadResult(ReadStatus.SUCCESS, listOf(syntheticActivity().copy(calories = Measurement(234.0, "kcal")))), at)
@@ -353,6 +303,9 @@ class ReviewSchedulePersistenceTest {
             assertTrue(store.statuses(newest).all { it.readStatus == "NEVER_READ" })
             store.evaluateReviewSchedule { state, _, revision, _ -> assertEquals(0L, revision); state to status(state) }
             database(path) { connection -> connection.createStatement().use {
+                it.executeQuery("PRAGMA user_version").use { rows -> rows.next(); assertEquals(1, rows.getInt(1)) }
+                it.executeQuery("PRAGMA application_id").use { rows -> rows.next(); assertEquals(HistorySchema.APPLICATION_ID, rows.getInt(1)) }
+                it.executeQuery("SELECT count(*) FROM sqlite_schema WHERE name='schema_migrations'").use { rows -> rows.next(); assertEquals(0, rows.getInt(1)) }
                 it.executeQuery("SELECT count(*) FROM events").use { rows -> rows.next(); assertEquals(1, rows.getInt(1)) }
                 it.executeQuery("SELECT count(*) FROM review_import_changes").use { rows -> rows.next(); assertEquals(0, rows.getInt(1)) }
             } }

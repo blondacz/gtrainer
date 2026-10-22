@@ -26,6 +26,8 @@ function inspectionFrom(value: unknown): Inspection {
   if (body.packetAvailable) {
     const packet: unknown = JSON.parse(body.exactPrompt.userPacketJson)
     if (!object(packet) || !object(packet.evidence) || !Array.isArray(packet.context)) throw new Error('Invalid review packet')
+    if (Array.isArray(packet.evidence.facts) && packet.evidence.facts.some(fact => !object(fact) || typeof fact.evidenceId !== 'string'))
+      throw new Error('Invalid review packet')
     if (body.review && (!Array.isArray(body.review.interpretations) || !Array.isArray(body.review.questions))) throw new Error('Invalid review output')
   }
   return body
@@ -82,7 +84,7 @@ export function ConnectedReviewPanel() {
   const packet: Packet | null = inspection?.packetAvailable ? JSON.parse(inspection.exactPrompt.userPacketJson) as Packet : null
   const contextByRevision = new Map(packet?.context.map(item => [`${item.contextId}:${item.revision}`, item]) ?? [])
   const evidenceIds = packet?.evidence && Array.isArray((packet.evidence as Record<string, unknown>).facts)
-    ? ((packet.evidence as Record<string, unknown>).facts as { id?: string }[]).map(item => item.id).filter((id): id is string => typeof id === 'string')
+    ? ((packet.evidence as Record<string, unknown>).facts as { evidenceId: string }[]).map(item => item.evidenceId)
     : []
 
   function renderClaim(claim: Claim, kind: 'Interpretation' | 'Question', index: number) {

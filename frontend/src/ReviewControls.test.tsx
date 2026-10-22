@@ -690,3 +690,130 @@ describe('active polling and request generations', () => {
     expect(screen.getByLabelText('Enable optional local AI interpretation')).not.toBeChecked()
   })
 })
+
+describe('current primary implemented slot and mixed queue', () => {
+  it('explicitly configures and rearms one factual slot without model consent or inference', async () => {
+    const { state, fetchMock } = server()
+    state.models.runtimeGuardConfigured = false
+    state.models.models = []
+    state.models.executionPolicy = { callTimeoutMillis: 120_000, jobTimeoutMillis: 130_000, allowCorrectiveAttempt: false }
+    Object.assign(state.schedules.configuration,{purposeSlots:[]})
+    Object.assign(state.schedules,{purposeSlots:[]})
+    render(<ReviewControls csrfToken={csrf} revision={0} />); await ready()
+    click('Morning / evening slots'); click('Configure morning slot')
+    expect(button('Save and explicitly re-arm daily slots')).toBeDisabled()
+    fireEvent.change(screen.getByLabelText('morning local time'), { target: { value: '08:00' } })
+    expect(button('Save and explicitly re-arm daily slots')).not.toBeDisabled()
+    click('Save and explicitly re-arm daily slots')
+    await waitFor(() => expect(writes(fetchMock)).toHaveLength(1))
+    const [path, init] = writes(fetchMock)[0]
+    const payload = JSON.parse(init.body)
+    expect(path).toBe('/api/review-schedules')
+    expect(init).toMatchObject({ method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf } })
+    expect(payload.expectedVersion).toBe(3)
+    expect(payload.configuration.purposeSlots).toEqual([{ slotId: expect.stringMatching(/^[0-9a-f-]{36}$/), purpose: 'morning', enabled: true, localTime: '08:00', profile: 'scoped-descriptive-v1', providerSelection: null }])
+    expect(fetchMock.mock.calls.filter(([p, i]) => i?.method === 'PUT' && p === '/api/review-models')).toHaveLength(0)
+    expect(fetchMock.mock.calls.some(([p]) => /interpretation|analysis/.test(p))).toBe(false)
+    expect(fetchMock.mock.calls.slice(0, 3).every(([, i]) => i?.cache === 'no-store')).toBe(true)
+  })
+
+  it('shows restart awaiting explicit rearm, then pauses explicitly without enabling the model', async () => {
+    const { state, fetchMock } = server()
+    const slot = { slotId: '123e4567-e89b-42d3-a456-426614174000', purpose: 'morning', enabled: true, localTime: '08:00', profile: 'scoped-descriptive-v1' }
+    Object.assign(state.schedules.configuration,{purposeSlots:[slot]})
+    Object.assign(state.schedules,{purposeSlots:[{ slotId: slot.slotId, purpose: 'morning', state: 'awaiting_explicit_rearm', nextUtc: null, limitation: 'Restart' }]})
+    render(<ReviewControls csrfToken={csrf} revision={0} />); await ready(); click('Morning / evening slots')
+    expect(screen.getByText(/morning: awaiting_explicit_rearm/)).toBeInTheDocument()
+    expect(writes(fetchMock)).toHaveLength(0)
+    click('Save and explicitly re-arm daily slots')
+    await waitFor(() => expect(writes(fetchMock)).toHaveLength(1))
+    const saved = JSON.parse(writes(fetchMock)[0][1].body)
+    state.schedules.configuration = saved.configuration
+    click('Pause daily slots and reviews')
+    await waitFor(() => expect(writes(fetchMock)).toHaveLength(2))
+    expect(writes(fetchMock)[1][0]).toBe('/api/review-schedules')
+    expect(JSON.parse(writes(fetchMock)[1][1].body)).toMatchObject({ expectedVersion: 4, configuration: { paused: true } })
+    expect(fetchMock.mock.calls.filter(([p, i]) => p === '/api/review-models' && i?.method === 'PUT')).toHaveLength(0)
+  })
+
+  it('renders a scoped factual preparation alongside existing queue data and inspects only on demand', async () => {
+    const { state, fetchMock } = server()
+    const scopedIntent = { profile: 'scoped-descriptive-v1', purpose: 'morning', configurationVersion: 3,
+      scope: { request: { schemaVersion: 1, mode: 'period', intent: 'review', scope: 'day', anchorDate: '2020-06-10', wellnessPolicy: 'assessment' }, asOf: '2020-06-10T08:00:00Z', timeZone: 'UTC', anchorDate: '2020-06-10', status: 'available', reasons: [], soFar: true, dateBasis: 'source dates', evidenceRange: {oldest:'2020-06-10',newest:'2020-06-10'}, fullCalendarRange: null, wellnessPolicy: 'assessment', activityIds: [], activityDates: [], comparison: { policy: 'preceding_equal_length', comparableSelected: {oldest:'2020-06-10',newest:'2020-06-10'}, comparablePrevious: {oldest:'2020-06-09',newest:'2020-06-09'}, priorCalendarFull: null, comparisonFull: {oldest:'2020-06-09',newest:'2020-06-09'}, reason: null, unequalDuration: false, overlapping: false, unmatchedSelectedDates: [], unmatchedPreviousDates: [], priorCalendarRemainderDates: [] } },
+      sourceRevision: 1, planReasonRevision: 1, providerSelection: null }
+    const scopedJob = { id: '123e4567-e89b-42d3-a456-426614174000', key: hash, intent: null, scopedIntent, reasons: [], occurrenceIds: [], firstQueuedUtc: '2020-06-10T08:00:00Z', lastQueuedUtc: '2020-06-10T08:00:00Z', eligibleUtc: '2020-06-10T08:00:00Z', maximumDeferralUtc: '2020-06-10T08:10:00Z', manual: false, startedUtc: null }
+    const prepared = { id: scopedJob.id, intent: null, scopedIntent, status: 'factual_prepared', reason: 'profile_execution_closed_plan_unchanged', finishedUtc: '2020-06-10T08:01:00Z', startedUtc: null, facts: null, interpretation: null, stale: false, snapshotId: '223e4567-e89b-42d3-a456-426614174000' }
+    Object.assign(state.queue,{pending:[scopedJob],lastSuccess:null,outcomes:[prepared]})
+    render(<ReviewControls csrfToken={csrf} revision={0} />); await ready(); click('Queue status')
+    expect(screen.getByText(/Pending scoped factual preparation — morning/)).toBeInTheDocument()
+    expect(screen.getByText(/Routing cutoff: 2020-06-10T08:00:00Z/)).toBeInTheDocument()
+    expect(writes(fetchMock)).toHaveLength(0)
+    click('Completed coverage'); expect(fetchMock.mock.calls.some(([p]) => /evidence/.test(p))).toBe(false)
+    expect(screen.getByText(/Factual evidence prepared/)).toBeInTheDocument()
+    expect(screen.getByText(/No plan change or new model execution is implied/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Inspect scheduled evidence (read only)' })).toBeInTheDocument()
+  })
+
+  it.each(['both-arms', 'array-purpose'])('rejects malformed scoped queue data (%s) without forged outcome prose', async variant => {
+    const { state, fetchMock } = server()
+    const scopedIntent = { profile: 'scoped-descriptive-v1', purpose: 'morning', configurationVersion: 3, scope: {}, sourceRevision: 1, planReasonRevision: 1, providerSelection: null }
+    const bad = { id: '123e4567-e89b-42d3-a456-426614174000', key: hash, intent: variant === 'both-arms' ? intent() : null, scopedIntent, reasons: [], occurrenceIds: [], firstQueuedUtc: '2020-06-10T08:00:00Z', lastQueuedUtc: '2020-06-10T08:00:00Z', eligibleUtc: '2020-06-10T08:00:00Z', maximumDeferralUtc: '2020-06-10T08:10:00Z', manual: false, startedUtc: null }
+    if (variant === 'array-purpose') (bad.scopedIntent as unknown as Record<string, unknown>).purpose = []
+    state.queue.pending = [bad as never]
+    render(<ReviewControls csrfToken={csrf} revision={0} />)
+    await screen.findByText(/Some review controls are unavailable/)
+    expect(screen.queryByText(/Factual evidence prepared|Pending scoped factual preparation/)).not.toBeInTheDocument()
+    expect(writes(fetchMock)).toHaveLength(0)
+  })
+
+  it('saves explicit provider preference fields and refuses empty identifiers', async () => {
+    const fixture = server()
+    render(<ReviewControls csrfToken={csrf} revision={0} />); await ready(); click('Morning / evening slots'); click('Configure morning slot')
+    fireEvent.change(screen.getByLabelText('morning local time'), { target: { value: '08:00' } })
+    fireEvent.change(screen.getByLabelText('morning preview preference'), { target: { value: 'hosted-preview' } })
+    expect(button('Save and explicitly re-arm daily slots')).toBeDisabled()
+    fireEvent.change(screen.getByLabelText('morning provider ID'), { target: { value: 'invalid provider' } })
+    expect(button('Save and explicitly re-arm daily slots')).toBeDisabled()
+    fireEvent.change(screen.getByLabelText('morning provider ID'), { target: { value: 'provider.example' } })
+    expect(button('Save and explicitly re-arm daily slots')).toBeDisabled()
+    fireEvent.change(screen.getByLabelText('morning model ID'), { target: { value: 'model:v1' } })
+    click('Save and explicitly re-arm daily slots')
+    await waitFor(() => expect(writes(fixture.fetchMock)).toHaveLength(1))
+    expect(JSON.parse(writes(fixture.fetchMock)[0][1].body).configuration.purposeSlots[0].providerSelection).toEqual({ providerId: 'provider.example', modelId: 'model:v1', providerKind: 'hosted' })
+  })
+
+  it.each(['current','stale','wrong-binding','oversized','unexpected-admission'] as const)('inspects hosted preview only by GET and fails closed (%s)', async variant => {
+    const { state, fetchMock } = server()
+    const scopedIntent = { profile: 'scoped-descriptive-v1', purpose: 'morning', configurationVersion: 3, scope: { request:{schemaVersion:1,mode:'period',intent:'review',scope:'day',anchorDate:'2020-06-10',wellnessPolicy:'assessment'}, asOf:'2020-06-10T08:00:00Z',timeZone:'UTC',anchorDate:'2020-06-10',status:'available',reasons:[],soFar:true,dateBasis:'source dates',evidenceRange:{oldest:'2020-06-10',newest:'2020-06-10'},fullCalendarRange:null,activityIds:[],activityDates:[],wellnessPolicy:'assessment',comparison:{policy:'none',comparableSelected:null,comparablePrevious:null,priorCalendarFull:null,comparisonFull:null,reason:null,unequalDuration:false,overlapping:false,unmatchedSelectedDates:[],unmatchedPreviousDates:[],priorCalendarRemainderDates:[]} }, sourceRevision: 1, planReasonRevision: 1,
+      providerSelection: { providerId: 'hosted.test', modelId: 'model:v1', providerKind: 'hosted' } }
+    const executionId='123e4567-e89b-42d3-a456-426614174000', snapshotId='223e4567-e89b-42d3-a456-426614174000'
+    state.queue.outcomes=[{ id: executionId, intent:null, scopedIntent, status:'factual_prepared', reason:'ready', finishedUtc:'2020-06-10T08:01:00Z', startedUtc:null, facts:null, interpretation:null, stale:false, snapshotId,
+      evidenceCutoffUtc:'2020-06-10T08:00:30Z', preview:{state:'awaiting_consent',reason:'awaiting_consent',executionId,createdUtc:'2020-06-10T08:00:40Z'} } as never]
+    fetchMock.mockImplementation(async (path: string, init?: RequestInit) => {
+      if(path===`/api/review-executions/${executionId}`) return response({state:variant==='stale'?'STALE':'IN_FLIGHT',admission:{profile:'scoped-descriptive-v1',supported:true,executionAllowed:variant==='unexpected-admission',blockingReasons:['profile_not_qualified','runtime_admission_closed']},binding:{executionId:variant==='wrong-binding'?snapshotId:executionId,profile:'scoped-descriptive-v1',source:{snapshotId,intakeId:null,intakeRevision:null},providerSelection:scopedIntent.providerSelection,consentSha256:hash,
+        exactPrompt:{systemInstructions:variant==='oversized'?'x'.repeat(32768):'safe system',userPacketJson:'{}'},exactCorrectionPrompt:{systemInstructions:'safe correction',userPacketJson:'{}'}}})
+      if(path==='/api/review-models') return response(catalogue())
+      if(path==='/api/review-schedules') return response(scheduleStatus())
+      if(path==='/api/review-queue') return response(state.queue)
+      throw new Error('Unexpected endpoint')
+    })
+    const rendered=render(<ReviewControls csrfToken={csrf} revision={0} />); await ready(); click('Completed coverage')
+    expect(screen.getByText(/Routing cutoff:/)).toBeInTheDocument()
+    expect(screen.getByText(/Actual evidence read cutoff: 2020-06-10T08:00:30Z.*Preparation finished: 2020-06-10T08:01:00Z/)).toBeInTheDocument()
+    expect(screen.getByText(/execution is unavailable\/closed/)).toBeInTheDocument()
+    expect(fetchMock.mock.calls.some(([p])=>p===`/api/review-executions/${executionId}`)).toBe(false)
+    click('Inspect exact preview (read only)')
+    if(variant==='current') {
+      await screen.findByText(/Execution state: IN_FLIGHT means a prepared binding/)
+      expect(screen.getByText(new RegExp(`Exact packet SHA-256: ${hash}`))).toBeInTheDocument()
+      rendered.rerender(<ReviewControls csrfToken="different-session" revision={1} />)
+      expect(screen.queryByRole('article',{name:'Read-only execution preview'})).not.toBeInTheDocument()
+    } else {
+      await screen.findByText(/Execution preview is unavailable, stale, discarded, or did not match/)
+      expect(screen.queryByRole('article',{name:'Read-only execution preview'})).not.toBeInTheDocument()
+      expect(screen.queryByText(/Awaiting consent only/)).not.toBeInTheDocument()
+    }
+    expect(fetchMock.mock.calls.filter(([,i])=>i?.method && i.method!=='GET')).toHaveLength(0)
+    expect(fetchMock.mock.calls.filter(([p])=>String(p).includes('/api/review-executions/'))).toHaveLength(1)
+  })
+})

@@ -152,7 +152,7 @@ class DevelopmentReviewLauncherTest {
     @Test fun `normal application has no development configuration or preview capability`() = testApplication {
         val auth = SingleUserAuth(syntheticVerifier(), "http://127.0.0.1:8080", false)
         val session = assertNotNull(auth.login(SYNTHETIC_PASSWORD))
-        application { module(auth, history = null, analysis = AnalysisService(), reviews = ReviewInterpretationService()) }
+        application { module(auth, history = null, reviews = ReviewInterpretationService()) }
         val response = client.get("/api/development/configuration") { header(HttpHeaders.Cookie, "$SESSION_COOKIE=${session.token}") }
         assertEquals(HttpStatusCode.NotImplemented, response.status)
         assertFalse(response.bodyAsText().contains(binding.tag))

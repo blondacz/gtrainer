@@ -53,10 +53,12 @@ data class ReviewPreset(val id: String, val reviewType: String, val enabled: Boo
 @Serializable
 data class ReviewScheduleConfiguration(val enabled: Boolean = false, val paused: Boolean = false,
                                        val timeZone: String = "UTC", val presets: List<ReviewPreset> = defaultReviewPresets(),
-                                       val queuePolicy: ReviewQueuePolicy = ReviewQueuePolicy()) {
+                                        val queuePolicy: ReviewQueuePolicy = ReviewQueuePolicy(),
+                                        val purposeSlots: List<ReviewPurposeSlot> = emptyList()) {
     init {
         ZoneId.of(timeZone)
         require(timeZone.length <= 80 && presets.size in 1..12 && presets.map { it.id }.distinct().size == presets.size)
+        require(purposeSlots.size<=2 && purposeSlots.map { it.slotId }.distinct().size==purposeSlots.size && purposeSlots.map { it.purpose }.distinct().size==purposeSlots.size)
     }
 }
 
@@ -91,7 +93,9 @@ data class ReviewSchedulerState(val configuration: ReviewScheduleConfiguration =
                               val modelId: String? = null, val armedUtc: String? = null,
                               val memories: Map<String, ReviewTriggerMemory> = emptyMap(),
                               val deferredChanges: List<ImportedReviewChange> = emptyList(),
-                              val queue: ReviewQueueState = ReviewQueueState()) {
+                               val queue: ReviewQueueState = ReviewQueueState(),
+                               val purposeHighWater: Map<String,String> = emptyMap()) {
+    init { require(purposeHighWater.size<=1000);purposeHighWater.forEach { (id,date)->validateContextId(id);validateContextDate(date) } }
     override fun toString() = "ReviewSchedulerState([REDACTED])"
 }
 
@@ -108,7 +112,10 @@ data class ReviewTriggerStatus(val presetId: String, val triggerId: String, val 
 @Serializable
 data class ReviewScheduleStatus(val configuration: ReviewScheduleConfiguration, val configurationVersion: Long,
                               val reason: String, val triggers: List<ReviewTriggerStatus>,
-                              val due: List<ReviewDue>, val executionAvailable: Boolean = false) {
+                               val due: List<ReviewDue>, val executionAvailable: Boolean = false,
+                               val purposeSlots: List<ReviewPurposeSlotStatus> = emptyList(),
+                                val purposeDue: List<ReviewPurposeOccurrence> = emptyList(),
+                                val adaptationRouting: String = "inspection_only_not_admission") {
     override fun toString() = "ReviewScheduleStatus([REDACTED])"
 }
 

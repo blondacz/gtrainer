@@ -66,6 +66,34 @@ class ReviewSchedulerTest {
         assertTrue(model.packets.isEmpty())
     } }
 
+    @Test fun `repeated schedule and queue inspection have zero owner writes or handoff callbacks`() = fixture { store,clock,model,reviews -> runBlocking {
+        reviews.select(reviewSelection())
+        var submissions=0
+        val scheduler=ReviewScheduler(store,reviews,clock,accept={submissions++;true})
+        val queue=ReviewQueueService(store,reviews,clock)
+        try {
+            scheduler.configure(ReviewScheduleUpdate(0,config()))
+            clock.now=clock.now.plusSeconds(1)
+            store.completeActivities(ReadResult(ReadStatus.SUCCESS,listOf(syntheticActivity())),clock.now)
+            val request=ScopedEvidenceRequest(selection=ScopedReviewRequest(scope="day",anchorDate="2020-06-01"),purpose="period_reflection")
+            fun changes()=store.captureScopedEvidence(request,clock.now).totalChanges
+            val before=changes()
+            val state=store.reviewScheduleState()
+            repeat(3) { assertEquals(1,scheduler.status().due.size);queue.status() }
+            assertEquals(before,changes());assertEquals(state,store.reviewScheduleState())
+            assertEquals(0,submissions);assertTrue(model.packets.isEmpty())
+            reviews.select(reviewSelection(enabled=false))
+            val disabledState=store.reviewScheduleState()
+            repeat(3) { assertTrue(scheduler.status().due.isEmpty());queue.status() }
+            assertEquals(before,changes());assertEquals(disabledState,store.reviewScheduleState())
+            assertEquals(0,submissions);assertTrue(model.packets.isEmpty())
+            scheduler.tick()
+            assertTrue(changes()>before)
+            assertTrue(store.reviewScheduleState().memories.isEmpty())
+            assertEquals(0,submissions)
+        } finally { queue.close() }
+    } }
+
     @Test fun `accepted batch persists once and duplicate imports cannot create further due work`() = fixture { store, clock, model, reviews -> runBlocking {
         reviews.select(reviewSelection())
         val accepted = mutableListOf<ReviewDue>()

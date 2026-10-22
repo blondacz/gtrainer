@@ -1,5 +1,11 @@
 # Factual historical trends and descriptive input summaries
 
+> Development consolidation supersedes the HTTP/UI descriptions below. Use
+> [scoped reviews and comparisons](scoped-reviews-and-comparisons.md):
+> `GET /api/reviews/options` and `POST /api/reviews/prepare`. The old trends and
+> analysis-input routes are removed, not compatibility aliases. The descriptive
+> arithmetic below remains internally reused; frozen evaluation evidence is retained.
+
 Status: tasks 4.1–4.3 implemented with synthetic tests and deployed through the
 protected ARM64 release. Physical Pi empty-trend/summary, private-access, shipped
 UI, native SQLite, and backup/restore checks pass. The database is still empty;

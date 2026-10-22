@@ -1,0 +1,28 @@
+{
+  "frozenFixtures": {
+    "../benchmarks/connected-review/cases-v1.json": "6f4397c206b15ebc90f562481cb881145080396d8a7024fde9d68452506e7eda",
+    "../benchmarks/connected-review/cases-v2.json": "025a58daf40401df02d45621d30ca3c2b0eebfa7cf1fc762ac8299678044332b",
+    "../benchmarks/connected-review/evaluation-v1.json": "0622b295029a5978161d48f644b56bb7b9d7fca42a601604f7bd22f7529ec068",
+    "../benchmarks/connected-review/evaluation-v2.json": "a6bf15c8a4bb061d0c24a3d1fd0dc02be2dbb0b19db40e7b88a4cc44a7a8aad4",
+    "../benchmarks/connected-review/evaluation-v3.json": "258c5cfbf8808ece2e87fe15d2b9582fe2b6c3ac875fccbf0986fa4987b2022f",
+    "../benchmarks/connected-review/validator-parity-v2.json": "d60fa2420b57b0dd0d0efedc45e72778dc54525484caf926db91e8e971ec1110"
+  },
+  "profiles": ["factual-review-v1", "review-focus-app-v1", "connected-review-v1"],
+  "qualificationLedger": {"completed": 20, "total": 22, "incompleteTaskIds": ["6.2", "6.3"], "qualified": false},
+  "earlierProfiles": {
+    "factualReviewFactsSha256": "335dbbaa4ab7917fe0940713dc180aac2bb4980618359b856f842fa6bdcd7237",
+    "reviewFocusPacketSha256": "c63ce96963b7711179654166201bf9bcb81d4b2ed7629d3ca726f7a4e0e0e5ee",
+    "reviewFocusSystemSha256": "047a474f5757863643cc226dee88ce0732195dcfb7db2e68bbd085c74a77b6c7"
+  },
+  "connectedReviewCasesV2": {
+    "matched-run-recovery-facts-only": {"packetSha256":"d679447f67f31102e280c8bb8bb5e9d89660ab0578bfcb2bdae5bb0442db2d64","promptSha256":"72119746549a5adffca8e0f2b3751c013d3be07f836f16a250c68eaf1135917f"},
+    "matched-run-recovery-context-present": {"packetSha256":"16e4733c2468bcf5d14f0d64803de88f175aba74eb7703aa548af1b690b561ed","promptSha256":"bac70c755517ad7088fba10688b2a79d4ec7cce0dc1874bc25c770033301e3ee"},
+    "matched-run-recovery-context-absent": {"packetSha256":"d679447f67f31102e280c8bb8bb5e9d89660ab0578bfcb2bdae5bb0442db2d64","promptSha256":"72119746549a5adffca8e0f2b3751c013d3be07f836f16a250c68eaf1135917f"},
+    "matched-rest-limit-facts-only": {"packetSha256":"db6426b24bcaea04e562b5b60208bde22fbc414ae1fb4dc42d32d62fe4aae867","promptSha256":"67de636f1a790e5ca200b7e0824cd446148fd7c64751be162d96cb32c088bced"},
+    "matched-rest-limit-context-present": {"packetSha256":"2339578ddc4000d012f8fd6cfe767655a35a8a1c75ea47a516d25549fd34cc4c","promptSha256":"391fdba5f884b969996e9a99ec9e0e2c38d3e059c23a7e8f1aea32763767ac10"},
+    "matched-rest-limit-context-absent": {"packetSha256":"db6426b24bcaea04e562b5b60208bde22fbc414ae1fb4dc42d32d62fe4aae867","promptSha256":"67de636f1a790e5ca200b7e0824cd446148fd7c64751be162d96cb32c088bced"},
+    "matched-load-question-facts-only": {"packetSha256":"73d61efb99472f66f94f9e4235ef8e5f0eb7aaf50184e2d200bbf3857b750f86","promptSha256":"26af80353112805dd91fc4eb7e5cab6c646dd9c26fbd606986245d8b2c6645d3"},
+    "matched-load-question-context-present": {"packetSha256":"8c1753313b5af6242dc4e2ff90b48e9c82cde708b138cd2f3dd85df305abd248","promptSha256":"3cbb0361eeb018b437c5050cccc8c88706c4e59804730c341c306b4ee1ee78f7"},
+    "matched-load-question-context-absent": {"packetSha256":"73d61efb99472f66f94f9e4235ef8e5f0eb7aaf50184e2d200bbf3857b750f86","promptSha256":"26af80353112805dd91fc4eb7e5cab6c646dd9c26fbd606986245d8b2c6645d3"}
+  }
+}

@@ -1,5 +1,10 @@
 # Guarded local analysis: opt-in Kotlin prototype
 
+> Historical, retired development prototype. Its runtime service, panel and HTTP
+> routes have been removed by [consolidation](../data/scoped-reviews-and-comparisons.md).
+> Frozen packets, validators and qualification evidence remain internal/history;
+> this document is not the current execution interface or authorization.
+
 The user authorized guarded Kotlin integration after the
 [Ministral typed retest](ministral-typed-retest.md). This implements an
 **experimental, closed-vocabulary local inference path**, not a selected default,

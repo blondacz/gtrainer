@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import type { AuthoredPlan, AuthoredPlanRequest, PlansView } from './PlanClient'
 import { describe, expect, it, vi } from 'vitest'
 import { SessionPanel } from './SessionPanel'
 
@@ -10,20 +11,22 @@ describe('private access', () => {
     const fetchMock = vi.fn(async (path: string) => {
       if (path === '/api/session') return { ok: true, json: async () => ({ authenticated: true, csrfToken: csrf, intervalsConfigured: false }) }
       if (path === '/api/events') return { ok: true, status: 200, json: async () => ({ events: [], nextUpcoming: null, ongoing: [], evaluatedOn: '2020-06-02' }) }
+      if (path === '/api/plans') return { ok: true, status: 200, json: async () => ({ plans: [], selection: { generation: 0, selected: null } }) }
       return { ok: false, status: 503 }
     })
     vi.stubGlobal('fetch', fetchMock)
     const authenticated = vi.fn()
     render(<SessionPanel onAuthenticatedChange={authenticated} />)
     await screen.findByRole('heading', { name: 'Overview' })
-    expect(authenticated).toHaveBeenLastCalledWith(true)
+    // Rendering the section can precede the authentication notification effect.
+    await waitFor(() => expect(authenticated).toHaveBeenLastCalledWith(true))
     expect(screen.getByRole('complementary', { name: 'Context deletion and backup retention' })).toHaveTextContent(
       'Retained encrypted backups may still contain deleted data until they expire under normal retention.',
     )
     expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.queryByRole('heading', { name: 'Historical trends' })).not.toBeInTheDocument()
     expect(fetchMock.mock.calls.some(([path]) => path === '/api/review-models')).toBe(false)
-    fireEvent.click(screen.getByRole('tab', { name: 'Events' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Events & plans' }))
     await screen.findByText('No manual events yet.')
     expect(screen.queryByRole('heading', { name: 'Overview' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('tab', { name: 'Reviews' }))
@@ -34,7 +37,7 @@ describe('private access', () => {
     expect(screen.getByRole('tab', { name: 'Overview' })).toHaveFocus()
     fireEvent.keyDown(screen.getByRole('tab', { name: 'Overview' }), { key: 'ArrowRight' })
     expect(screen.getByRole('tab', { name: 'Trends' })).toHaveFocus()
-    await screen.findByText(/History unavailable/)
+    await screen.findByText(/Options unavailable or could not be verified/)
     expect(screen.queryByRole('heading', { name: /Review controls/ })).not.toBeInTheDocument()
   })
 
@@ -68,6 +71,77 @@ describe('private access', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/logout', expect.objectContaining({
       method: 'POST', headers: { 'X-CSRF-Token': csrf },
     }))
+  })
+
+  it('locks click and keyboard navigation while a plan draft is dirty, then unlocks on discard', async () => {
+    const fetchMock = vi.fn(async (path: string, _init?: RequestInit) => {
+      if (path === '/api/session') return { ok: true, json: async () => ({ authenticated: true, csrfToken: csrf, intervalsConfigured: false }) }
+      if (path === '/api/plans') return { ok: true, status: 200, json: async () => ({ plans: [], selection: { generation: 0, selected: null } }) }
+      if (path === '/api/events') return { ok: true, status: 200, json: async () => ({ events: [], nextUpcoming: null, ongoing: [], evaluatedOn: '2020-06-02' }) }
+      return { ok: false, status: 503 }
+    })
+    vi.stubGlobal('fetch', fetchMock); render(<SessionPanel />)
+    fireEvent.click(await screen.findByRole('tab', { name: 'Events & plans' }))
+    await waitFor(()=>expect(screen.getByRole('button',{name:'Enter authored plan'})).toBeEnabled())
+    fireEvent.click(screen.getByRole('button', { name: 'Enter authored plan' }))
+    fireEvent.change(screen.getByLabelText('Plan title'), { target: { value: 'Unsaved private draft' } })
+    fireEvent.click(screen.getByRole('tab', { name: 'Overview' }))
+    expect(screen.getByRole('tab', { name: 'Events & plans' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByLabelText('Plan title')).toHaveValue('Unsaved private draft')
+    screen.getByRole('tab', { name: 'Events & plans' }).focus()
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Events & plans' }), { key: 'Home' })
+    expect(screen.getByRole('tab', { name: 'Events & plans' })).toHaveFocus()
+    expect(screen.getByRole('tab', { name: 'Events & plans' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByText(/Finish or discard the authored plan draft/)).toBeInTheDocument()
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false)
+    fireEvent.click(screen.getByRole('button', { name: 'Discard plan draft' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Overview' }))
+    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('keeps navigation locked during pending save, unlocks after verification, and logout clears the next session', async () => {
+    type Reply={ok:boolean;status?:number;json?:()=>Promise<unknown>}
+    let finishPost: ((value: Reply) => void) | undefined
+    let submitted:AuthoredPlanRequest|null=null
+    let state:PlansView={plans:[],selection:{generation:0,selected:null}}
+    let authenticated = true
+    const fetchMock = vi.fn((path: string, init?: RequestInit): Promise<Reply> => {
+      if (path === '/api/session') return Promise.resolve(authenticated ? { ok: true, json: async () => ({ authenticated: true, csrfToken: csrf, intervalsConfigured: false }) } : { ok: false, status: 401 })
+      if (path === '/api/plans' && init?.method === 'POST') {submitted=JSON.parse(String(init.body)) as AuthoredPlanRequest;return new Promise(resolve => { finishPost = resolve })}
+      if (path === '/api/plans') return Promise.resolve({ ok: true, status: 200, json: async () => state })
+      if (path === '/api/logout') { authenticated = false; return Promise.resolve({ ok: true }) }
+      if (path === '/api/login') { authenticated = true; return Promise.resolve({ ok: true, json: async () => ({ authenticated: true, csrfToken: csrf, intervalsConfigured: false }) }) }
+      if (path === '/api/events') return Promise.resolve({ ok: true, status: 200, json: async () => ({ events: [], nextUpcoming: null, ongoing: [], evaluatedOn: '2020-06-02' }) })
+      return Promise.resolve({ ok: false, status: 503 })
+    })
+    vi.stubGlobal('fetch', fetchMock); render(<SessionPanel />)
+    fireEvent.click(await screen.findByRole('tab', { name: 'Events & plans' }))
+    await waitFor(()=>expect(screen.getByRole('button',{name:'Enter authored plan'})).toBeEnabled())
+    fireEvent.click(screen.getByRole('button', { name: 'Enter authored plan' }))
+    fireEvent.change(screen.getByLabelText('Plan title'), { target: { value: 'Pending draft' } })
+    fireEvent.change(screen.getByLabelText('Author attribution'), { target: { value: 'Synthetic author' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save authored revision' }))
+    await waitFor(() => expect(finishPost).toBeDefined())
+    fireEvent.click(screen.getByRole('tab', { name: 'Overview' }))
+    expect(screen.getByRole('tab', { name: 'Events & plans' })).toHaveAttribute('aria-selected', 'true')
+    const saved:AuthoredPlan={reference:{planId:'11111111-1111-4111-8111-111111111111',revision:1},previousRevision:null,
+      definition:submitted!,recordedBy:'authenticated_user',recordedUtc:'2026-10-15T12:00:00Z'}
+    state={...state,plans:[saved]}
+    await act(async()=>{finishPost!({ok:true,status:201,json:async()=>saved})})
+    await waitFor(()=>expect(screen.queryByLabelText('Unsaved authored plan')).not.toBeInTheDocument())
+    fireEvent.click(screen.getByRole('tab', { name: 'Overview' }))
+    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true')
+    fireEvent.click(screen.getByRole('tab', { name: 'Events & plans' }))
+    await waitFor(()=>expect(screen.getByRole('button',{name:'Enter authored plan'})).toBeEnabled())
+    fireEvent.click(screen.getByRole('button', { name: 'Enter authored plan' }))
+    fireEvent.change(screen.getByLabelText('Plan title'), { target: { value: 'Private text to clear' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
+    await screen.findByLabelText('Dashboard password')
+    fireEvent.change(screen.getByLabelText('Dashboard password'), { target: { value: syntheticPassword } })
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+    await screen.findByRole('tab', { name: 'Overview' })
+    fireEvent.click(screen.getByRole('tab', { name: 'Events & plans' }))
+    expect(screen.queryByDisplayValue('Private text to clear')).not.toBeInTheDocument()
   })
 
   it.each([401, 503])('clears password and keeps private content hidden on login error %s', async status => {

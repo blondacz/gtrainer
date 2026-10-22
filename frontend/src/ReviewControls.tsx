@@ -1,4 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
+import { ScopedReviewControls } from './ScopedReviewControls'
+import type { ScopeDto } from './ScopedReviewTypes'
+import { dateCount } from './ScopedReviewTypes'
+import { loadEvidence, type EvidenceSnapshot } from './ScopedEvidenceClient'
+import { ScopedEvidenceInspection } from './ScopedEvidenceInspection'
 
 const PROFILE = 'review-focus-app-v1'
 const focuses = ['daily_combined', 'activity_balance', 'wellness', 'missing_wellness']
@@ -30,6 +35,12 @@ const reasonText: Record<string, string> = {
   validated_focus_selection: 'Optional model selection recorded; its content is not displayed here.',
   insufficient_input: 'Insufficient supported comparisons.', unusable_model_output: 'Optional AI output rejected.',
   restart_requires_explicit_request: 'Interrupted by restart; an explicit new request is required.',
+  profile_execution_closed_plan_unchanged: 'Execution closed; the plan is unchanged.', evidence_preparation_blocked: 'Evidence preparation was blocked.',
+  factual_preparation_running: 'Local factual evidence preparation is running; no inference.', factual_preparation_queued: 'Local factual evidence preparation is queued; no inference.',
+  preview_not_prepared: 'Exact preview was not prepared; inspection and restart will not retry it.',
+  preview_preparation_unavailable: 'Exact preview preparation was blocked; factual evidence remains separate.',
+  exact_consent_required_execution_closed: 'Exact-packet consent would be required; execution remains closed.',
+  runtime_admission_closed: 'Personal runtime admission is closed.', preview_not_current: 'This preview is no longer current.', preview_not_available: 'Preview was discarded or is unavailable.',
 }
 const reason = (code: string) => reasonText[code] ?? 'Status unavailable or unsupported; no review time is inferred.'
 type Budget = { callTimeoutMillis: number; jobTimeoutMillis: number; allowCorrectiveAttempt: boolean }
@@ -37,7 +48,10 @@ type Policy = { debounceSeconds: number; cooldownSeconds: number; maximumDeferra
 type Scope = { kind: string; days: number; sport: string | null }
 type Trigger = { id: string; kind: string; intervalMinutes: number; localTime: string | null; dayOfWeek: number | null; threshold: number | null; period: string; settleSeconds: number }
 type Preset = { id: string; reviewType: string; enabled: boolean; scope: Scope; level: string; focus: string; budget: Budget; triggers: Trigger[] }
-type Configuration = { enabled: boolean; paused: boolean; timeZone: string; presets: Preset[]; queuePolicy: Policy }
+type ProviderSelection = { providerId: string; modelId: string; providerKind: 'local'|'hosted' }
+type PurposeSlot = { slotId: string; purpose: 'morning'|'evening'; enabled: boolean; localTime: string; profile: 'scoped-descriptive-v1'; providerSelection: ProviderSelection|null }
+type PurposeStatus = { slotId: string; purpose: 'morning'|'evening'; state: string; nextUtc: string|null; limitation: string }
+type Configuration = { enabled: boolean; paused: boolean; timeZone: string; presets: Preset[]; queuePolicy: Policy; purposeSlots?: PurposeSlot[] }
 type Model = { id: string; label: string; tag: string; digest: string; experimental: true }
 type Models = { profile: string; selectedModelId: string | null; selectionVersion: number; enabled: boolean; correctionEnabled: boolean;
   runtimeGuardConfigured: boolean; models: Model[]; reason: string; hostedEnabled: false; executionPolicy: Budget }
@@ -46,14 +60,17 @@ type Intent = { occurrenceId: string; presetId: string; configurationVersion: nu
   reviewType: string; scope: Scope; oldest: string; newest: string; activitySha256: string | null; level: string; focus: string;
   budget: Budget; reasons: string[]; dueUtc: string; notBeforeUtc: string | null }
 type TriggerStatus = { presetId: string; triggerId: string; kind: string; reason: string; nextCheckUtc: string | null; nextReviewUtc: string | null }
-type Schedule = { configuration: Configuration; configurationVersion: number; reason: string; triggers: TriggerStatus[]; due: Intent[]; executionAvailable: boolean }
-type Job = { id: string; key: string; intent: Intent; reasons: string[]; occurrenceIds: string[]; firstQueuedUtc: string; lastQueuedUtc: string;
+type Schedule = { configuration: Configuration; configurationVersion: number; reason: string; triggers: TriggerStatus[]; due: Intent[]; executionAvailable: boolean; purposeSlots?: PurposeStatus[] }
+type ScopedIntent = { profile: 'scoped-descriptive-v1'; purpose: 'morning'|'evening'|'activity_reflection'|'period_reflection'; configurationVersion: number; scope: ScopeDto; sourceRevision: number; planReasonRevision: number; providerSelection: ProviderSelection|null }
+type Job = { id: string; key: string; intent: Intent | null; scopedIntent?: ScopedIntent | null; reasons: string[]; occurrenceIds: string[]; firstQueuedUtc: string; lastQueuedUtc: string;
   eligibleUtc: string; maximumDeferralUtc: string; manual: boolean; startedUtc: string | null }
-type Outcome = { id: string; intent: Intent; status: string; reason: string; finishedUtc: string; startedUtc: string | null; facts: unknown; interpretation: unknown; stale: boolean }
+type Preview = { state: 'not_prepared'|'awaiting_consent'|'blocked_admission'|'blocked'|'unavailable'|'stale'; reason: string; executionId: string|null; createdUtc: string|null }
+type Outcome = { id: string; intent: Intent | null; scopedIntent?: ScopedIntent | null; status: string; reason: string; finishedUtc: string; startedUtc: string | null; facts: unknown; interpretation: unknown; stale: boolean; snapshotId?: string | null; evidenceCutoffUtc?: string|null; preview?: Preview|null }
 type Queue = { reason: string; executionAvailable: boolean; policy: Policy; pending: Job[]; running: Job | null; outcomes: Outcome[]; lastSuccess: Outcome | null }
 const object = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
-const text = (v: unknown): v is string => typeof v === 'string' && v.length <= 256
-const strings = (v: unknown): v is string[] => Array.isArray(v) && v.length <= 50_000 && v.every(text)
+const text = (v: unknown, maximum = 256): v is string => typeof v === 'string' && v.length <= maximum
+const uuid = (v: unknown): v is string => typeof v==='string' && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/.test(v)
+const strings = (v: unknown): v is string[] => Array.isArray(v) && v.length <= 50_000 && v.every(x=>text(x))
 const integer = (v: unknown, min: number, max: number) => typeof v === 'number' && Number.isSafeInteger(v) && v >= min && v <= max
 const version = (v: unknown) => integer(v, 0, Number.MAX_SAFE_INTEGER)
 const id = (v: unknown) => typeof v === 'string' && /^[a-z0-9-]{1,40}$/.test(v)
@@ -95,8 +112,19 @@ function presetValid(v: unknown): v is Preset {
 function configurationValid(v: unknown): v is Configuration {
   if (!object(v) || !bool(v.enabled) || !bool(v.paused) || typeof v.timeZone !== 'string' || !v.timeZone || v.timeZone.length > 80 ||
       !Array.isArray(v.presets) || v.presets.length < 1 || v.presets.length > 12 || !v.presets.every(presetValid) ||
-      new Set(v.presets.map(p => p.id)).size !== v.presets.length || !policyValid(v.queuePolicy)) return false
+      new Set(v.presets.map(p => p.id)).size !== v.presets.length || !policyValid(v.queuePolicy) ||
+      !(v.purposeSlots===undefined || Array.isArray(v.purposeSlots) && v.purposeSlots.length<=2 && v.purposeSlots.every(slotValid) &&
+        new Set(v.purposeSlots.map(s=>s.slotId)).size===v.purposeSlots.length && new Set(v.purposeSlots.map(s=>s.purpose)).size===v.purposeSlots.length)) return false
   try { new Intl.DateTimeFormat('en', { timeZone: v.timeZone }); return true } catch { return false }
+}
+function slotValid(v: unknown): v is PurposeSlot {
+  return object(v) && uuid(v.slotId) && (v.purpose==='morning' || v.purpose==='evening') && bool(v.enabled) &&
+    v.profile==='scoped-descriptive-v1' && typeof v.localTime==='string' && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(v.localTime) &&
+    (v.providerSelection===undefined || v.providerSelection===null || providerSelectionValid(v.providerSelection))
+}
+function providerSelectionValid(v: unknown): v is ProviderSelection {
+  return object(v) && typeof v.providerId==='string' && /^[A-Za-z0-9_.-]{1,64}$/.test(v.providerId) &&
+    typeof v.modelId==='string' && /^[A-Za-z0-9_.:-]{1,128}$/.test(v.modelId) && (v.providerKind==='local'||v.providerKind==='hosted')
 }
 function modelsFrom(v: unknown): Models {
   if (!object(v) || v.profile !== PROFILE || v.hostedEnabled !== false || !version(v.selectionVersion) || !bool(v.enabled) ||
@@ -118,17 +146,54 @@ function intentValid(v: unknown): v is Intent {
 function scheduleFrom(v: unknown): Schedule {
   if (!object(v) || !configurationValid(v.configuration) || !version(v.configurationVersion) || !text(v.reason) || !bool(v.executionAvailable) ||
       !Array.isArray(v.due) || !v.due.every(intentValid) || !Array.isArray(v.triggers) || v.triggers.length > 96 || !v.triggers.every(t =>
-        object(t) && id(t.presetId) && id(t.triggerId) && text(t.kind) && text(t.reason) && optionalUtc(t.nextCheckUtc) && optionalUtc(t.nextReviewUtc))) throw new Error('Invalid schedule')
+        object(t) && id(t.presetId) && id(t.triggerId) && text(t.kind) && text(t.reason) && optionalUtc(t.nextCheckUtc) && optionalUtc(t.nextReviewUtc)) ||
+      !(v.purposeSlots===undefined || Array.isArray(v.purposeSlots) && v.purposeSlots.length<=2 && v.purposeSlots.every(s=>object(s) && uuid(s.slotId) &&
+        (s.purpose==='morning' || s.purpose==='evening') && typeof s.state==='string' && ['slot_disabled','schedules_paused','awaiting_explicit_rearm','factual_preparation_due','waiting_for_slot'].includes(s.state) && optionalUtc(s.nextUtc) && text(s.limitation)))) throw new Error('Invalid schedule')
   return v as unknown as Schedule
 }
+function scopedIntentValid(v: unknown): v is ScopedIntent {
+  if (!object(v) || v.profile !== 'scoped-descriptive-v1' || typeof v.purpose!=='string' || !['morning','evening','activity_reflection','period_reflection'].includes(v.purpose) ||
+       !version(v.configurationVersion) || !version(v.sourceRevision) || !version(v.planReasonRevision) || !('providerSelection' in v) || !(v.providerSelection===null || providerSelectionValid(v.providerSelection)) || !object(v.scope)) return false
+  const s = v.scope
+  const range = (x: unknown) => x === null || object(x) && date(x.oldest) && date(x.newest) && dateCount(x.oldest,x.newest)>=1 && dateCount(x.oldest,x.newest)<=366
+  const r = s.request
+  const c=s.comparison
+  if(!object(c) || !['comparableSelected','comparablePrevious','priorCalendarFull','comparisonFull'].every(k=>range(c[k])) ||
+    !bool(c.unequalDuration) || !bool(c.overlapping) || !(c.reason===null || text(c.reason)) || typeof c.policy!=='string' ||
+    !['none','selected_sessions','preceding_calendar','preceding_equal_length','explicit','unavailable'].includes(c.policy) ||
+    !['unmatchedSelectedDates','unmatchedPreviousDates','priorCalendarRemainderDates'].every(k=>Array.isArray(c[k]) && (c[k] as unknown[]).length<=366 && (c[k] as unknown[]).every(date))) return false
+  try { if(!text(s.timeZone,80)) return false;new Intl.DateTimeFormat('en',{timeZone:s.timeZone}) } catch { return false }
+  return object(r) && r.schemaVersion === 1 && (r.mode==='period' || r.mode==='activities') && (r.intent==='review' || r.intent==='compare') &&
+    text(r.scope) && utc(s.asOf) && text(s.timeZone, 80) && !!s.timeZone && date(s.anchorDate) &&
+    (s.wellnessPolicy==='off' || s.wellnessPolicy==='display_only' || s.wellnessPolicy==='assessment') && s.status === 'available' && strings(s.reasons) &&
+    range(s.evidenceRange) && range(s.fullCalendarRange) && Array.isArray(s.activityIds) && s.activityIds.length<=1000 && s.activityIds.every(digest) && new Set(s.activityIds).size===s.activityIds.length &&
+    Array.isArray(s.activityDates) && s.activityDates.length<=1000 && s.activityDates.every(date) && bool(s.soFar) && text(s.dateBasis, 4096)
+}
+function queueIntentValid(v: Record<string, unknown>): boolean {
+  const legacy = v.intent === null || v.intent === undefined || intentValid(v.intent)
+  const scoped = v.scopedIntent === null || v.scopedIntent === undefined || scopedIntentValid(v.scopedIntent)
+  return legacy && scoped && (v.intent == null) !== (v.scopedIntent == null)
+}
 function jobValid(v: unknown): v is Job {
-  return object(v) && digest(v.id) && digest(v.key) && intentValid(v.intent) && strings(v.reasons) && strings(v.occurrenceIds) &&
+  return object(v) && (v.scopedIntent==null ? digest(v.id) : uuid(v.id)) && digest(v.key) && queueIntentValid(v) && strings(v.reasons) && strings(v.occurrenceIds) &&
     utc(v.firstQueuedUtc) && utc(v.lastQueuedUtc) && utc(v.eligibleUtc) && utc(v.maximumDeferralUtc) && bool(v.manual) && optionalUtc(v.startedUtc)
 }
 function outcomeValid(v: unknown): v is Outcome {
   // Facts/interpretation are opaque stored payloads: never render their text or numbers here.
-  return object(v) && digest(v.id) && intentValid(v.intent) && ['available', 'factual_only', 'unavailable', 'cancelled', 'interrupted', 'failed'].includes(String(v.status)) &&
-    text(v.reason) && utc(v.finishedUtc) && optionalUtc(v.startedUtc) && bool(v.stale) && 'facts' in v && 'interpretation' in v
+  if (!object(v) || !(v.scopedIntent==null ? digest(v.id) : uuid(v.id)) || !queueIntentValid(v) || typeof v.status!=='string' || !['available', 'factual_only', 'unavailable', 'cancelled', 'interrupted', 'failed', 'factual_prepared', 'blocked'].includes(v.status) ||
+     !text(v.reason) || !utc(v.finishedUtc) || !optionalUtc(v.startedUtc) || !bool(v.stale) || !('facts' in v) || !('interpretation' in v)) return false
+   if (v.scopedIntent != null) { const scoped = v.scopedIntent as unknown as ScopedIntent; return v.facts === null && v.interpretation === null &&
+     (['factual_prepared','blocked'].includes(v.status) ? uuid(v.snapshotId) : v.snapshotId===null || v.snapshotId===undefined) && !['available','factual_only'].includes(v.status) &&
+       (v.evidenceCutoffUtc===undefined || v.evidenceCutoffUtc===null || utc(v.evidenceCutoffUtc)) &&
+     (v.preview===undefined || v.preview===null || object(v.preview) && typeof v.preview.state==='string' && ['not_prepared','awaiting_consent','blocked_admission','blocked','unavailable','stale'].includes(v.preview.state) &&
+       typeof v.preview.reason==='string' && /^[a-z][a-z0-9_]{1,63}$/.test(v.preview.reason) &&
+       ((v.preview.executionId===null && v.preview.createdUtc===null) || uuid(v.preview.executionId) && utc(v.preview.createdUtc)) &&
+        (!['awaiting_consent','blocked_admission'].includes(String(v.preview.state)) || uuid(v.preview.executionId)) && scoped.providerSelection!==null) &&
+      (scoped.providerSelection!==null || v.preview==null) &&
+      (!object(v.preview) || v.preview.state!=='awaiting_consent' || scoped.providerSelection?.providerKind==='hosted' && !v.stale) &&
+      (!object(v.preview) || v.preview.state!=='blocked_admission' || scoped.providerSelection?.providerKind==='local' && !v.stale) }
+  return ['available', 'factual_only', 'unavailable', 'cancelled', 'interrupted', 'failed'].includes(String(v.status)) &&
+    v.preview==null && v.evidenceCutoffUtc==null
 }
 function queueFrom(v: unknown): Queue {
   if (!object(v) || !text(v.reason) || !bool(v.executionAvailable) || !policyValid(v.policy) || !Array.isArray(v.pending) || v.pending.length > 256 ||
@@ -139,7 +204,7 @@ function queueFrom(v: unknown): Queue {
 function snapshotDigest(outcome: Outcome): string | null {
   const v = outcome.facts
   return object(v) && v.profile === 'factual-review-v1' && v.applicationGenerated === true && digest(v.evidenceReportSha256) &&
-    v.requestedFocus === outcome.intent.focus && Array.isArray(v.groups) && Array.isArray(v.focuses) ? v.evidenceReportSha256 : null
+    v.requestedFocus === outcome.intent?.focus && Array.isArray(v.groups) && Array.isArray(v.focuses) ? v.evidenceReportSha256 : null
 }
 const local = (value: string, zone: string) => {
   try { return `${new Intl.DateTimeFormat('en-GB', { timeZone: zone, dateStyle: 'medium', timeStyle: 'medium' }).format(new Date(value))} (${zone}); UTC ${value}` }
@@ -179,6 +244,8 @@ export function ReviewControls({ csrfToken, revision }: { csrfToken: string; rev
   const [draft, setDraft] = useState<Configuration | null>(null)
   const [draftVersion, setDraftVersion] = useState(0)
   const [queue, setQueue] = useState<Queue | null>(null)
+  const [evidence,setEvidence]=useState<EvidenceSnapshot|null>(null)
+  const [executionPreview,setExecutionPreview]=useState<{id:string;data:Record<string,unknown>}|null>(null)
   const [selected, setSelected] = useState(0)
   const [runLevel, setRunLevel] = useState('interim')
   const [busy, setBusy] = useState(false)
@@ -196,6 +263,7 @@ export function ReviewControls({ csrfToken, revision }: { csrfToken: string; rev
   const dirtyRef = useRef(false)
   const modelDirtyRef = useRef(false)
   const generation = useRef(0)
+  const previewGeneration=useRef(0)
   const controllers = useRef(new Set<AbortController>())
   const mounted = useRef(false)
   const reading = useRef(false)
@@ -211,7 +279,7 @@ export function ReviewControls({ csrfToken, revision }: { csrfToken: string; rev
     return mounted.current && generation.current === epoch && !controller.signal.aborted
   }
   async function request(path: string, controller: AbortController, method = 'GET', body?: unknown): Promise<unknown> {
-    const response = await fetch(path, { method, cache: 'no-store', signal: controller.signal,
+    const response = await fetch(path, { method, credentials: 'same-origin', cache: 'no-store', signal: controller.signal,
       ...(method === 'GET' ? {} : { headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken }, body: JSON.stringify(body) }) })
     if (!response.ok) throw new Error('Review request unavailable')
     return response.json()
@@ -256,7 +324,7 @@ export function ReviewControls({ csrfToken, revision }: { csrfToken: string; rev
     invalidate()
     writing.current = false
     setBusy(false)
-    setModels(null); setSchedule(null); setQueue(null)
+    setModels(null); setSchedule(null); setQueue(null);setEvidence(null);setExecutionPreview(null);previewGeneration.current++
     if (previousToken.current !== csrfToken) {
       previousToken.current = csrfToken
       dirtyRef.current = false; modelDirtyRef.current = false
@@ -267,7 +335,7 @@ export function ReviewControls({ csrfToken, revision }: { csrfToken: string; rev
     // A new session/revision is a new request generation, even if fetch ignores abort.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [csrfToken, revision])
-  const active = !!queue?.running || !!queue?.pending.length || !!(models?.enabled && schedule?.configuration.enabled && !schedule.configuration.paused)
+  const active = !!queue?.running || !!queue?.pending.length || !!(schedule?.configuration.enabled && !schedule.configuration.paused)
   useEffect(() => {
     if (!active) return
     const timer = window.setInterval(() => { void load() }, 10_000)
@@ -324,7 +392,7 @@ export function ReviewControls({ csrfToken, revision }: { csrfToken: string; rev
     p.budget.jobTimeoutMillis <= models.executionPolicy.jobTimeoutMillis && (!p.budget.allowCorrectiveAttempt || models.executionPolicy.allowCorrectiveAttempt)))
   const validDraft = !!draft && configurationValid(draft) && withinCaps
   const canArm = !!(models?.enabled && models.selectedModelId && models.runtimeGuardConfigured)
-  const canSave = !!(schedule && validDraft && (!draft?.enabled || draft.paused || canArm))
+  const canSave = !!(schedule && validDraft && (!draft?.enabled || draft.paused || !draft.presets.some(p=>p.enabled) || canArm))
   const canRun = !!(queue?.executionAvailable && canArm && schedule && !schedule.configuration.paused && savedPreset && savedPreset.scope.kind !== 'activity' && !dirty && !modelDirty && !busy)
   const zone = schedule?.configuration.timeZone ?? 'UTC'
   const jobs = queue ? [...(queue.running ? [queue.running] : []), ...queue.pending] : []
@@ -333,7 +401,42 @@ export function ReviewControls({ csrfToken, revision }: { csrfToken: string; rev
   const outcomePage = Math.min(outcomeIndex, Math.max(0, outcomes.length - 1))
   const statusPage = Math.min(statusIndex, Math.max(0, (schedule?.triggers.length ?? 0) - 1))
   const triggerPage = Math.min(triggerIndex, Math.max(0, (preset?.triggers.length ?? 0) - 1))
+  async function inspectSnapshot(snapshotId: string) {
+    if(writing.current) return
+    const epoch=generation.current,controller=new AbortController();controllers.current.add(controller);setEvidence(null)
+    try { const next=await loadEvidence(snapshotId,controller.signal);if(current(epoch,controller)) setEvidence(next) }
+    catch { if(current(epoch,controller)) setMessage('Factual snapshot unavailable or removed. No inference or retry was requested.') }
+    finally { controllers.current.delete(controller) }
+  }
+  async function inspectExecution(outcome: Outcome) {
+    if(writing.current) return
+    const preview=outcome.preview, selection=outcome.scopedIntent?.providerSelection
+    if (!preview?.executionId || !selection || preview.state==='stale' || preview.state==='unavailable') return
+    const epoch=generation.current,ticket=++previewGeneration.current,controller=new AbortController();controllers.current.add(controller);setExecutionPreview(null)
+    try {
+      const data=await request(`/api/review-executions/${encodeURIComponent(preview.executionId)}`,controller)
+      if(!object(data)||!object(data.binding)||!object(data.binding.source)||!object(data.binding.providerSelection)) throw new Error()
+      const b=data.binding, source=b.source as Record<string,unknown>, ps=b.providerSelection as Record<string,unknown>
+      const prompt=(v:unknown)=>object(v)&&typeof v.systemInstructions==='string'&&typeof v.userPacketJson==='string'&&
+        new TextEncoder().encode(JSON.stringify(v)).length<=32*1024
+      if(b.executionId!==preview.executionId||b.profile!=='scoped-descriptive-v1'||source.snapshotId!==outcome.snapshotId||
+        ps.providerId!==selection.providerId||ps.modelId!==selection.modelId||ps.providerKind!==selection.providerKind||
+        !digest(b.consentSha256)||!prompt(b.exactPrompt)||!prompt(b.exactCorrectionPrompt)||
+        !object(data.admission)||data.admission.profile!==b.profile||data.admission.supported!==true||data.admission.executionAllowed!==false||
+        !strings(data.admission.blockingReasons)||typeof data.state!=='string'||
+        !['IN_FLIGHT','RUNNING','PUBLISHED','FAILED','STALE','INTERRUPTED'].includes(data.state)) throw new Error()
+      if(data.state!=='IN_FLIGHT') throw new Error()
+      if(current(epoch,controller)&&ticket===previewGeneration.current) setExecutionPreview({id:preview.executionId,data})
+    } catch { if(current(epoch,controller)&&ticket===previewGeneration.current) {
+      setQueue(q=>q ? {...q,outcomes:q.outcomes.map(o=>o.id===outcome.id && o.preview ? {...o,preview:{...o.preview,state:'unavailable',reason:'preview_not_available'}} : o)} : q)
+      setMessage('Execution preview is unavailable, stale, discarded, or did not match this outcome. No inference or retry was requested.')
+    } }
+    finally {controllers.current.delete(controller)}
+  }
   function renderJob(job: Job, running = false) {
+    if (job.scopedIntent) return <li key={job.id}><p>{running ? 'Running' : 'Pending'} scoped factual preparation — {job.scopedIntent.purpose}.</p>
+      <p>Routing cutoff: {job.scopedIntent.scope.asOf} (UTC). No plan change or model execution is implied.</p></li>
+    if (!job.intent) return null
     return <li key={job.id}><p>{running ? 'Running' : 'Pending'}: {names[job.intent.reviewType]}; {names[job.intent.scope.kind]}, {job.intent.scope.days} date(s)
       {job.intent.scope.sport ? `; sport ${job.intent.scope.sport}` : '; all sports'}; {names[job.intent.level]}.</p>
       <p>Metric coverage dates: {job.intent.oldest}–{job.intent.newest}. Reasons: {job.reasons.map(reason).join('; ')}.</p>
@@ -344,6 +447,14 @@ export function ReviewControls({ csrfToken, revision }: { csrfToken: string; rev
     </li>
   }
   function renderOutcome(outcome: Outcome, last = false) {
+    if (outcome.scopedIntent) return <article key={outcome.id}><h4>{outcome.status === 'factual_prepared' ? 'Factual evidence prepared' : outcome.status === 'blocked' ? 'Evidence preparation blocked' : 'Scoped review outcome'}</h4>
+      <p>Purpose: {outcome.scopedIntent.purpose}. Routing cutoff: {outcome.scopedIntent.scope.asOf} (UTC).</p>
+      <p>Actual evidence read cutoff: {outcome.evidenceCutoffUtc ?? 'not recorded'} (UTC). Preparation finished: {outcome.finishedUtc} (UTC).</p>
+      {outcome.preview && <><p>Preview: {outcome.preview.state} ({reason(outcome.preview.reason)}). {outcome.preview.createdUtc ? `Created ${outcome.preview.createdUtc} (UTC).` : ''}</p>{outcome.preview.state==='awaiting_consent' && <p>Awaiting consent only; this execution is unavailable/closed. Inspection is read-only; no consent, run, or send action is offered.</p>}{outcome.preview.executionId && outcome.scopedIntent.providerSelection && !['stale','unavailable'].includes(outcome.preview.state) && <button type="button" disabled={busy} onClick={()=>void inspectExecution(outcome)}>Inspect exact preview (read only)</button>}</>}
+      <p>{outcome.stale ? 'Stale evidence or settings; inspect before using this historical snapshot.' : 'Stored factual snapshot; upstream completeness remains unknown.'}</p>
+      {outcome.snapshotId && <><p>Factual snapshot ID: {outcome.snapshotId}.</p><button type="button" disabled={busy} onClick={()=>void inspectSnapshot(outcome.snapshotId!)}>Inspect scheduled evidence (read only)</button></>}
+      <p>{reason(outcome.reason)} No plan change or new model execution is implied.</p></article>
+    if (!outcome.intent) return null
     const hash = snapshotDigest(outcome)
     const stale = outcome.stale || !!schedule && outcome.intent.configurationVersion !== schedule.configurationVersion ||
       !!models && (outcome.intent.selectionVersion !== models.selectionVersion || outcome.intent.modelId !== models.selectedModelId)
@@ -359,9 +470,34 @@ export function ReviewControls({ csrfToken, revision }: { csrfToken: string; rev
     <h3 id="review-controls-heading">Review controls — experimental local AI</h3>
     <p>Experimental local review; off after restart. No hosted fallback or host transfer. Facts and charts stay independent of optional AI.</p>
     <p aria-live="polite">{message}</p>
-    <div className="review-toolbar"><Tabs label="Review sections" value={view} options={{ overview: 'Review overview', preset: 'Preset editor', model: 'Model selection' }} onChange={setView} />
+    <div className="review-toolbar"><Tabs label="Review sections" value={view} options={{ overview: 'Review overview', scoped: 'Scoped factual review / compare', slots: 'Morning / evening slots', preset: 'Preset editor', model: 'Model selection' }} onChange={setView} />
     <button type="button" className="secondary" disabled={busy} onClick={() => void load(true)}>Refresh review status</button>
     </div>
+    {view === 'scoped' && <ScopedReviewControls csrfToken={csrfToken} revision={revision} idPrefix="review-scoped" />}
+    {view==='slots' && <fieldset disabled={!draft || !schedule || busy}><legend>Explicit daily factual preparation</legend>
+      <p>No default times or enrollment. These slots prepare evidence locally; model selection, qualification, runtime admission and exact hosted consent remain separate. No source sync is requested. The plan stays unchanged.</p>
+      <p>Provider/model identifiers are preview preferences, not proof that a provider is configured or qualified.</p>
+      <label>Daily slot timezone<input value={draft?.timeZone ?? ''} maxLength={80} placeholder="Europe/Prague" onChange={e=>draft && edit({...draft,timeZone:e.target.value})}/></label>
+      {(['morning','evening'] as const).map(purpose=>{
+        const slot=draft?.purposeSlots?.find(s=>s.purpose===purpose)
+        return <section key={purpose} aria-label={`${purpose} purpose slot`}><h4>{purpose==='morning' ? 'Morning briefing' : 'Evening reflection'}</h4>
+         {!slot ? <button type="button" onClick={()=>draft && edit({...draft,purposeSlots:[...(draft.purposeSlots ?? []),{slotId:crypto.randomUUID(),purpose,enabled:true,localTime:'',profile:'scoped-descriptive-v1',providerSelection:null}]})}>Configure {purpose} slot</button> : <>
+            <label><input type="checkbox" checked={slot.enabled} onChange={e=>draft && edit({...draft,purposeSlots:draft.purposeSlots?.map(s=>s.slotId===slot.slotId ? {...s,enabled:e.target.checked} : s)})}/>Enable {purpose} factual slot</label>
+           <label>{purpose} local time<input required type="time" value={slot.localTime} onChange={e=>draft && edit({...draft,purposeSlots:draft.purposeSlots?.map(s=>s.slotId===slot.slotId ? {...s,localTime:e.target.value} : s)})}/></label>
+           <label>{purpose} preview preference<select aria-label={`${purpose} preview preference`} value={slot.providerSelection ? `${slot.providerSelection.providerKind}-preview` : 'factual-only'} onChange={e=>draft && edit({...draft,purposeSlots:draft.purposeSlots?.map(s=>s.slotId===slot.slotId ? {...s,providerSelection:e.target.value==='factual-only'?null:{providerKind:e.target.value==='hosted-preview'?'hosted':'local',providerId:s.providerSelection?.providerId??'',modelId:s.providerSelection?.modelId??''}} : s)})}><option value="factual-only">Factual only</option><option value="local-preview">Local preview preference</option><option value="hosted-preview">Hosted preview preference</option></select></label>
+           {slot.providerSelection && <><label>{purpose} provider ID<input maxLength={64} value={slot.providerSelection.providerId} onChange={e=>draft && edit({...draft,purposeSlots:draft.purposeSlots?.map(s=>s.slotId===slot.slotId ? {...s,providerSelection:{...slot.providerSelection!,providerId:e.target.value}} : s)})}/></label><label>{purpose} model ID<input maxLength={128} value={slot.providerSelection.modelId} onChange={e=>draft && edit({...draft,purposeSlots:draft.purposeSlots?.map(s=>s.slotId===slot.slotId ? {...s,providerSelection:{...slot.providerSelection!,modelId:e.target.value}} : s)})}/></label></>}
+          </>}
+        </section>
+      })}
+      <p>Morning includes separately dated latest available wellness and today's existing plan/constraints. Evening is day so far at its actual preparation cutoff; missing imports never prove skipped training. No automatic amendment is applied.</p>
+      <button type="button" disabled={!canSave || !draft?.purposeSlots?.some(s=>s.enabled) || (!canArm && !!draft?.presets.some(p=>p.enabled))}
+        onClick={()=>draft && saveConfiguration({...draft,enabled:true,paused:false},draftVersion)}>Save and explicitly re-arm daily slots</button>
+      <button type="button" disabled={!schedule || schedule.configuration.paused} onClick={()=>schedule && saveConfiguration({...schedule.configuration,paused:true},schedule.configurationVersion,true)}>Pause daily slots and reviews</button>
+       <p>Pause or restart removes execution authority. Re-arm explicitly; missed days and already consumed local dates are not replayed. Queued/running means local preparation only, not inference. No source sync, fallback, or replay. Unexecuted automatic preview copies may expire with evicted outcomes; original data, manual/executed previews, and unresolved ownership are protected. DST gaps move forward and overlaps use the earlier offset once.</p>
+      {schedule?.purposeSlots?.map(s=><p key={s.slotId}>{s.purpose}: {s.state}; next slot {s.nextUtc ? local(s.nextUtc,zone) : 'not armed'}. Preparation is not guaranteed source freshness.</p>)}
+    </fieldset>}
+    {evidence && <ScopedEvidenceInspection snapshot={evidence} onSnapshot={setEvidence} onRemoved={()=>setEvidence(null)}/>}
+    {executionPreview && queue?.outcomes.some(o=>!o.stale && o.preview?.executionId===executionPreview.id && ['awaiting_consent','blocked_admission'].includes(o.preview.state)) && <article aria-label="Read-only execution preview"><h4>Exact preview inspection — read only</h4><p>Execution state: {String(executionPreview.data.state)} means a prepared binding, not running inference. Admission and consent remain independent; inspection is not authorization to execute.</p><p>Exact packet SHA-256: {object(executionPreview.data.binding) ? String(executionPreview.data.binding.consentSha256) : ''}</p><pre>{JSON.stringify({ exactPrompt: executionPreview.data.binding && object(executionPreview.data.binding) ? executionPreview.data.binding.exactPrompt : null, exactCorrectionPrompt: executionPreview.data.binding && object(executionPreview.data.binding) ? executionPreview.data.binding.exactCorrectionPrompt : null }, null, 2)}</pre></article>}
     {view === 'model' && <div className="review-tile"><fieldset disabled={!models || busy}><legend>Explicit local model consent</legend>
       <label>Review local model<select value={modelDraft?.modelId ?? ''} onChange={event => modelDraft && editModel({ ...modelDraft, modelId: event.target.value || null, enabled: false })}>
         <option value="">Off — no model selected</option>{models?.models.map(m => <option key={m.id} value={m.id}>{m.label} (experimental)</option>)}

@@ -6,7 +6,7 @@ const snapshotId = '00000000-0000-0000-0000-000000000010'
 const contextId = '00000000-0000-0000-0000-000000000001'
 const packet = {
   profile: 'connected-review-v1',
-  evidence: { evidenceReportSha256: 'a'.repeat(64), selectedSport: 'run', facts: [{ id: 'fact-1', value: 42 }] },
+  evidence: { evidenceReportSha256: 'a'.repeat(64), selectedSport: 'run', facts: [{ evidenceId: 'fact-1', value: 42 }] },
   context: [{ contextId, revision: 1, category: 'symptom', sourceCategory: 'user_report',
     authorAttribution: 'athlete', observedOn: '2025-01-07', content: 'Synthetic reported fatigue',
     restrictionKind: null, restrictionValue: null, restrictionUnit: null }],
@@ -37,6 +37,7 @@ describe('connected review evidence display', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Inspect connected review' }))
     expect(await screen.findByText('Possible relationship')).toBeInTheDocument()
     expect(screen.getByText(/Code-generated facts and provenance/)).toBeInTheDocument()
+    expect(screen.getByText('Evidence identifiers: fact-1')).toBeInTheDocument()
     expect(screen.getAllByText('User report').length).toBeGreaterThan(0)
     expect(screen.getAllByText(/2025-01-07/).length).toBeGreaterThan(0)
     expect(screen.getByText(/Uncertainty: moderate/)).toBeInTheDocument()

@@ -72,6 +72,14 @@ accepted-result publication. Completed older coverage remains historical, not cu
 
 ## Private API and persistence
 
+> **Superseded for application storage and review HTTP APIs:** the later
+> consolidation uses canonical `GET /api/reviews/options` and
+> `POST /api/reviews/prepare`, and a fresh history schema version 1. Existing
+> application database versions 1–8 are refused; no automatic migration, reset,
+> or old HTTP-compatibility guarantee remains. This decision's original schema,
+> persistence, and endpoint descriptions are retained below as dated historical
+> context, not current runtime promises.
+
 `GET /api/review-schedules` returns configuration/version, trigger availability,
 next changed-data check, known next time/settling eligibility and current due
 intents. Reads preview rules without consuming events or calling models/imports.
@@ -206,6 +214,8 @@ tests**; full UI/build and documentation checks are recorded in the task ledger.
 The **23/33** task-7.4 count is a historical implementation milestone, not current
 progress. Completed foundation work is recorded in
 [the archived ledger](../../openspec/changes/archive/2026-10-03-garmin-training-guidance-foundation/tasks.md).
+Follow-on scope and planning work is tracked in
+[its active ledger](../../openspec/changes/scoped-reviews-and-adaptive-planning/tasks.md).
 The user approved publishing the tested source for PR review only; it is not
 deployed or qualified for actual-data inference. Image publication/promotion,
 live migration and inference remain outside this approval.

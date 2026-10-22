@@ -102,7 +102,7 @@ class ManualEventService(
 private val eventIdPattern = Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 private val eventDatePattern = Regex("[0-9]{4}-[0-9]{2}-[0-9]{2}")
 
-private fun validateEventId(id: String) {
+internal fun validateEventId(id: String) {
     require(eventIdPattern.matches(id)) { "Invalid event identifier" }
 }
 

@@ -1,0 +1,12 @@
+:root { font-family: system-ui, sans-serif; color: #182029; background: #f5f7fa; }
+.synthetic-pilot { max-width: 64rem; margin: 2rem auto; padding: 1.5rem; background: white; }
+.pilot-warning { border: 2px solid #9c6200; background: #fff3d6; padding: 1rem; font-weight: 650; }
+label { display: block; margin: 0.8rem 0; }
+input:not([type=checkbox]), select, textarea { display: block; max-width: 100%; padding: 0.5rem; font: inherit; }
+textarea { width: 95%; }
+select { max-width: 95%; }
+button { margin: 0.35rem; padding: 0.55rem; cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: 0.6; }
+article, .context-record, [aria-label="Pending confirmation"] { border: 1px solid #aab6c5; padding: 1rem; margin: 1rem 0; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+[role=alert] { color: #a00020; font-weight: 650; }

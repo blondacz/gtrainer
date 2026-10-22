@@ -214,9 +214,9 @@ class HistoryStoreTest {
         }
         DriverManager.getConnection("jdbc:sqlite:$path").use { database ->
             database.createStatement().use { statement ->
-                statement.executeQuery("SELECT count(*) FROM schema_migrations").use { result ->
-                    result.next(); assertEquals(7, result.getInt(1))
-                }
+                statement.executeQuery("PRAGMA user_version").use { result -> result.next(); assertEquals(1, result.getInt(1)) }
+                statement.executeQuery("PRAGMA application_id").use { result -> result.next(); assertEquals(HistorySchema.APPLICATION_ID, result.getInt(1)) }
+                statement.executeQuery("SELECT count(*) FROM sqlite_schema WHERE name='schema_migrations'").use { result -> result.next(); assertEquals(0, result.getInt(1)) }
             }
         }
         assertEquals("rw-------", java.nio.file.attribute.PosixFilePermissions.toString(Files.getPosixFilePermissions(path)))
@@ -227,40 +227,22 @@ class HistoryStoreTest {
     }
 
     @Test
-    fun `schema v2 migration preserves imported identities and event identity`() {
+    fun `legacy schema is refused without changing its contents`() {
         val directory = Files.createTempDirectory("gtrainer-v2-migration-")
         val path = directory.resolve("synthetic.sqlite3")
         try {
             DriverManager.getConnection("jdbc:sqlite:$path").use { database ->
                 database.createStatement().use { statement ->
                     statement.execute("PRAGMA user_version=2")
-                    statement.execute("CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_utc TEXT NOT NULL)")
-                    statement.execute("INSERT INTO schema_migrations VALUES (1,'2020-01-01T00:00:00Z'),(2,'2020-01-02T00:00:00Z')")
-                    statement.execute("CREATE TABLE activities (source TEXT NOT NULL, source_id TEXT NOT NULL, observed_date TEXT NOT NULL, record_json TEXT NOT NULL, PRIMARY KEY(source,source_id))")
-                    statement.execute("CREATE TABLE wellness (source TEXT NOT NULL, source_id TEXT NOT NULL, observed_date TEXT NOT NULL, record_json TEXT NOT NULL, PRIMARY KEY(source,source_id))")
-                    statement.execute("CREATE INDEX activity_dates ON activities(observed_date)")
-                    statement.execute("CREATE INDEX wellness_dates ON wellness(observed_date)")
-                    statement.execute("CREATE TABLE events (id TEXT PRIMARY KEY, start_date TEXT NOT NULL, end_date TEXT NOT NULL, sport TEXT NOT NULL, goal TEXT NOT NULL, notes TEXT)")
-                    statement.execute("CREATE TABLE sync_status (category TEXT PRIMARY KEY, last_attempt_utc TEXT, last_success_utc TEXT, read_status TEXT NOT NULL, rejected INTEGER NOT NULL DEFAULT 0, incomplete INTEGER NOT NULL DEFAULT 0)")
-                    statement.execute("CREATE TABLE review_schedule (singleton INTEGER PRIMARY KEY CHECK(singleton=1), state_json TEXT NOT NULL)")
-                    statement.execute("CREATE TABLE review_import_changes (revision INTEGER PRIMARY KEY AUTOINCREMENT, category TEXT NOT NULL, observed_date TEXT NOT NULL, received_utc TEXT NOT NULL, identity_sha256 TEXT NOT NULL, sport TEXT, sleep_changed INTEGER NOT NULL, sleep_available INTEGER NOT NULL)")
-                    val activity = syntheticActivity()
-                    val wellness = syntheticWellness()
-                    statement.execute("INSERT INTO activities VALUES ('${activity.source}','${activity.sourceRecordId}','${activity.startLocal.take(10)}','${Json.encodeToString(activity)}')")
-                    statement.execute("INSERT INTO wellness VALUES ('${wellness.source}','${wellness.sourceRecordId}','${wellness.date}','${Json.encodeToString(wellness)}')")
-                    statement.execute("INSERT INTO events VALUES ('stable-event-id','2020-06-01','2020-06-02','Run','synthetic','note')")
-                    statement.execute("INSERT INTO review_schedule VALUES (1,'${Json.encodeToString(ReviewSchedulerState())}')")
+                    statement.execute("CREATE TABLE private_fixture(value TEXT)")
+                    statement.execute("INSERT INTO private_fixture VALUES ('preserve-me')")
                 }
             }
-            HistoryStore(path).use { migrated ->
-                assertEquals("synthetic-store-a1", migrated.history(range.oldest, range.newest).activities.single().sourceRecordId)
-                assertEquals("2020-06-01", migrated.history(range.oldest, range.newest).wellness.single().sourceRecordId)
-            }
+            assertFailsWith<HistorySchemaMismatch> { HistoryStore(path).close() }
             DriverManager.getConnection("jdbc:sqlite:$path").use { database ->
                 database.createStatement().use { statement ->
-                    statement.executeQuery("SELECT id FROM events").use { rows -> rows.next(); assertEquals("stable-event-id", rows.getString(1)) }
-                    statement.executeQuery("PRAGMA user_version").use { rows -> rows.next(); assertEquals(7, rows.getInt(1)) }
-                    statement.executeQuery("SELECT count(*) FROM schema_migrations WHERE version=7").use { rows -> rows.next(); assertEquals(1, rows.getInt(1)) }
+                    statement.executeQuery("SELECT value FROM private_fixture").use { rows -> rows.next(); assertEquals("preserve-me", rows.getString(1)) }
+                    statement.executeQuery("PRAGMA user_version").use { rows -> rows.next(); assertEquals(2, rows.getInt(1)) }
                 }
             }
         } finally {

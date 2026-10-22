@@ -10,7 +10,7 @@ import io.ktor.server.response.respond
 
 /** Authentication plumbing without constructing a source, database, scheduler or model service. */
 internal class PrivateApiAccess(private val auth: SingleUserAuth, private val cookieName: String = SESSION_COOKIE) {
-    init { require(cookieName in setOf(SESSION_COOKIE, DEVELOPMENT_SESSION_COOKIE)) }
+    init { require(cookieName in setOf(SESSION_COOKIE, DEVELOPMENT_SESSION_COOKIE, SYNTHETIC_INTAKE_PILOT_SESSION_COOKIE)) }
     suspend fun authorize(call: ApplicationCall): UserSession? {
         call.response.headers.append(HttpHeaders.CacheControl, "no-store")
         if (call.request.path() == LOGIN_PATH && call.request.local.method == HttpMethod.Post) {
@@ -96,3 +96,4 @@ internal class PrivateApiAccess(private val auth: SingleUserAuth, private val co
 
 internal const val SESSION_COOKIE = "gtrainer_session"
 internal const val DEVELOPMENT_SESSION_COOKIE = "gtrainer_development_session"
+internal const val SYNTHETIC_INTAKE_PILOT_SESSION_COOKIE = "gtrainer_synthetic_intake_pilot_session"

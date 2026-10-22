@@ -10,15 +10,29 @@ data class ReviewQueuePolicy(val debounceSeconds: Int = 120, val cooldownSeconds
     }
 }
 @Serializable
-data class ReviewQueueJob(val id: String, val key: String, val intent: ReviewDue, val reasons: List<String>, val occurrenceIds: List<String>,
-                          val firstQueuedUtc: String, val lastQueuedUtc: String, val eligibleUtc: String, val maximumDeferralUtc: String,
-                          val manual: Boolean = false, val startedUtc: String? = null) {
+data class ReviewQueueJob(val id: String, val key: String, val intent: ReviewDue?, val reasons: List<String>, val occurrenceIds: List<String>,
+                           val firstQueuedUtc: String, val lastQueuedUtc: String, val eligibleUtc: String, val maximumDeferralUtc: String,
+                           val manual: Boolean = false, val startedUtc: String? = null,
+                           val scopedIntent: ScopedQueueIntent? = null) {
+    init { require((scopedIntent != null) xor (intent != null)) }
+    fun requireLegacyIntent(): ReviewDue = checkNotNull(intent) { "Scoped queue job has no legacy intent" }
     override fun toString() = "ReviewQueueJob([REDACTED])"
 }
 @Serializable
-data class ReviewQueueOutcome(val id: String, val intent: ReviewDue, val status: String, val reason: String, val finishedUtc: String,
+data class ReviewQueueOutcome(val id: String, val intent: ReviewDue?, val status: String, val reason: String, val finishedUtc: String,
                               val startedUtc: String?, val facts: FactualReview? = null, val interpretation: ReviewInterpretationResponse? = null,
-                              val stale: Boolean = false) {
+                                val stale: Boolean = false, val snapshotId: String? = null, val scopedIntent: ScopedQueueIntent? = null,
+                                val evidenceCutoffUtc: String?=null,val preview: ScopedQueuePreview?=null) {
+    init {
+        require((scopedIntent == null) xor (intent == null))
+        require((scopedIntent == null) || (facts == null && interpretation == null))
+        require(snapshotId == null || scopedIntent != null)
+        require((evidenceCutoffUtc==null && preview==null) || scopedIntent!=null)
+        evidenceCutoffUtc?.let(java.time.Instant::parse)
+        require(preview==null || scopedIntent?.providerSelection!=null)
+        require(preview?.state!="awaiting_consent" || scopedIntent?.providerSelection?.providerKind=="hosted")
+        require(preview?.state!="blocked_admission" || scopedIntent?.providerSelection?.providerKind=="local")
+    }
     override fun toString() = "ReviewQueueOutcome([REDACTED])"
 }
 @Serializable
@@ -40,3 +54,15 @@ data class ReviewNowRequest(val expectedVersion: Long, val presetId: String, val
     }
 }
 class ReviewQueueCapacity : IllegalStateException("Review queue capacity reached")
+
+/** Content-free routing status. Exact prompts stay behind user-triggered execution inspection. */
+@Serializable
+data class ScopedQueuePreview(val state: String,val reason: String,val executionId: String?=null,val createdUtc: String?=null) {
+    init {
+        require(state in setOf("not_prepared","awaiting_consent","blocked_admission","blocked","unavailable","stale"))
+        require(reason.matches(Regex("[a-z][a-z0-9_]{1,63}")))
+        require((executionId==null)==(createdUtc==null))
+        executionId?.let(::validateContextId);createdUtc?.let(java.time.Instant::parse)
+        if(state in setOf("awaiting_consent","blocked_admission")) require(executionId!=null)
+    }
+}

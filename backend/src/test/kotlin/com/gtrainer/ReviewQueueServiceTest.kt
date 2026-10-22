@@ -24,9 +24,9 @@ class ReviewQueueServiceTest {
             triggers = listOf(ReviewTrigger("arrival", "activity_arrival", settleSeconds = 0)))), policy)
 
     private fun capacityJobs(original: ReviewQueueJob, reviewType: String = "weekly") = (0 until 256).map { index ->
-        val due = original.intent.copy(occurrenceId = if (index == 0) original.id else AnalysisClaims.hash("full-queue-$index"),
-            reviewType = reviewType, oldest = LocalDate.parse(original.intent.oldest).minusDays(index.toLong()).toString(),
-            newest = LocalDate.parse(original.intent.newest).minusDays(index.toLong()).toString())
+        val due = original.requireLegacyIntent().copy(occurrenceId = if (index == 0) original.id else AnalysisClaims.hash("full-queue-$index"),
+            reviewType = reviewType, oldest = LocalDate.parse(original.requireLegacyIntent().oldest).minusDays(index.toLong()).toString(),
+            newest = LocalDate.parse(original.requireLegacyIntent().newest).minusDays(index.toLong()).toString())
         original.copy(id = due.occurrenceId, key = ReviewQueueRules.key(due), intent = due,
             occurrenceIds = if (index == 0) original.occurrenceIds else listOf(due.occurrenceId))
     }
@@ -86,6 +86,27 @@ class ReviewQueueServiceTest {
         }
     }
 
+    @Test fun `manual scheduled and new factual calendar scopes agree in the saved zone without inference`() = fixture {
+        clock.now = Instant.parse("2020-06-02T22:00:00Z") // June 3 in Prague, not the UTC report date.
+        reviews.select(reviewSelection())
+        val weekly = configuration().copy(timeZone = "Europe/Prague", presets = listOf(
+            ReviewPreset("synthetic", "weekly", true, ReviewScope("week", 7), budget = budget,
+                triggers = listOf(ReviewTrigger("time", "daily_time", localTime = "00:10")))))
+        configure(weekly)
+        clock.now = Instant.parse("2020-06-02T22:15:00Z")
+        scheduler.tick()
+        val scheduled = queue.status().pending.single().requireLegacyIntent()
+        val manual = request().pending.single().requireLegacyIntent()
+        val factual = store.scopedTrends(ScopedReviewRequest(scope = "calendar_week"), clock.instant())
+        assertEquals("2020-06-01", scheduled.oldest)
+        assertEquals("2020-06-03", scheduled.newest)
+        assertEquals(scheduled.oldest, manual.oldest)
+        assertEquals(scheduled.newest, manual.newest)
+        assertEquals(ScopedDateRange(manual.oldest, manual.newest), factual.scope.evidenceRange)
+        assertEquals("Europe/Prague", factual.scope.timeZone)
+        assertTrue(model.packets.isEmpty())
+    }
+
     @Test fun `manual request requires explicit model but works immediately with automation disabled at night`() = fixture {
         clock.now = Instant.parse("2020-06-02T23:45:00Z")
         seed()
@@ -98,10 +119,10 @@ class ReviewQueueServiceTest {
         assertEquals("review_queued", status.reason)
         assertTrue(status.executionAvailable)
         assertTrue(job.manual)
-        assertEquals("thorough", job.intent.level)
+        assertEquals("thorough", job.requireLegacyIntent().level)
         assertEquals(clock.instant().toString(), job.eligibleUtc)
         assertEquals(listOf("manual_request"), job.reasons)
-        assertEquals(budget, job.intent.budget)
+        assertEquals(budget, job.requireLegacyIntent().budget)
         queue.pump(scope)
         val result = completed()
         assertEquals("available", result.status)
@@ -122,7 +143,7 @@ class ReviewQueueServiceTest {
         val pending = queue.status().pending.single()
         assertFalse(pending.manual)
         assertEquals(due.occurrenceId, pending.id)
-        assertEquals(due.budget, pending.intent.budget)
+        assertEquals(due.budget, pending.requireLegacyIntent().budget)
         assertTrue(scheduler.tick().due.isEmpty())
         assertEquals(listOf(pending), queue.status().pending)
         queue.pump(scope)
@@ -192,7 +213,7 @@ class ReviewQueueServiceTest {
             assertTrue(reviews.status().correctionEnabled)
             assertTrue(reviews.status().executionPolicy.allowCorrectiveAttempt)
             val pending = request().pending.single()
-            assertFalse(pending.intent.budget.allowCorrectiveAttempt)
+            assertFalse(pending.requireLegacyIntent().budget.allowCorrectiveAttempt)
             queue.pump(scope)
             val outcome = completed()
             assertEquals("factual_only", outcome.status)
@@ -229,14 +250,14 @@ class ReviewQueueServiceTest {
                 val localDate = LocalDate.now(clock.withZone(ZoneId.of(zone)))
                 assertEquals(LocalDate.parse("2020-06-02"), utcDate)
                 assertEquals(LocalDate.parse("2020-06-03"), localDate)
-                assertEquals(zone, job.intent.timeZone)
-                assertEquals("2020-06-02", job.intent.oldest)
-                assertEquals("2020-06-03", job.intent.newest)
+                assertEquals(zone, job.requireLegacyIntent().timeZone)
+                assertEquals("2020-06-02", job.requireLegacyIntent().oldest)
+                assertEquals("2020-06-03", job.requireLegacyIntent().newest)
                 assertFailsWith<IllegalArgumentException> { store.reviewJobReport(job, utcDate) }
                 val report = store.reviewJobReport(job, utcDate, latestAllowedDate = localDate)
                 assertEquals(utcDate.toString(), report.evaluatedOnUtc)
-                assertEquals(job.intent.oldest, report.current.oldest)
-                assertEquals(job.intent.newest, report.current.newest)
+                assertEquals(job.requireLegacyIntent().oldest, report.current.oldest)
+                assertEquals(job.requireLegacyIntent().newest, report.current.newest)
                 val expected = FactualReviews.prepare(Trends.analysisInput(report))
                 queue.pump(scope)
                 val outcome = completed()
@@ -270,7 +291,7 @@ class ReviewQueueServiceTest {
         queue.pump(scope)
         val outcome = completed()
         assertEquals("available", outcome.status)
-        assertEquals(ReviewExecutionPolicy(100, 900), outcome.intent.budget)
+        assertEquals(ReviewExecutionPolicy(100, 900), outcome.intent!!.budget)
         assertEquals(expected, outcome.facts!!.evidenceReportSha256)
         assertEquals(expected, outcome.interpretation!!.evidenceReportSha256)
         assertFalse(outcome.stale)
@@ -293,7 +314,7 @@ class ReviewQueueServiceTest {
             queue.pump(scope)
             withTimeout(5000) { started.await() }
             val running = assertNotNull(store.reviewScheduleState().queue.running)
-            assertEquals(budget, running.intent.budget)
+            assertEquals(budget, running.requireLegacyIntent().budget)
             importCurrent(2100.0)
             scheduler.tick()
             importCurrent(2400.0)
@@ -322,6 +343,40 @@ class ReviewQueueServiceTest {
         }
     }
 
+    @Test fun `explicit reconciliation removes only observed obsolete identities and preserves healthy pending work`() = fixture {
+        seed();reviews.select(reviewSelection());configure(configuration())
+        val healthy=request().pending.single()
+        val obsolete=healthy.copy(id="obsolete-job",key="obsolete-key",intent=healthy.requireLegacyIntent().copy(selectionVersion=healthy.requireLegacyIntent().selectionVersion-1))
+        store.updateReviewQueue { state -> state.copy(queue=state.queue.copy(pending=listOf(healthy,obsolete))) to Unit }
+        queue.reconcile()
+        val state=store.reviewScheduleState()
+        assertEquals(listOf(healthy),state.queue.pending)
+        assertEquals(listOf("obsolete-job"),state.queue.outcomes.map { it.id })
+        assertTrue(model.packets.isEmpty())
+    }
+
+    @Test fun `status is read only after model selection change until explicit reconciliation`() = fixture {
+        seed(); reviews.select(reviewSelection()); configure(configuration())
+        request()
+        val before = store.reviewScheduleState()
+        reviews.select(reviewSelection(enabled = false))
+        repeat(3) {
+            val status = queue.status()
+            assertEquals("explicit_local_selection_required", status.reason)
+            assertFalse(status.executionAvailable)
+            assertEquals(before, store.reviewScheduleState())
+        }
+        assertTrue(model.packets.isEmpty())
+
+        queue.reconcile()
+        val reconciled = store.reviewScheduleState()
+        assertTrue(reconciled.queue.pending.isEmpty())
+        assertTrue(reconciled.queue.outcomes.any { it.reason == "model_selection_changed" })
+        repeat(3) { queue.pump(scope) }
+        assertNull(store.reviewScheduleState().queue.running)
+        assertTrue(model.packets.isEmpty())
+    }
+
     @Test fun `model selection change invalidates running and pending and prevents obsolete publication`() {
         val started = CompletableDeferred<Unit>()
         val stopped = CompletableDeferred<Unit>()
@@ -335,8 +390,11 @@ class ReviewQueueServiceTest {
             withTimeout(5000) { started.await() }
             request()
             reviews.select(reviewSelection(enabled = false))
-            val status = queue.status()
+            val beforeReconciliation = queue.status()
+            assertTrue(beforeReconciliation.running != null)
+            queue.reconcile()
             withTimeout(5000) { stopped.await() }
+            val status=queue.status()
             assertEquals("explicit_local_selection_required", status.reason)
             assertFalse(status.executionAvailable)
             assertNull(status.running)
@@ -357,7 +415,7 @@ class ReviewQueueServiceTest {
         request()
         store.updateReviewQueue { state -> state.copy(queue = ReviewQueueRules.claim(state.queue, clock.instant())) to Unit }
         val running = assertNotNull(store.reviewScheduleState().queue.running)
-        val success = ReviewQueueOutcome(running.id, running.intent, "available", "synthetic_commit", clock.instant().toString(), running.startedUtc)
+        val success = ReviewQueueOutcome(running.id, running.requireLegacyIntent(), "available", "synthetic_commit", clock.instant().toString(), running.startedUtc)
         val entered = CountDownLatch(1)
         val release = CountDownLatch(1)
         val selecting = CountDownLatch(1)
@@ -365,7 +423,7 @@ class ReviewQueueServiceTest {
         val changed = CompletableFuture<ReviewModelStatus>()
         val publisher = thread(start = false, name = "synthetic-review-publication") {
             try {
-                published.complete(reviews.publishIfSelected(running.intent.modelId, running.intent.selectionVersion) {
+                published.complete(reviews.publishIfSelected(running.requireLegacyIntent().modelId, running.requireLegacyIntent().selectionVersion) {
                     entered.countDown()
                     check(release.await(5, TimeUnit.SECONDS))
                     store.updateReviewQueue { state -> state.copy(queue = ReviewQueueRules.finish(state.queue, success,
@@ -395,10 +453,10 @@ class ReviewQueueServiceTest {
             assertEquals(success, store.reviewScheduleState().queue.lastSuccess)
             assertNull(store.reviewScheduleState().queue.running)
             var forbiddenCalls = 0
-            assertNull(reviews.publishIfSelected(running.intent.modelId, running.intent.selectionVersion) { forbiddenCalls++; true })
+            assertNull(reviews.publishIfSelected(running.requireLegacyIntent().modelId, running.requireLegacyIntent().selectionVersion) { forbiddenCalls++; true })
             val reselected = reviews.select(reviewSelection())
-            assertTrue(reselected.selectionVersion > running.intent.selectionVersion)
-            assertNull(reviews.publishIfSelected(running.intent.modelId, running.intent.selectionVersion) { forbiddenCalls++; true })
+            assertTrue(reselected.selectionVersion > running.requireLegacyIntent().selectionVersion)
+            assertNull(reviews.publishIfSelected(running.requireLegacyIntent().modelId, running.requireLegacyIntent().selectionVersion) { forbiddenCalls++; true })
             assertNull(reviews.publishIfSelected("synthetic-other", reselected.selectionVersion) { forbiddenCalls++; true })
             assertEquals(0, forbiddenCalls)
             assertEquals(listOf(success), store.reviewScheduleState().queue.outcomes)
@@ -485,20 +543,21 @@ class ReviewQueueServiceTest {
         }
     }
 
-    @Test fun `shared analysis gate requeues busy work without attempts and starts only after gate is released`() {
+    @Test fun `shared review gate requeues busy work without attempts and starts only after gate is released`() {
         val started = CompletableDeferred<Unit>()
-        val prototypeModel = SyntheticAnalysisModel { started.complete(Unit); awaitCancellation() }
-        val prototype = AnalysisService(listOf(prototypeModel))
+        val gate = Mutex()
+        val holder = CoroutineScope(Dispatchers.Default).launch {
+            gate.lock()
+            try { started.complete(Unit); awaitCancellation() } finally { gate.unlock() }
+        }
         try {
-            fixture(gate = prototype.inferenceGate()) {
+            fixture(gate = gate) {
                 seed(); reviews.select(reviewSelection()); configure(configuration())
                 val report = analysisReport()
-                val selected = prototype.select(syntheticModelOption.id)
-                val occupying = scope.async { prototype.analyze(analysisRequest(report, selected), report) { report } }
                 withTimeout(5000) { started.await() }
                 val original = request().pending.single()
                 queue.pump(scope)
-                eventually { store.reviewScheduleState().queue.pending.isNotEmpty() && scope.coroutineContext[Job]!!.children.count { it.isActive } == 1 }
+                eventually { store.reviewScheduleState().queue.pending.isNotEmpty() && scope.coroutineContext[Job]!!.children.none { it.isActive } }
                 val waiting = queue.status()
                 assertNull(waiting.running)
                 assertTrue(waiting.outcomes.isEmpty())
@@ -506,8 +565,7 @@ class ReviewQueueServiceTest {
                 assertEquals(original.firstQueuedUtc, waiting.pending.single().firstQueuedUtc)
                 assertEquals(original.maximumDeferralUtc, waiting.pending.single().maximumDeferralUtc)
                 assertTrue(model.packets.isEmpty())
-                assertEquals(1, prototypeModel.calls)
-                occupying.cancelAndJoin()
+                holder.cancelAndJoin()
                 clock.now = clock.now.plusSeconds(1)
                 queue.pump(scope)
                 val outcome = completed()
@@ -515,30 +573,33 @@ class ReviewQueueServiceTest {
                 assertEquals(listOf(ReviewAttempt(1, "accepted", null)), outcome.interpretation!!.attempts)
                 assertEquals(1, model.packets.size)
             }
-        } finally { prototype.close() }
+        } finally { runBlocking { holder.cancelAndJoin() } }
     }
 
-    @Test fun `queue cancellation releases shared analysis gate and keeps cancelled result out of last success`() {
+    @Test fun `queue cancellation releases shared review gate and keeps cancelled result out of last success`() {
         val started = CompletableDeferred<Unit>()
         val stopped = CompletableDeferred<Unit>()
         val model = SyntheticReviewModel { _, _ ->
             started.complete(Unit)
             try { awaitCancellation() } finally { stopped.complete(Unit) }
         }
-        val prototype = AnalysisService(listOf(SyntheticAnalysisModel()))
+        val gate = Mutex()
         try {
             // This tests cancellation, not expiry. Keep the attempt alive across
-            // the competing prototype request even on a busy container builder.
+            // a competing review request even on a busy container builder.
             val cancellationBudget = ReviewExecutionPolicy(30_000, 30_000)
-            fixture(model, gate = prototype.inferenceGate(), executionPolicy = cancellationBudget) {
+            fixture(model, gate = gate, executionPolicy = cancellationBudget) {
                 seed(); reviews.select(reviewSelection())
                 configure(configuration().let { config -> config.copy(presets = config.presets.map { it.copy(budget = cancellationBudget) }) })
                 request(); queue.pump(scope)
                 withTimeout(5000) { started.await() }
+                val competitor = ReviewInterpretationService(listOf(SyntheticReviewModel()), cancellationBudget, { true }, gate)
+                try {
+                    val selection = competitor.select(reviewSelection())
+                    val report = analysisReport()
+                    assertEquals("interpretation_busy", competitor.interpret(reviewRequest(report, selection), report) { report }.reason)
+                } finally { competitor.close() }
                 delay(150) // Exceeds the old incidental 100 ms timeout.
-                val report = analysisReport()
-                val selected = prototype.select(syntheticModelOption.id)
-                assertEquals("analysis_busy", prototype.analyze(analysisRequest(report, selected), report) { report }.reason)
                 queue.invalidate("user_cancelled")
                 withTimeout(5000) { stopped.await() }
                 eventually { scope.coroutineContext[Job]!!.children.none { it.isActive } }
@@ -547,9 +608,14 @@ class ReviewQueueServiceTest {
                 assertTrue(status.pending.isEmpty())
                 assertNull(status.lastSuccess)
                 assertEquals("cancelled", status.outcomes.single().status)
-                assertEquals("available", prototype.analyze(analysisRequest(report, selected), report) { report }.status)
+                val after = ReviewInterpretationService(listOf(SyntheticReviewModel()), cancellationBudget, { true }, gate)
+                try {
+                    val selection = after.select(reviewSelection())
+                    val report = analysisReport()
+                    assertEquals("available", after.interpret(reviewRequest(report, selection), report) { report }.status)
+                } finally { after.close() }
             }
-        } finally { prototype.close() }
+        } finally { }
     }
 
     @Test fun `durable capacity rejection rolls back scheduler occurrence memory and queue as one transaction`() = fixture {
@@ -557,7 +623,7 @@ class ReviewQueueServiceTest {
         val original = request().pending.single()
         store.updateReviewQueue { state ->
             val jobs = (0 until 256).map { index ->
-                val due = original.intent.copy(occurrenceId = AnalysisClaims.hash("capacity-$index"), modelId = "synthetic-$index")
+                val due = original.requireLegacyIntent().copy(occurrenceId = AnalysisClaims.hash("capacity-$index"), modelId = "synthetic-$index")
                 original.copy(id = due.occurrenceId, key = ReviewQueueRules.key(due), intent = due, occurrenceIds = listOf(due.occurrenceId))
             }
             state.copy(queue = state.queue.copy(pending = jobs)) to Unit
@@ -577,7 +643,7 @@ class ReviewQueueServiceTest {
             val original = request().pending.single()
             assertEquals(2, original.occurrenceIds.size)
             store.updateReviewQueue { state -> state.copy(queue = state.queue.copy(
-                pending = capacityJobs(original, original.intent.reviewType).mapIndexed { index, job ->
+                pending = capacityJobs(original, original.requireLegacyIntent().reviewType).mapIndexed { index, job ->
                     if (index == 0) job else job.copy(eligibleUtc = clock.instant().plusSeconds(30).toString())
                 })) to Unit }
             val context = scope.coroutineContext
@@ -590,7 +656,7 @@ class ReviewQueueServiceTest {
                             val claimed = store.reviewScheduleState()
                             assertEquals(original.id, claimed.queue.running?.id)
                             assertEquals(255, claimed.queue.pending.size)
-                            val overflow = original.intent.copy(occurrenceId = AnalysisClaims.hash("busy-overflow"), focus = "wellness")
+                            val overflow = original.requireLegacyIntent().copy(occurrenceId = AnalysisClaims.hash("busy-overflow"), focus = "wellness")
                             assertFailsWith<ReviewQueueCapacity> {
                                 store.updateReviewQueue { state -> state.copy(queue = ReviewQueueRules.enqueue(state.queue,
                                     listOf(overflow), state.configuration.queuePolicy, clock.instant())) to Unit }
@@ -633,7 +699,7 @@ class ReviewQueueServiceTest {
         queue.pump(scope)
         val outcome = completed()
         assertEquals(jobs.first().id, outcome.id)
-        assertEquals("available", outcome.status)
+        assertEquals("available", outcome.status,"${outcome.reason}; ${outcome.interpretation?.attempts}")
         assertEquals(255, queue.status().pending.size)
         assertEquals(1, model.packets.size)
         eventually { scope.coroutineContext[Job]!!.children.none { it.isActive } }

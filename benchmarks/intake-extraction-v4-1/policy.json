@@ -1,0 +1,1 @@
+{"version":"intake-conformance-oracle-v4.1-label-casefold","baseProtocol":"intake-conformance-protocol-v4","comparisonEquivalence":{"commitment.label":"unicode-casefold"},"otherPredicates":"unchanged-v4","historicalReportsMutable":false}

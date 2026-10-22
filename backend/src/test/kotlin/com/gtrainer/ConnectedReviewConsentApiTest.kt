@@ -51,7 +51,7 @@ class ConnectedReviewConsentApiTest {
             testApplication {
                 application {
                     module(SingleUserAuth(syntheticVerifier(), origin, false, true), history,
-                        analysis = AnalysisService(emptyList()), reviews = ReviewInterpretationService(),
+                        reviews = ReviewInterpretationService(),
                         schedules = null, reviewQueue = null, events = null, contexts = null, connectedReviews = connected)
                 }
                 assertEquals(HttpStatusCode.Unauthorized, client.get("/api/connected-review/providers").status)

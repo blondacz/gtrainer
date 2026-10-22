@@ -118,7 +118,7 @@ class ReviewInterpretationService(models: List<ReviewFocusModel> = emptyList(), 
         if (snapshot.facts.focuses.isEmpty()) return response("insufficient_input")
         if (ReviewFocusProtocol.json.encodeToString(snapshot.packet).toByteArray(Charsets.UTF_8).size > 6000) return response("input_budget_exceeded")
         if (runtimeGuard == null) return response("runtime_guard_unavailable")
-        if (!operation.tryLock()) return response("analysis_busy")
+        if (!operation.tryLock()) return response("interpretation_busy")
         try {
             suspend fun check(): String? {
                 currentCoroutineContext().ensureActive()
@@ -199,6 +199,6 @@ class ReviewInterpretationService(models: List<ReviewFocusModel> = emptyList(), 
     override fun close() { running.get()?.cancel(); closeModels() }
 
     companion object {
-        fun fromEnvironment(operation: Mutex): ReviewInterpretationService = OllamaReviewFocusModel.serviceFromEnvironment(operation)
+        fun fromEnvironment(operation: Mutex = Mutex()): ReviewInterpretationService = OllamaReviewFocusModel.serviceFromEnvironment(operation)
     }
 }

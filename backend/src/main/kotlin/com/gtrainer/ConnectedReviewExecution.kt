@@ -22,6 +22,7 @@ data class ConnectedReviewExecutionLimits(
         require(maxAttempts == 2)
         require(maxPacketBytes in 1..32 * 1024 && maxResponseBytes in 1..12 * 1024)
         require(maxHostedCostPerAttemptUsd.signum() > 0 && maxHostedCostTotalUsd >= maxHostedCostPerAttemptUsd)
+        if(policy==ConnectedReviewExecutionPolicy.PERSONAL) require(maxHostedCostPerAttemptUsd<=BigDecimal("0.25") && maxHostedCostTotalUsd<=BigDecimal("0.50"))
     }
 
     companion object {
@@ -45,6 +46,7 @@ data class ConnectedReviewExecutionLimits(
 
 enum class ConnectedReviewExecutionPolicy(val attemptCapMillis: Long, val totalCapMillis: Long) {
     ORDINARY(600_000, 1_200_000),
+    PERSONAL(300_000, 600_000),
     DEVELOPMENT_LOCAL(900_000, 1_840_000),
 }
 
@@ -92,6 +94,9 @@ interface ConnectedReviewExecutionRepository {
     fun connectedReviewStatus(snapshotId: String): ConnectedReviewStatus
     fun connectedReviewPacket(snapshotId: String): InterpretationPacketV1
     fun connectedReviewInspection(snapshotId: String): ConnectedReviewInspection
+    /** Legacy storage retains its decoder; new-profile repositories override this assembly seam. */
+    fun connectedReviewInvocation(snapshotId: String): ConnectedReviewInvocation =
+        ConnectedReviewInvocation.legacy(connectedReviewPacket(snapshotId))
     fun claimConnectedReview(snapshotId: String): ConnectedReviewStatus?
     fun publishConnectedReview(
         snapshotId: String,
@@ -103,7 +108,13 @@ interface ConnectedReviewExecutionRepository {
         contractVersion: String,
     ): ConnectedReviewStatus
     fun failConnectedReview(snapshotId: String, reason: String): ConnectedReviewStatus
+    /** Expensive preparation occurs before the final synchronous publication/consent lock boundary. */
+    fun prepareConnectedReviewPublication(snapshotId: String,output: ValidatedConnectedReviewOutput,currentEvidenceDigest: String,
+        currentContext: List<ContextRevisionRefV1>,provider: String,model: String,contractVersion: String): ()->ConnectedReviewStatus =
+        { publishConnectedReview(snapshotId,output,currentEvidenceDigest,currentContext,provider,model,contractVersion) }
 }
+
+class ConnectedReviewBindingConflict(val packetDigest: String): IllegalStateException("Review binding changed during preparation")
 
 @Serializable
 data class ConnectedReviewAttemptResult(val number: Int, val status: String, val reason: String?, val costUsd: String?)
@@ -138,17 +149,21 @@ class ConnectedReviewExecutor(
     /** Monotonic origin recorded at durable claim; runtime startup/preflight must precede sends, not this origin. */
     private val durableClaimOriginNanos: Long? = null,
     private val attemptObserver: ConnectedReviewAttemptObserver = ConnectedReviewAttemptObserver { },
+    private val personalAttemptAuthority: (suspend (Int)->Boolean)? = null,
 ) {
     init {
-        require(durableClaimOriginNanos == null || limits.policy == ConnectedReviewExecutionPolicy.DEVELOPMENT_LOCAL) {
-            "Durable claim timing requires local development policy"
+        require(durableClaimOriginNanos == null || limits.policy in setOf(ConnectedReviewExecutionPolicy.DEVELOPMENT_LOCAL,ConnectedReviewExecutionPolicy.PERSONAL)) {
+            "Durable claim timing requires an owned execution policy"
         }
+        require(limits.policy!=ConnectedReviewExecutionPolicy.PERSONAL || (durableClaimOriginNanos!=null && personalAttemptAuthority!=null))
     }
     private val json = Json { encodeDefaults = true; ignoreUnknownKeys = false; isLenient = false }
 
     suspend fun executeManually(snapshotId: String, selection: ConnectedReviewProviderSelection,
                                 catalog: ConnectedReviewProviderCatalog): ConnectedReviewExecutionResult {
-        val snapshot = repository.connectedReviewStatus(snapshotId)
+        val snapshot = try { repository.connectedReviewStatus(snapshotId) } catch(conflict: ConnectedReviewBindingConflict) {
+            return ConnectedReviewExecutionResult(snapshotId,"STALE","binding_conflict",conflict.packetDigest,emptyList())
+        }
         val provider = catalog.resolve(selection)
             ?: return ConnectedReviewExecutionResult(snapshotId, "REFUSED", "provider_not_configured", snapshot.packetDigest, emptyList())
         return executeManually(snapshotId, selection, provider)
@@ -156,13 +171,18 @@ class ConnectedReviewExecutor(
 
     suspend fun executeManually(snapshotId: String, selection: ConnectedReviewProviderSelection,
                                 provider: ConnectedReviewProvider): ConnectedReviewExecutionResult {
-        val snapshot = repository.connectedReviewStatus(snapshotId)
+        val snapshot = try { repository.connectedReviewStatus(snapshotId) } catch(conflict: ConnectedReviewBindingConflict) {
+            return ConnectedReviewExecutionResult(snapshotId,"STALE","binding_conflict",conflict.packetDigest,emptyList())
+        }
         val packetDigest = snapshot.packetDigest
         val attempts = ConnectedReviewAttempts(attemptObserver)
         fun result(state: String, reason: String, review: InterpretationDraftV1? = null) =
             ConnectedReviewExecutionResult(snapshotId, state, reason, packetDigest, attempts.toList(), review)
 
         if (snapshot.state != "IN_FLIGHT") return result("REFUSED", "snapshot_not_in_flight")
+        if(!ScopedProfileAdmission.supportedExecutionContract(snapshot.contractVersion)) return result("REFUSED","unsupported_profile")
+        if(snapshot.contractVersion in ScopedProfileAdmission.profiles && limits.policy!=ConnectedReviewExecutionPolicy.PERSONAL)
+            return result("REFUSED","personal_policy_required")
         if (limits.policy == ConnectedReviewExecutionPolicy.DEVELOPMENT_LOCAL && provider.hosted)
             return result("REFUSED", "development_policy_local_only")
         if (selection.storageId != snapshot.provider || selection.modelId != snapshot.model ||
@@ -177,21 +197,22 @@ class ConnectedReviewExecutor(
         } else null
         if (!provider.hosted && provider.enforcedMaximumCostUsd != null) return result("REFUSED", "invalid_local_cost_binding")
 
-        val packet = repository.connectedReviewPacket(snapshotId)
-        val prompt = InterpretationContractV1.prompt(packet)
-        val serializedPromptBytes = json.encodeToString(prompt).toByteArray(Charsets.UTF_8).size
+        val invocation = try { repository.connectedReviewInvocation(snapshotId) }
+            catch(_: ConnectedReviewBindingConflict) { return result("STALE","binding_conflict") }
+        val serializedPromptBytes = listOfNotNull(invocation.exactPrompt,invocation.exactCorrectionPrompt)
+            .maxOf { json.encodeToString(it).toByteArray(Charsets.UTF_8).size }
         if (serializedPromptBytes > limits.maxPacketBytes) return result("REFUSED", "input_budget_exceeded")
 
         val startedAt = durableClaimOriginNanos ?: monotonicNanos()
-        if (limits.policy == ConnectedReviewExecutionPolicy.DEVELOPMENT_LOCAL && remainingBudgetMillis(startedAt) <= 0) {
+        if (durableClaimOriginNanos!=null && remainingBudgetMillis(startedAt) <= 0) {
             repository.failConnectedReview(snapshotId, "total_timeout")
             return result("UNAVAILABLE", "total_timeout")
         }
-        val totalRemainingMillis = if (limits.policy == ConnectedReviewExecutionPolicy.DEVELOPMENT_LOCAL)
+        val totalRemainingMillis = if (durableClaimOriginNanos!=null)
             remainingBudgetMillis(startedAt)
         else limits.totalTimeoutMillis
-        return ConnectedReviewExecutionSession(repository, gate, limits, monotonicNanos, snapshot, packet, prompt, provider,
-            startedAt, totalRemainingMillis, costLimit, attemptObserver).execute()
+        return ConnectedReviewExecutionSession(repository, gate, limits, monotonicNanos, snapshot, invocation, provider,
+            startedAt, totalRemainingMillis, costLimit, attemptObserver,personalAttemptAuthority).execute()
     }
 
     private fun remainingBudgetMillis(startedAt: Long): Long =

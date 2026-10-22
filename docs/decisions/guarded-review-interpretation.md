@@ -1,5 +1,12 @@
 # Separate guarded review interpretation
 
+> Historical implementation decision. Development consolidation removes the
+> prototype and unused `POST /api/review-interpretation` route. The guarded service,
+> model selection and explicit `/api/review-now` queue remain; the service owns its
+> inference gate independently. Current factual preparation uses the
+> [shared review API/UI](../data/scoped-reviews-and-comparisons.md), never this old
+> digest-bound HTTP workflow. No inference or deployment is enabled by the refactor.
+
 The user approved continuing task 7.3 after deterministic factual reviews. This
 adds an independently selected, closed-vocabulary app interpretation runtime and
 bounded correction policy. It does not deploy or enable inference, qualify a

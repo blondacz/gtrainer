@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "build:development": "tsc --noEmit && vite build --config vite.development.config.ts",
+    "build:synthetic-intake-pilot": "tsc --noEmit && vite build --config vite.synthetic-intake-pilot.config.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "preview": "vite preview --host 127.0.0.1"

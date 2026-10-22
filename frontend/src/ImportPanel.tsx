@@ -86,7 +86,7 @@ export function ImportPanel({ csrfToken, configured, onChanged, compact = false 
   }
 
   async function removeImports() {
-    if (!window.confirm('Remove locally imported history? Events and upstream accounts are unchanged. Retained encrypted backups are not erased.')) return
+    if (!window.confirm('Remove local imports, saved factual reviews and previews, and complete recording-match confirmation histories? Original notes, authored plans, events and skip-only confirmations are unchanged. Runtime ownership remains until stop verification; deletion does not prove a runtime stopped. Upstream accounts and retained encrypted backups are not erased.')) return
     setBusy(true)
     setMessage('')
     try {
@@ -101,7 +101,7 @@ export function ImportPanel({ csrfToken, configured, onChanged, compact = false 
       if (!status.ok) throw new Error('Status unavailable')
       const body: unknown = await status.json()
       setStatuses(statusList(body))
-      setMessage('Local imports removed. Events, upstream accounts, and retained backups are unchanged.')
+      setMessage('Local imports and derived factual reviews and recording-match histories removed. Original notes, plans, events, skip-only confirmations, upstream accounts and retained backups are unchanged. Unresolved runtime ownership remains until stop verification.')
     } catch {
       setMessage('Could not verify removal. Reconnect or sign in again, then check the status.')
     } finally {
@@ -140,7 +140,7 @@ export function ImportPanel({ csrfToken, configured, onChanged, compact = false 
         <p>The latest imported record is over seven days old. This does not prove an upstream sync failure or missed activity.</p>}
       <p>Garmin-to-Intervals.icu freshness is unverified. Missing health values do not imply illness.</p>
     </li>)}</ul>}
-    {(!compact || view === 'remove') && <><p>Removal deletes imported records and review snapshots, not manual events or upstream accounts. Retained encrypted backups remain.</p>
+    {(!compact || view === 'remove') && <><p>Removal deletes imported records, saved factual review snapshots and their previews, and complete recording-match confirmation histories. Original notes, authored plans, manual events, skip-only confirmations and upstream accounts are unchanged. Unresolved runtime ownership records remain for stop verification; deletion does not prove a runtime stopped. Retained encrypted backups remain.</p>
     <button type="button" onClick={() => void removeImports()} disabled={busy || !statuses.some(status => status.recordCount > 0)}>
       Remove local imports
     </button></>}

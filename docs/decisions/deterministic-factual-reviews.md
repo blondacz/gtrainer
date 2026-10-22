@@ -1,5 +1,11 @@
 # Deterministic factual reviews
 
+> Development consolidation reuses these factual rules through the
+> [shared preparation API](../data/scoped-reviews-and-comparisons.md).
+> The separate `/api/review-facts` request/panel and prototype HTTP contracts below
+> are historical and removed. Preparation returns facts over the actual comparable
+> pair; it does not infer or grant an AI packet/snapshot authorization.
+
 After the complete Qwen3.5 fresh-suite run answered only 5/10 requested focuses
 and corrections rescued none, the user approved continuing with deterministic
 facts and focus selection. This implements that local application path without

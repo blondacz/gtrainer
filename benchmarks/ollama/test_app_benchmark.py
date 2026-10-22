@@ -36,24 +36,26 @@ class AppBenchmarkTest(unittest.TestCase):
         missing = [r for r in wellness if r['date'] in ('2020-04-08', '2020-04-14')]
         self.assertTrue(all('hrv' not in r['measurements'] for r in missing))
 
-    def test_exclusive_seed_schema_matches_published_store_and_never_overwrites(self):
+    def test_exclusive_seed_schema_stays_frozen_for_published_image_and_never_overwrites(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'synthetic.sqlite3'
             fixtures.database(path)
             self.assertEqual(path.stat().st_mode & 0o777, 0o600)
             with sqlite3.connect(path) as connection:
                 self.assertEqual(connection.execute('PRAGMA user_version').fetchone()[0], 1)
+                self.assertEqual(connection.execute('PRAGMA application_id').fetchone()[0], 0)
                 self.assertEqual(connection.execute('PRAGMA integrity_check').fetchone()[0], 'ok')
                 self.assertEqual(connection.execute('SELECT count(*) FROM events').fetchone()[0], 0)
             with self.assertRaises(FileExistsError):
                 fixtures.database(path)
-        source = Path(__file__).resolve().parents[2] / 'backend/src/main/kotlin/com/gtrainer/HistoryStore.kt'
-        # The published experiment remains frozen on schema 1. The new app adds
-        # a separate v2 scheduling migration; never change the old seed/image.
-        legacy_migration = source.read_text().split('if (version == 0) transaction {', 1)[1].split('if (version < 2) transaction {', 1)[0]
-        kotlin_sql = set(re.findall(r'statement.execute\("(CREATE (?:TABLE|INDEX)[^"]+)"\)', legacy_migration))
-        fixture_sql = {s.strip() for s in fixtures.SCHEMA_SQL.split(';') if s.strip().startswith('CREATE ')}
-        self.assertEqual(kotlin_sql, fixture_sql)
+        # This historical seed targets the pinned published image, not today's
+        # fresh-only schema. Pin its exact original bytes without reconstructing
+        # a removed migration or modifying any frozen seed/image/capture.
+        self.assertEqual(hashlib.sha256(fixtures.SCHEMA_SQL.encode('utf-8')).hexdigest(),
+                         'abeaab18f7df50a2ab4f0b5878d0b7845f4652dfc4e6400b2d20d62df1b1d6b9')
+        manifest = json.loads((Path(__file__).resolve().parents[2] /
+                               'backend/src/main/resources/history-schema.json').read_text())
+        self.assertNotIn('schema_migrations', json.dumps(manifest))
 
     def test_catalogue_alias_is_explicitly_same_weights_and_verifier_matches_synthetic_password(self):
         options = fixtures.catalogue()

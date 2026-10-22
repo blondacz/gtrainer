@@ -123,7 +123,7 @@ internal object Trends {
         return TrendReport(today.toString(), sport, sports, current, previous, comparisons, statuses, unavailable)
     }
 
-    private fun period(history: HistoryResponse, range: TrendRange, sports: List<String>, sport: String?): PeriodTrends {
+    internal fun period(history: HistoryResponse, range: TrendRange, sports: List<String>, sport: String?): PeriodTrends {
         val dates = range.oldest.toString()..range.newest.toString()
         val activities = history.activities.filter { it.startLocal.take(10) in dates && (sport == null || it.sport == sport) }
             .sortedWith(compareBy({ it.startLocal }, { it.source }, { it.sourceRecordId }))
@@ -178,7 +178,7 @@ internal object Trends {
             candidates.size - points.size, points)
     }
 
-    private fun comparison(current: MetricSeries, previous: MetricSeries, sport: String?): MetricComparison {
+    internal fun comparison(current: MetricSeries, previous: MetricSeries, sport: String?): MetricComparison {
         val difference = if (current.value != null && previous.value != null) current.value - previous.value else null
         val percent = if (difference != null && previous.value != 0.0) difference / previous.value!! * 100 else null
         val flags = buildList {

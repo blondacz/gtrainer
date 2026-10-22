@@ -64,7 +64,7 @@ class ConnectedReviewPrivacyTest {
             testApplication {
                 application {
                     module(SingleUserAuth(syntheticVerifier(), origin, false, true), history,
-                        analysis = AnalysisService(emptyList()), reviews = ReviewInterpretationService(),
+                        reviews = ReviewInterpretationService(),
                         schedules = null, reviewQueue = null, events = null, contexts = null, connectedReviews = connected)
                 }
                 val login = client.post("/api/login") {

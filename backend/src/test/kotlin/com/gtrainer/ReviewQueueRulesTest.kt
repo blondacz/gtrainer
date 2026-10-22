@@ -13,7 +13,7 @@ class ReviewQueueRulesTest {
                         at: Instant = now, manual: Boolean = false) =
         ReviewQueueRules.enqueue(queue, due.toList(), policy, at, manual)
     private fun outcome(job: ReviewQueueJob, status: String = "available") =
-        ReviewQueueOutcome(job.id, job.intent, status, "synthetic_result", now.toString(), job.startedUtc)
+        ReviewQueueOutcome(job.id, job.requireLegacyIntent(), status, "synthetic_result", now.toString(), job.startedUtc)
 
     @Test fun `same bindings coalesce across presets with reason union and never downgrade thorough or budgets`() {
         val first = intent().copy(budget = ReviewExecutionPolicy(50, 900))
@@ -23,8 +23,8 @@ class ReviewQueueRulesTest {
         val queue = enqueue(due = arrayOf(first, thorough, interim))
         val job = queue.pending.single()
         assertEquals(first.occurrenceId, job.id)
-        assertEquals("thorough", job.intent.level)
-        assertEquals(ReviewExecutionPolicy(100, 1000, true), job.intent.budget)
+        assertEquals("thorough", job.requireLegacyIntent().level)
+        assertEquals(ReviewExecutionPolicy(100, 1000, true), job.requireLegacyIntent().budget)
         assertEquals(listOf("changed_data", "activity_arrival", "wellness_arrival"), job.reasons)
         assertEquals(listOf(first.occurrenceId, thorough.occurrenceId, interim.occurrenceId), job.occurrenceIds)
     }
@@ -162,10 +162,10 @@ class ReviewQueueRulesTest {
         assertFailsWith<ReviewQueueCapacity> { enqueue(claimed, intent("overflow")) }
         assertEquals(255, claimed.pending.size)
         assertEquals(running, claimed.running)
-        val merged = enqueue(claimed, claimed.pending.first().intent.copy(occurrenceId = AnalysisClaims.hash("coalesced-at-capacity")))
+        val merged = enqueue(claimed, claimed.pending.first().requireLegacyIntent().copy(occurrenceId = AnalysisClaims.hash("coalesced-at-capacity")))
         assertEquals(255, merged.pending.size)
         assertEquals(2, merged.pending.first().occurrenceIds.size)
-        val restored = enqueue(merged.copy(running = null), running.intent, manual = running.manual)
+        val restored = enqueue(merged.copy(running = null), running.requireLegacyIntent(), manual = running.manual)
         assertNull(restored.running)
         assertEquals(256, restored.pending.size)
         assertEquals(intents.map { it.occurrenceId }.toSet(), restored.pending.map { it.id }.toSet())

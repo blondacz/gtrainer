@@ -68,6 +68,7 @@ describe('athlete context lifecycle', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
     render(<AthleteContextPanel csrfToken={csrf} />)
+    fireEvent.click(screen.getByText('Direct context entry / legacy corrections'))
     fireEvent.change(await screen.findByLabelText('Topic'), { target: { value: 'restriction' } })
     fireEvent.change(screen.getByLabelText('Source attribution'), { target: { value: 'coach_guidance' } })
     fireEvent.change(screen.getByLabelText('Restriction kind'), { target: { value: 'maximum_duration' } })
@@ -85,10 +86,14 @@ describe('athlete context lifecycle', () => {
     const fetchMock = vi.fn(async (path: string, init?: RequestInit) => {
       if (path === '/api/contexts' && (!init || init.method === undefined))
         return { ok: true, status: 200, json: async () => records }
-      if (path === `/api/contexts/${id}` && init?.method === 'DELETE') {
+      if (path === `/api/contexts/${id}/deletion-preview` && init?.method === 'GET')
+        return { ok: true, status: 200, json: async () => ({ contextId: id, expectedRevision: 2, digest: 'd'.repeat(64),
+          sources: [], survivors: [], sourceLinks: [], commitments: [], deletedContextIds: [id], snapshotIds: [], executionIds: [], proposalIds: [], retainedApprovalOperationIds: [], receiptCount: 0, limitation: 'Synthetic limitation' }) }
+      if (path === `/api/contexts/${id}/redact-and-delete` && init?.method === 'POST') {
         expect(init.headers).toMatchObject({ 'X-CSRF-Token': csrf })
+        expect(JSON.parse(String(init.body))).toEqual({ expectedRevision: 2, previewDigest: 'd'.repeat(64), sources: [], survivors: [], commitments: [] })
         records = []
-        return { ok: true, status: 204, json: async () => null }
+        return { ok: true, status: 200, json: async () => ({ deletedContextIds: [id], survivingContextIds: [], retainedCommitmentIds: [], deletedCommitmentIds: [], notice: 'active_dependency_histories_removed;encrypted_backups_follow_retention;not_forensic_erasure' }) }
       }
       throw new Error('Unexpected synthetic request')
     })
@@ -96,15 +101,19 @@ describe('athlete context lifecycle', () => {
     render(<AthleteContextPanel csrfToken={csrf} />)
     await screen.findByText('Current synthetic goal')
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
-    const confirm = screen.getByRole('group', { name: 'Confirm deletion of Goal' })
-    expect(within(confirm).getByText(/Retained encrypted backups may expire later under normal retention/)).toBeInTheDocument()
-    fireEvent.click(within(confirm).getByRole('button', { name: 'Keep context' }))
-    expect(screen.getByText('Current synthetic goal')).toBeInTheDocument()
+    expect(screen.getByText(/prior history may remain in backups under normal retention/)).toBeInTheDocument()
+    expect(fetchMock.mock.calls.filter(([,init]) => init?.method==='POST')).toHaveLength(0)
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel / reload parent' }))
+    expect(await screen.findByText('Current synthetic goal')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
-    fireEvent.click(within(screen.getByRole('group', { name: 'Confirm deletion of Goal' }))
-      .getByRole('button', { name: 'Confirm deletion' }))
-    expect(await screen.findByText(/deleted from active storage/)).toBeInTheDocument()
-    expect(screen.getByText('No current context entries.')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Review deletion and redaction' })).toBeInTheDocument()
+    expect(screen.queryByText('Current synthetic goal')).not.toBeInTheDocument()
+    expect(screen.queryByText('Superseded synthetic goal')).not.toBeInTheDocument()
+    fireEvent.click(await screen.findByRole('checkbox', { name: /I explicitly approve redacting/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Approve redaction and delete' }))
+    expect(await screen.findByText('No current context entries.')).toBeInTheDocument()
+    expect(screen.queryByText('Current synthetic goal')).not.toBeInTheDocument()
+    expect(screen.queryByText('Superseded synthetic goal')).not.toBeInTheDocument()
   })
 
   it('records feedback against an immutable snapshot as attributed context, not measurement', async () => {
