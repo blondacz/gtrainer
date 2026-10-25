@@ -2,16 +2,19 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { loadReviewOptions, prepareReview } from './ReviewApi'
 import type { ScopedReport } from './ScopedReviewTypes'
 import type { MetricSeries } from './ReviewMetrics'
+import type { ReviewDateRange } from './ScopedReviewControls'
 
 type Section = 'charts' | 'imports' | 'reviews' | 'events'
+export type OverviewTarget = { category?: 'activities' | 'wellness'; eventId?: string; reviewSettings?: 'timezone' }
 type Variant = 'activity' | 'wellness' | 'events' | 'reviews' | 'source' | 'unknown'
-type Tile = { id: string; label: string; value: string; unit?: string; detail: string; extra?: string; variant: Variant; section: Section }
+type Tile = { id: string; label: string; value: string; unit?: string; detail: string; extra?: string; variant: Variant; section: Section; target?: OverviewTarget }
 type Source = { category: string; recordCount: number; readStatus: string; lastSuccessUtc: string | null; latestObservedDate: string | null }
 type ManualEvent = { id: string; startDate: string; endDate: string; sport: string; goal: string; notes: string | null }
 type Events = { events: ManualEvent[]; nextUpcoming: ManualEvent | null; ongoing: ManualEvent[]; evaluatedOn: string }
 type Coverage = { oldest: string; newest: string; finishedUtc: string; stale: boolean }
 type Reviews = { queued: number; running: boolean; executionAvailable: boolean; last: Coverage | null; purposes: string[]; states: string[] }
 type Data<T> = { revision: number; query: object | null; value: T | null; failed: boolean }
+const destinations: Record<Section, string> = { charts: 'Trends', imports: 'Source', reviews: 'Reviews', events: 'Events & plans' }
 const object = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
 const integer = (v: unknown): v is number => typeof v === 'number' && Number.isSafeInteger(v) && v >= 0
 const date = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) &&
@@ -79,25 +82,27 @@ function reviewsFrom(v: unknown): Reviews {
 }
 function pageSize(height: number) { return height <= 360 ? 1 : height <= 650 ? 2 : height <= 750 ? 4 : height <= 1000 ? 6 : 8 }
 
-export function NumericTile({ tile, onNavigate }: { tile: Tile; onNavigate: (section: Section) => void }) {
+export function NumericTile({ tile, onNavigate }: { tile: Tile; onNavigate: (section: Section, target?: OverviewTarget) => void }) {
   const icons: Record<Variant, string> = { activity: '↗', wellness: '◌', events: '▦', reviews: '≡', source: '⇄', unknown: '?' }
-  return <button type="button" className={`dashboard-tile ${tile.variant} dashboard-tile--${tile.variant}`} onClick={() => onNavigate(tile.section)} aria-label={`${tile.label}: ${tile.value}${tile.unit ? ` ${tile.unit}` : ''}. ${tile.detail}${tile.extra ? `. ${tile.extra}` : ''}. View ${tile.section}`}>
+  const link = `Open ${destinations[tile.section]}${tile.section === 'events' ? tile.target?.eventId ? ' — event details / full goal' : ' — manual events' : tile.section === 'imports' ? ' — import status' : tile.section === 'reviews' ? ' — queue status' : ''}`
+  return <button type="button" className={`dashboard-tile ${tile.variant} dashboard-tile--${tile.variant}`} onClick={() => tile.target ? onNavigate(tile.section, tile.target) : onNavigate(tile.section)} aria-label={`${tile.label}: ${tile.value}${tile.unit ? ` ${tile.unit}` : ''}. ${tile.detail}${tile.extra ? `. ${tile.extra}` : ''}. ${link}`}>
     <span className="tile-icon" aria-hidden="true">{icons[tile.variant]}</span>
     <span className="tile-label">{tile.label}</span>
     <span className={`tile-value${date(tile.value) ? ' tile-value--date' : ''}`}>{tile.value}<span className="tile-unit">{tile.unit ? ` ${tile.unit}` : ''}</span></span>
     <span className="tile-detail">{tile.detail}</span>
     {tile.extra && <span className="tile-detail">{tile.extra}</span>}
-    <span className="tile-link">View {tile.section === 'events' ? 'event details / full goal' : tile.section}</span>
+    <span className="tile-link">{link}</span>
   </button>
 }
 
-export function OverviewTiles({ revision, csrfToken, onNavigate }: { revision: number; csrfToken: string; onNavigate: (section: Section) => void }) {
+export function OverviewTiles({ revision, csrfToken, onNavigate, initialRange, onRangeChange }: { revision: number; csrfToken: string; onNavigate: (section: Section, target?: OverviewTarget) => void; initialRange?: ReviewDateRange | null; onRangeChange?: (range: ReviewDateRange) => void }) {
   const container = useRef<HTMLElement | null>(null)
   const [today, setToday] = useState('')
-  const [oldest, setOldest] = useState('')
-  const [newest, setNewest] = useState('')
-  const [query, setQuery] = useState<{ oldest: string; newest: string } | null>(null)
+  const [oldest, setOldest] = useState(initialRange?.oldest ?? '')
+  const [newest, setNewest] = useState(initialRange?.newest ?? '')
+  const [query, setQuery] = useState<ReviewDateRange | null>(initialRange ?? null)
   const [message, setMessage] = useState('')
+  const [needsTimeZone, setNeedsTimeZone] = useState(false)
   const [reportData, setReport] = useState<Data<ScopedReport> | null>(null)
   const [sourceData, setSources] = useState<Data<Source[]> | null>(null)
   const [eventsData, setEvents] = useState<Data<Events> | null>(null)
@@ -113,7 +118,7 @@ export function OverviewTiles({ revision, csrfToken, onNavigate }: { revision: n
   useEffect(() => {
     const epoch = ++generation.current
     const controller = new AbortController()
-    setReport(null); setSources(null); setEvents(null); setReviews(null); setPage(0); setToday(''); setMessage('')
+    setReport(null); setSources(null); setEvents(null); setReviews(null); setPage(0); setToday(''); setMessage(''); setNeedsTimeZone(false)
     const current = () => generation.current === epoch && !controller.signal.aborted
     async function load<T>(path: string, parse: (value: unknown) => T, accept: (value: Data<T>) => void) {
       try {
@@ -129,10 +134,10 @@ export function OverviewTiles({ revision, csrfToken, onNavigate }: { revision: n
       try {
         const options = await loadReviewOptions(controller.signal)
         if (!current()) return
-        if (!options.timeZone || !options.today || !csrfToken) { setReport({revision,query,value:null,failed:true}); setMessage('Save an explicit time zone to make overview tiles available.'); return }
+        if (!options.timeZone || !options.today || !csrfToken) { setNeedsTimeZone(!options.timeZone); setReport({revision,query,value:null,failed:true}); setMessage('Choose a report time zone before viewing activity and wellness totals.'); return }
         setToday(options.today)
         const range = query ?? { oldest: dayOffset(options.today, -13), newest: options.today }
-        if (!query) { setOldest(range.oldest); setNewest(range.newest); setQuery(range); return }
+        if (!query) { setOldest(range.oldest); setNewest(range.newest); setQuery(range); onRangeChange?.(range); return }
         const request = { schemaVersion: 1 as const, mode: 'period' as const, intent: 'review' as const, scope: 'custom', ...range, wellnessPolicy: 'assessment' as const }
         const value = await prepareReview(request, csrfToken, controller.signal, options.timeZone)
         if (current()) setReport({ revision, query: range, value, failed: false })
@@ -142,7 +147,7 @@ export function OverviewTiles({ revision, csrfToken, onNavigate }: { revision: n
     void load('/api/events', eventsFrom, setEvents)
     void load('/api/review-queue', reviewsFrom, setReviews)
     return () => { controller.abort(); generation.current++ }
-  }, [query, revision, csrfToken])
+  }, [query, revision, csrfToken, onRangeChange])
   function usable<T>(data: Data<T> | null) { return data?.revision === revision && data.query === query ? data : null }
   const report = query ? usable(reportData)?.value : null
   const sources = usable(sourceData)?.value
@@ -150,12 +155,12 @@ export function OverviewTiles({ revision, csrfToken, onNavigate }: { revision: n
   const reviews = usable(reviewData)?.value
   const state = (data: Data<unknown> | null) => usable(data)?.failed ? 'Unavailable' : 'Loading…'
   const tiles: Tile[] = []
-  function sourceTile(category: string): Tile {
+  function sourceTile(category: 'activities' | 'wellness'): Tile {
     const source = sources?.find(s => s.category === category)
-    return { id: `source-${category}`, label: `${category === 'activities' ? 'Activity' : 'Wellness'} imports`, variant: 'source', section: 'imports',
+    return { id: `source-${category}`, label: `${category === 'activities' ? 'Activity' : 'Wellness'} imports`, variant: 'source', section: 'imports', target: { category },
       value: source ? number.format(source.recordCount) : state(sourceData), unit: source ? 'stored' : undefined,
       detail: source ? `${readLabels[source.readStatus] ?? 'Status unknown'} • latest ${source.latestObservedDate ?? 'unknown'}` : 'Import status could not be verified yet',
-      extra: source ? `Last read ${source.lastSuccessUtc?.slice(0, 10) ?? 'none'} UTC • upstream freshness unknown` : 'Upstream freshness unknown' }
+      extra: `All stored dates — not filtered${source ? ` • last read ${source.lastSuccessUtc?.slice(0, 10) ?? 'none'} UTC` : ''} • upstream freshness unknown` }
   }
   function metricTile(id: string, label: string, current: MetricSeries | undefined, previous: MetricSeries | undefined, variant: Variant, unit: string, divisor = 1): Tile {
     const display = (m: MetricSeries | undefined) => m?.value == null ? 'unavailable' : number.format(m.value / divisor)
@@ -177,12 +182,12 @@ export function OverviewTiles({ revision, csrfToken, onNavigate }: { revision: n
   const wellnessTiles = wellness.map(([key, label, unit, divisor]) => metricTile(key, label, report?.selected?.wellness.find(m => m.key === key), report?.comparablePrevious?.wellness.find(m => m.key === key), 'wellness', unit, divisor))
   tiles.push(...wellnessTiles.slice(0, 2))
   const next = events?.nextUpcoming
-  tiles.push({ id: 'event', label: 'Next manual event', variant: 'events', section: 'events', value: events ? next?.startDate ?? 'None scheduled' : state(eventsData),
+  tiles.push({ id: 'event', label: 'Next manual event', variant: 'events', section: 'events', target: next ? { eventId: next.id } : {}, value: events ? next?.startDate ?? 'None scheduled' : state(eventsData),
     detail: next ? `${next.sport.length > 32 ? 'Sport in details' : next.sport} • ends ${next.endDate}` : `${events ? `${events.ongoing.length} ongoing` : 'Ongoing count unavailable'} • UTC date ordering`,
-    extra: next ? `Your goal: ${next.goal.length > 80 ? 'View event details for full goal' : next.goal}` : 'User-authored events only' })
+    extra: `${next ? `Your goal: ${next.goal.length > 80 ? 'View event details for full goal' : next.goal}` : 'User-authored events only'} • Not filtered by date range` })
   tiles.push({ id: 'review', label: 'Review queue', variant: 'reviews', section: 'reviews', value: reviews ? String(reviews.queued) : state(reviewData), unit: reviews ? 'queued' : undefined,
      detail: reviews ? `${reviews.running ? 'Running' : 'Not running'} • ${reviews.executionAvailable ? 'Execution enabled' : 'Execution unavailable'}${reviews.purposes.length ? ` • ${reviews.purposes.join(', ')}` : ''}` : 'Review metadata unavailable until verified',
-     extra: reviews?.states.length ? `Queue state ${reviews.states.join(', ')}` : reviews?.last ? `Last coverage ${reviews.last.oldest}–${reviews.last.newest}${reviews.last.stale ? ' • stale snapshot' : ' • stored snapshot'}` : 'Last coverage unavailable' })
+      extra: `${reviews?.states.length ? `Queue state ${reviews.states.join(', ')}` : reviews?.last ? `Last coverage ${reviews.last.oldest}–${reviews.last.newest}${reviews.last.stale ? ' • stale snapshot' : ' • stored snapshot'}` : 'Last coverage unavailable'} • Current queue — not filtered` })
   tiles.push(...wellnessTiles.slice(2), ...activity.slice(1), sourceTile('wellness'))
   tiles.push({ id: 'garmin', label: 'Garmin training readiness', value: 'Unavailable', variant: 'unknown', section: 'charts',
     detail: 'Proprietary readiness score not supplied', extra: 'Not estimated from activity or wellness' })
@@ -194,7 +199,8 @@ export function OverviewTiles({ revision, csrfToken, onNavigate }: { revision: n
     if (!date(oldest) || !date(newest) || days < 1 || days > 366 || !today || newest > today) {
       setMessage('Choose 1–366 ordered dates, ending no later than the saved-zone server date.'); return
     }
-    setMessage(''); setQuery({ oldest, newest })
+    const range = { oldest, newest }
+    setMessage(''); setQuery(range); onRangeChange?.(range)
   }
   useLayoutEffect(() => {
     const main = container.current?.closest('main')
@@ -212,14 +218,15 @@ export function OverviewTiles({ revision, csrfToken, onNavigate }: { revision: n
   }, [size, selectedPage, reportData, sourceData, eventsData, reviewData])
   return <section ref={container} className="overview" aria-labelledby="overview-heading">
     <h2 id="overview-heading">Overview</h2>
-    <form className="overview-range" onSubmit={select}>
+    <form className="overview-range" aria-label="Filter activity and wellness" onSubmit={select}>
       <label htmlFor="overview-oldest">First date<input id="overview-oldest" type="date" required value={oldest} onChange={e => setOldest(e.target.value)} /></label>
       <label htmlFor="overview-newest">Last date<input id="overview-newest" type="date" required max={today} value={newest} onChange={e => setNewest(e.target.value)} /></label>
       <button type="submit" className="secondary" disabled={!today || !csrfToken}>Show range</button>
     </form>
-    {message && <p role="status">{message}</p>}
-    <p className="overview-basis">{report?.selected ? `${report.selected.oldest}–${report.selected.newest}; comparable selected ${report.comparableSelected?.oldest??'unavailable'}–${report.comparableSelected?.newest??'unavailable'}; prior ${report.comparablePrevious?.oldest??'unavailable'}–${report.comparablePrevious?.newest??'unavailable'}.` : 'Dates unavailable until saved time zone is confirmed and report verified.'}
-      {' '}Intervals.icu records, not live. Activity local/wellness source dates; means weight records, not dates.</p>
+    {(message || query && (oldest !== query.oldest || newest !== query.newest)) && <p role="status">{message || 'Dates changed. Select Show range to update activity and wellness cards.'}</p>}
+    {needsTimeZone && <button type="button" className="secondary" onClick={() => onNavigate('reviews', { reviewSettings: 'timezone' })}>Set report time zone in Reviews</button>}
+    <p className="overview-basis" aria-live="polite">{report?.selected ? `Activity and wellness: ${report.selected.oldest} to ${report.selected.newest}. ${report.comparablePrevious ? `“Prior” means ${report.comparablePrevious.oldest} to ${report.comparablePrevious.newest}.` : 'Previous period unavailable.'}` : usable(reportData)?.failed ? 'Activity and wellness for this range could not be verified.' : 'Loading activity and wellness for the selected dates…'}</p>
+    <p className="overview-basis">Dates filter activity totals and wellness averages only. Import status, the next event and the review queue are not filtered.</p>
     <div className="overview-grid" aria-label="Overview cards">{tiles.slice(selectedPage * size, (selectedPage + 1) * size).map(tile => <NumericTile key={tile.id} tile={tile} onNavigate={onNavigate} />)}</div>
     <nav className="overview-pagination" aria-label="Overview card pages">
       <button type="button" className="secondary" disabled={selectedPage === 0} onClick={() => setPage(selectedPage - 1)}>Previous cards</button>

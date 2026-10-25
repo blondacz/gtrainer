@@ -56,6 +56,7 @@
   "CREATE TABLE personal_review_runtime_owner (singleton INTEGER PRIMARY KEY CHECK(singleton=1), epoch TEXT NOT NULL, generation INTEGER NOT NULL CHECK(typeof(generation)='integer' AND generation>=0))",
   "CREATE TABLE personal_review_runtime_claims (claim_id TEXT PRIMARY KEY, domain_id TEXT NOT NULL, execution_id TEXT NOT NULL, claim_json TEXT NOT NULL, phase TEXT NOT NULL CHECK(phase IN ('RESERVED','START_INTENT','EXECUTING','STOPPING','STOP_CONFIRMED','UNKNOWN')), publication_allowed INTEGER NOT NULL CHECK(publication_allowed IN (0,1)), attempts INTEGER NOT NULL CHECK(attempts BETWEEN 0 AND 2))",
   "CREATE UNIQUE INDEX personal_review_runtime_occupancy ON personal_review_runtime_claims(domain_id) WHERE phase<>'STOP_CONFIRMED'",
+  "CREATE TABLE owner_uat_job_supervision (claim_id TEXT PRIMARY KEY REFERENCES personal_review_runtime_claims(claim_id), state_json TEXT NOT NULL)",
   "CREATE TABLE scoped_queue_preview_ownership (execution_id TEXT PRIMARY KEY REFERENCES scoped_execution_bindings(execution_id) ON DELETE CASCADE, job_id TEXT NOT NULL UNIQUE)",
   "CREATE TABLE plan_reconciliation_confirmations (sequence INTEGER PRIMARY KEY AUTOINCREMENT, confirmation_id TEXT NOT NULL UNIQUE, plan_id TEXT NOT NULL, plan_revision INTEGER NOT NULL, session_id TEXT NOT NULL, request_json TEXT NOT NULL, confirmation_json TEXT NOT NULL, FOREIGN KEY(plan_id,plan_revision) REFERENCES plan_revisions(plan_id,revision))",
   "CREATE INDEX plan_reconciliation_plan_lookup ON plan_reconciliation_confirmations(plan_id,sequence)",

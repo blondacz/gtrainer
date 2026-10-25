@@ -172,7 +172,7 @@ internal class ConnectedReviewExecutionSession(
         catch (_: Exception) { return fail("validation_unavailable") } // Infrastructure failures never earn a correction.
         if (validated is ConnectedReviewValidation.Rejected) {
             attempts += ConnectedReviewAttemptResult(number, "rejected", "invalid_output", reply.costUsd?.toPlainString())
-            if (number == 1) { correctionReason = "invalid_output"; return null }
+            if (number < limits.maxAttempts) { correctionReason = "invalid_output"; return null }
             return fail("invalid_output", "REJECTED")
         }
         val accepted=validated as ConnectedReviewValidation.Accepted
@@ -220,6 +220,6 @@ internal class ConnectedReviewExecutionSession(
     private companion object {
         val GATE_REASONS = setOf("qualification_gate_disabled", "provider_not_qualified", "runtime_health_failed",
             "runtime_health_unavailable", "resource_health_failed", "consent_required", "consent_revoked", "snapshot_changed",
-            "provider_changed", "packet_changed", "safety_gate_unavailable","profile_not_qualified","runtime_admission_closed","unsupported_profile")
+            "provider_changed", "packet_changed", "safety_gate_unavailable","profile_not_qualified","runtime_admission_closed","unsupported_profile") + OWNER_UAT_REFUSAL_REASONS
     }
 }

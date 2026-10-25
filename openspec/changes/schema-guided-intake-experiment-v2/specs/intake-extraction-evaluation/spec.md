@@ -5,6 +5,16 @@
 Evaluate a schema-guided synthetic intake interface and deterministic source
 binding without changing production contracts or mistaking valid JSON for usefulness.
 
+## Historical implementation status — 2026-10-22
+
+The requirements below remain V2's unchanged acceptance criteria, not a claim that
+every requirement was implemented or verified. Offline validation/replay is complete;
+the live path and independent human assessment are deferred because the frozen schema
+is incompatible with the pinned provider. Exact-request offline context fit was proven
+separately, but does not remove that schema blocker. The separate V3 change addresses
+provider compatibility under its own version and evidence; it does not establish V2
+completion. No requirement is waived and no inference or production authority is added.
+
 ## ADDED Requirements
 
 ### Requirement: Experimental evaluation preserves the baseline

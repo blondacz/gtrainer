@@ -34,6 +34,7 @@ internal fun contextDeletionGraph(connection: Connection, targetId: String): Con
     val pendingIntakes = ArrayDeque<String>()
     val pendingCommitments = ArrayDeque<String>()
     val pendingSnapshots = ArrayDeque<String>()
+    val pendingExecutions = ArrayDeque<String>()
 
     fun query(sql: String, vararg args: Any?): List<List<String?>> = connection.prepareStatement(sql).use { p ->
         args.forEachIndexed { i, v -> p.setObject(i + 1, v) }
@@ -46,14 +47,14 @@ internal fun contextDeletionGraph(connection: Connection, targetId: String): Con
             statement.setString(1,id);statement.executeQuery().use { rows -> while(rows.next()) {
                 budget.tick()
                 val executionId=rows.getString(1)
-                executions.add(executionId)
+                if(executions.add(executionId)) pendingExecutions.add(executionId)
                 executionRows.add(listOf(executionId,AnalysisClaims.hash(rows.getString(2)),rows.getString(3),rows.getString(4),
                     rows.getString(5)?.let(AnalysisClaims::hash)))
             } }
         }
     }
 
-    while (pendingContexts.isNotEmpty() || pendingIntakes.isNotEmpty() || pendingCommitments.isNotEmpty() || pendingSnapshots.isNotEmpty()) {
+    while (pendingContexts.isNotEmpty() || pendingIntakes.isNotEmpty() || pendingCommitments.isNotEmpty() || pendingSnapshots.isNotEmpty() || pendingExecutions.isNotEmpty()) {
         while (pendingContexts.isNotEmpty()) {
             val id = pendingContexts.removeFirst()
             val rows = query("SELECT context_id,revision,category,review_id,retired FROM athlete_context WHERE context_id=? ORDER BY revision", id)
@@ -104,6 +105,12 @@ internal fun contextDeletionGraph(connection: Connection, targetId: String): Con
             query("SELECT snapshot_id,kind,identity,revision FROM scoped_evidence_dependencies WHERE snapshot_id=?", id).forEach { snapshotRefs.add(listOf("scoped") + it) }
             query("SELECT context_id FROM athlete_context WHERE category='feedback' AND review_id=? ORDER BY context_id", id).forEach { r ->
                 if (deleted.add(r[0]!!)) addContext(r[0]!!)
+            }
+        }
+        while(pendingExecutions.isNotEmpty()) {
+            val id=pendingExecutions.removeFirst()
+            query("SELECT context_id FROM athlete_context WHERE category='feedback' AND review_id=? ORDER BY context_id",id).forEach { r ->
+                if(deleted.add(r[0]!!)) addContext(r[0]!!)
             }
         }
     }

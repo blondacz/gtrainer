@@ -28,6 +28,22 @@ internal class ScopedExecutionStore(private val connection: Connection) {
         st.setString(1, requestId); st.executeQuery().use { r -> if (r.next()) r.getLong(1) else 0L }
     }
 
+    fun history(profile: String,snapshotId: String?,offset: Int,limit: Int): ScopedExecutionHistory {
+        require(profile in ScopedProfileAdmission.profiles && offset in 0..1000 && limit in 1..25)
+        snapshotId?.let(::requireUuid)
+        val ids=connection.prepareStatement("SELECT execution_id FROM scoped_execution_bindings WHERE profile=? " +
+            "AND (? IS NULL OR source_snapshot_id=?) ORDER BY created_utc DESC,execution_id DESC LIMIT ? OFFSET ?").use { st ->
+            st.setString(1,profile);st.setString(2,snapshotId);st.setString(3,snapshotId);st.setInt(4,limit+1);st.setInt(5,offset)
+            st.executeQuery().use { r -> buildList { while(r.next()) add(r.getString(1)) } }
+        }
+        val summaries=ids.take(limit).map { id ->
+            val stored=get(id);val b=stored.binding
+            ScopedExecutionSummary(id,b.source,b.profile,b.providerSelection,b.coverageFrom,b.coverageUntil,b.createdUtc,
+                stored.state,stored.staleReason,stored.output?.let(AnalysisClaims::hash))
+        }
+        return ScopedExecutionHistory(summaries,if(ids.size>limit) offset+limit else null)
+    }
+
     /** Caller computes generation=active+1 and invokes this in its encompassing transaction. */
     fun insert(prepared: PreparedScopedExecution) {
         val binding=prepared.binding

@@ -4,11 +4,13 @@ import { loadReviewOptions, prepareReview } from './ReviewApi'
 import { MetricCard } from './MetricCard'
 import { prepareEvidence, type EvidenceSnapshot } from './ScopedEvidenceClient'
 import { ScopedEvidenceInspection } from './ScopedEvidenceInspection'
+import { LocalReviewPanel } from './LocalReviewPanel'
 
-type Props = { csrfToken?: string; revision?: number; idPrefix?: string }
+export type ReviewDateRange = { oldest: string; newest: string }
+type Props = { csrfToken?: string; revision?: number; idPrefix?: string; initialRange?: ReviewDateRange | null }
 const date = (v: string) => validDate(v)
 const unitValue = (v: unknown) => typeof v === 'number' && Number.isFinite(v) ? String(v) : 'Unavailable'
-export function ScopedReviewControls({ csrfToken, revision = 0, idPrefix = 'scoped' }: Props) {
+export function ScopedReviewControls({ csrfToken, revision = 0, idPrefix = 'scoped', initialRange }: Props) {
   const [options, setOptions] = useState<ScopedOptions | null>(null)
   const [mode, setMode] = useState<'period'|'activities'>('period'), [intent, setIntent] = useState<'review'|'compare'>('review')
   const [scope, setScope] = useState('rolling'), [days, setDays] = useState('30'), [oldest, setOldest] = useState(''), [newest, setNewest] = useState('')
@@ -25,18 +27,18 @@ export function ScopedReviewControls({ csrfToken, revision = 0, idPrefix = 'scop
    const invalidate = () => { generation.current++; controller.current?.abort(); controller.current = null; setReport(null); setSnapshot(null); setBusy(false) }
   useEffect(() => {
     invalidate(); setOptions(null); setReport(null); setSelected([]); setActivityCatalog([])
-    setMode('period'); setIntent('review'); setScope('rolling'); setWellness('assessment'); setComparison(false)
+    setMode('period'); setIntent('review'); setScope(initialRange ? 'custom' : 'rolling'); setWellness('assessment'); setComparison(false)
     setBrowse({ oldest: '', newest: '', offset: 0 })
     if (!csrfToken) { setMessage('No authorized review controls.'); return }
     const c = new AbortController(), epoch = generation.current; controller.current = c
      loadReviewOptions(c.signal).then(o => {
       if (generation.current !== epoch) return
       setOptions(o); setMessage(o.timeZone === null ? 'Save an explicit schedule time zone in Review controls before requesting a scoped report.' : `Options read only. Saved zone: ${o.timeZone}; server date: ${o.today ?? 'unavailable'}.`)
-      if (o.today) { setNewest(o.today); setOldest(o.today); setAnchor(o.today); setActivityCatalog(o.activities) }
+      if (o.today) { setNewest(initialRange?.newest ?? o.today); setOldest(initialRange?.oldest ?? o.today); setAnchor(o.today); setActivityCatalog(o.activities) }
       if (o.browseRange) setBrowse({ ...o.browseRange, offset: 0 })
     }).catch(() => { if (!c.signal.aborted && generation.current === epoch) setMessage('Options unavailable or could not be verified.') })
     return () => { controller.current?.abort(); c.abort(); generation.current++ }
-  }, [csrfToken, revision])
+  }, [csrfToken, revision, initialRange])
   function edit(work: () => void) { invalidate(); work() }
   async function browseActivities(offset = 0) {
     if (!options?.today || options.timeZone === null) return
@@ -77,8 +79,9 @@ export function ScopedReviewControls({ csrfToken, revision = 0, idPrefix = 'scop
   const browseChanged = browse.oldest !== options?.browseRange?.oldest || browse.newest !== options?.browseRange?.newest
   if (!csrfToken) return <p>No authorized review controls.</p>
   return <section className="analysis-panel" aria-labelledby={id('heading')}>
-    <h3 id={id('heading')}>Scoped factual review</h3><p>Explicit factual data request only; reading and browsing never save, sync, or request inference.</p>
+    <h3 id={id('heading')}>Factual review and comparison</h3><p>Choose dates or activities, then request a report. Reports show calculations from stored records; they do not import new data, save a snapshot, or use AI.</p>
     <p aria-live="polite">{message}</p>
+    {initialRange && <p>Dates carried from Overview. Request a factual report to view this range; changing tabs does not run a model.</p>}
     {options?.timeZone===null && <p>Time zone is not configured. Save an explicit time zone in existing Review controls; browser time zone is never substituted.</p>}
      <form className="compact-form" onSubmit={e=>void submit(e)}><fieldset disabled={!options||options.timeZone===null||busy}>
       <label htmlFor={id('mode')}>Review mode</label><select id={id('mode')} value={mode} onChange={e=>changeMode(e.target.value as 'period'|'activities')}><option value="period">Period</option><option value="activities">Selected activities</option></select>
@@ -102,7 +105,7 @@ export function ScopedReviewControls({ csrfToken, revision = 0, idPrefix = 'scop
       <p>{mode === 'activities' ? 'Exactly the chosen sessions; compare requires at least two. Wellness is optional and is not automatically a comparison subject.' : 'Available wellness is included by default; comparisons use resolved periods, not selected session IDs.'}</p>
       <p>{wellness === 'display_only' ? 'Display-only wellness is excluded from provider packets and comparisons.' : wellness === 'assessment' ? 'Wellness selected as assessment context; no inference or transfer is authorized by this choice.' : 'Optional wellness excluded. Mandatory applicable restrictions are not disabled.'}</p>
        <button type="submit" disabled={busy}>Request factual report</button>
-       <h4>Optional evidence snapshot</h4><p>Only the explicit button saves a local evidence snapshot. Questions and attributed additional text are not reusable memories or instructions. This grants no inference, hosted transfer or plan approval.</p>
+        <h4>Optional: save an evidence snapshot</h4><p>A report is temporary. Prepare evidence snapshot saves a local copy of the selected evidence for later inspection. It does not run a model or approve a plan change. Questions and attributed additional text are not reusable memories or instructions; saving grants no hosted transfer.</p>
        <label htmlFor={id('purpose')}>Snapshot purpose</label><select id={id('purpose')} value={purpose} onChange={e=>edit(()=>setPurpose(e.target.value))}>{['morning','evening','activity_reflection','period_reflection','question','adaptation'].map(x=><option key={x}>{x}</option>)}</select>
        {purpose==='activity_reflection' && mode==='period' && <p>Activity reflection is intended for an activity selection.</p>}
        <label htmlFor={id('question')}>Question (optional, max 2000 characters)</label><textarea id={id('question')} maxLength={2000} value={question} onChange={e=>edit(()=>setQuestion(e.target.value))}/>
@@ -111,7 +114,8 @@ export function ScopedReviewControls({ csrfToken, revision = 0, idPrefix = 'scop
        <button type="button" disabled={busy||snapshotUncertain} onClick={()=>void submit(undefined, true)}>Prepare evidence snapshot</button>
      </fieldset></form>
       {report&&<ScopedReport report={report}/>} {snapshot&&<ScopedEvidenceInspection snapshot={snapshot} onSnapshot={setSnapshot}
-        onRemoved={()=>{setSnapshot(null);setReport(null);setQuestion('');setAdditionalText('');setAuthorAttribution('')}}/>}
+         onRemoved={()=>{setSnapshot(null);setReport(null);setQuestion('');setAdditionalText('');setAuthorAttribution('')}}/>}
+      <LocalReviewPanel csrfToken={csrfToken} snapshot={snapshot}/>
   </section>
 }
 

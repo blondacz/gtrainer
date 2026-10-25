@@ -46,6 +46,7 @@ tasks.processResources {
 tasks.test {
     useJUnitPlatform()
     jvmArgs("--enable-native-access=ALL-UNNAMED")
+    systemProperty("gtrainer.test.runtimeClasspath", sourceSets.test.get().runtimeClasspath.asPath)
 }
 
 tasks.register<JavaExec>("runDevelopmentReview") {
@@ -74,4 +75,31 @@ tasks.register<JavaExec>("runLiveIntakePilot") {
     mainClass.set("com.gtrainer.LiveIntakePilot")
     workingDir = rootProject.projectDir
     jvmArgs("--enable-native-access=ALL-UNNAMED")
+}
+
+val localUiCheckResources = layout.buildDirectory.dir("local-ui-check-resources")
+val stageLocalUiCheckResources = tasks.register<Sync>("stageLocalUiCheckResources") {
+    from("../frontend/dist") { into("web") }
+    into(localUiCheckResources)
+    doFirst { require(file("../frontend/dist/index.html").isFile) { "Build the normal frontend before the synthetic UI check" } }
+}
+
+tasks.register<JavaExec>("runLocalDescriptiveUiCheck") {
+    group = "verification"
+    description = "Opt-in normal-app browser check with invented records and fake owned transport only"
+    dependsOn(tasks.testClasses, stageLocalUiCheckResources)
+    classpath = files(localUiCheckResources) + sourceSets.test.get().runtimeClasspath
+    mainClass.set("com.gtrainer.LocalDescriptiveUiCheck")
+    workingDir = rootProject.projectDir
+    jvmArgs(application.applicationDefaultJvmArgs)
+}
+
+tasks.register<JavaExec>("exportOwnerUatContextFeasibility") {
+    group = "verification"
+    description = "Export four invented normal descriptive prompts without source, provider or runtime requests"
+    dependsOn(tasks.testClasses)
+    classpath = sourceSets.test.get().runtimeClasspath
+    mainClass.set("com.gtrainer.OwnerUatContextFeasibilityExport")
+    workingDir = rootProject.projectDir
+    jvmArgs(application.applicationDefaultJvmArgs)
 }

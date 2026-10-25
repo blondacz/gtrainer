@@ -237,7 +237,7 @@ function Pager({ label, index, count, onChange }: { label: string; index: number
   </nav>
 }
 
-export function ReviewControls({ csrfToken, revision }: { csrfToken: string; revision: number }) {
+export function ReviewControls({ csrfToken, revision, initialSection }: { csrfToken: string; revision: number; initialSection?: 'queue' | 'timezone' }) {
   const [models, setModels] = useState<Models | null>(null)
   const [modelDraft, setModelDraft] = useState<ModelDraft | null>(null)
   const [schedule, setSchedule] = useState<Schedule | null>(null)
@@ -252,10 +252,10 @@ export function ReviewControls({ csrfToken, revision }: { csrfToken: string; rev
   const [message, setMessage] = useState('Loading private review controls…')
   const [dirty, setDirty] = useState(false)
   const [modelDirty, setModelDirty] = useState(false)
-  const [view, setView] = useState('overview')
-  const [editor, setEditor] = useState('basic')
+  const [view, setView] = useState(initialSection === 'timezone' ? 'preset' : 'overview')
+  const [editor, setEditor] = useState(initialSection === 'timezone' ? 'schedule' : 'basic')
   const [basicPage, setBasicPage] = useState('identity')
-  const [overview, setOverview] = useState('request')
+  const [overview, setOverview] = useState(initialSection === 'queue' ? 'queue' : 'request')
   const [triggerIndex, setTriggerIndex] = useState(0)
   const [statusIndex, setStatusIndex] = useState(0)
   const [jobIndex, setJobIndex] = useState(0)
@@ -467,8 +467,8 @@ export function ReviewControls({ csrfToken, revision }: { csrfToken: string; rev
     </article>
   }
   return <section className="analysis-panel" aria-labelledby="review-controls-heading">
-    <h3 id="review-controls-heading">Review controls — experimental local AI</h3>
-    <p>Experimental local review; off after restart. No hosted fallback or host transfer. Facts and charts stay independent of optional AI.</p>
+    <h3 id="review-controls-heading">Review controls and schedules</h3>
+    <p>Prepare factual reports, inspect the review queue, or configure schedules. Optional local AI is separate and off after restart. No hosted fallback or host transfer.</p>
     <p aria-live="polite">{message}</p>
     <div className="review-toolbar"><Tabs label="Review sections" value={view} options={{ overview: 'Review overview', scoped: 'Scoped factual review / compare', slots: 'Morning / evening slots', preset: 'Preset editor', model: 'Model selection' }} onChange={setView} />
     <button type="button" className="secondary" disabled={busy} onClick={() => void load(true)}>Refresh review status</button>

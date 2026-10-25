@@ -19,7 +19,7 @@ class HistoryService(private val store: HistoryStore, private val source: Histor
     fun commitments() = CommitmentService(store, clock)
     fun contextDeletion() = ContextDeletionService(store, clock)
     fun plans() = PlanService(store, clock)
-    internal fun scopedExecutions()=ScopedExecutionService(store,clock)
+    internal fun scopedExecutions(ownerUat: OwnerUatAdmission? = null,ownerUatJobs: OwnerUatExecutionService? = null)=ScopedExecutionService(store,clock,ownerUat,ownerUatJobs)
 
     suspend fun sync(range: ReadRange): List<CategoryStatus> = withContext(Dispatchers.IO) {
         if (!operation.tryLock()) throw SyncBusy()

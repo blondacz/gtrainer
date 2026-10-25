@@ -31,7 +31,7 @@ class HistorySchemaTest {
             s.executeQuery("PRAGMA user_version").use { it.next(); assertEquals(1, it.getInt(1)) }
             s.executeQuery("PRAGMA application_id").use { it.next(); assertEquals(HistorySchema.APPLICATION_ID, it.getInt(1)) }
             s.executeQuery("SELECT count(*) FROM sqlite_schema WHERE name='schema_migrations'").use { it.next(); assertEquals(0, it.getInt(1)) }
-            for ((type, count) in listOf("table" to 55, "index" to 16, "trigger" to 10))
+            for ((type, count) in listOf("table" to 56, "index" to 16, "trigger" to 10))
                 s.executeQuery("SELECT count(*) FROM sqlite_schema WHERE type='$type' AND name NOT LIKE 'sqlite_%'").use { it.next(); assertEquals(count, it.getInt(1)) }
         }
     }

@@ -18,7 +18,8 @@ internal data class PersonalResourceObservation(val identity: PersonalResourceId
 @Serializable
 internal data class PersonalReviewClaim(val claimId: String,val ownerEpoch: String,val generation: Long,
     val executionId: String,val executionGeneration: Long,val profile: String,val resource: PersonalResourceIdentity,
-    val packetDigest: String,val dependencyDigest: String,val reservedUtc: String,val deadlineUtc: String) {
+    val packetDigest: String,val dependencyDigest: String,val reservedUtc: String,val deadlineUtc: String,
+    val supervisionRequired: Boolean = false) {
     init {
         listOf(claimId,ownerEpoch,executionId).forEach(::validateContextId)
         require(generation>0 && executionGeneration>0 && profile in ScopedProfileAdmission.profiles)

@@ -9,13 +9,15 @@ data class ScopedProfilePolicyLimits(val attemptTimeoutMillis: Long,val totalTim
 @Serializable
 data class ScopedProfileAdmissionStatus(val profile: String,val supported: Boolean,val selectedProviderModel: ConnectedReviewProviderSelection?,
     val qualificationState: String,val runtimeAdmissionState: String,val executionAllowed: Boolean,val blockingReasons: List<String>,
-    val policyLimits: ScopedProfilePolicyLimits)
+    val policyLimits: ScopedProfilePolicyLimits,
+    val executionMode: String = "ordinary",val ownerUat: OwnerUatPolicyStatus? = null)
 
 /** Pure inspection. No reconciliation, provider construction, health probes or inherited qualification. */
 internal object ScopedProfileAdmission {
     val profiles=listOf(ScopedDescriptiveContractV1.PROFILE,ContextIntakeSuggestionContractV1.PROFILE,AmendmentSelectionContractV1.PROFILE)
     fun supportedExecutionContract(profile: String)=profile==InterpretationContractV1.PROFILE || profile in profiles
-    fun inspect(profile: String): ScopedProfileAdmissionStatus {
+    fun inspect(profile: String,ownerUat: OwnerUatAdmission? = null): ScopedProfileAdmissionStatus {
+        if(ownerUat!=null) return ownerUat.inspect(profile)
         require(profile.matches(Regex("[a-zA-Z0-9_.-]{1,128}")))
         val supported=profile in profiles
         val limits=ConnectedReviewExecutionLimits()
@@ -24,5 +26,5 @@ internal object ScopedProfileAdmission {
             ScopedProfilePolicyLimits(limits.attemptTimeoutMillis,limits.totalTimeoutMillis,limits.maxAttempts,limits.maxPacketBytes,
                 limits.maxResponseBytes,limits.maxHostedCostPerAttemptUsd.toPlainString(),limits.maxHostedCostTotalUsd.toPlainString()))
     }
-    fun inspectAll()=profiles.map(::inspect)
+    fun inspectAll(ownerUat: OwnerUatAdmission? = null)=profiles.map { inspect(it,ownerUat) }
 }

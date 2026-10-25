@@ -43,7 +43,7 @@ const sourceName: Record<string, string> = { user_report: 'User report', clinici
   coach_guidance: 'User-entered coach guidance', review_feedback: 'Review feedback' }
 
 /** Displays only code-validated connected snapshots; no inference is started by inspection. */
-export function ConnectedReviewPanel() {
+export function ConnectedReviewPanel({ onNavigate }: { onNavigate?: (section: 'charts' | 'context') => void }) {
   const [snapshotId, setSnapshotId] = useState('')
   const [inspection, setInspection] = useState<Inspection | null>(null)
   const [error, setError] = useState('')
@@ -101,10 +101,13 @@ export function ConnectedReviewPanel() {
   }
 
   return <section aria-labelledby="connected-review-heading">
-    <h2 id="connected-review-heading">Connected review evidence</h2>
+    <h2 id="connected-review-heading">Connected insights — saved review inspection</h2>
+    <p>Inspect a previously saved review that links measurements with attributed notes or restrictions. This screen does not create a review.</p>
+    <p id="connected-review-id-help">A saved connected-review ID is required; this screen has no review list. Factual evidence snapshot IDs are not connected-review IDs. If you do not have a connected-review ID, use Trends for factual reports or Context to manage your notes.</p>
+    {onNavigate && <div className="context-actions"><button type="button" onClick={() => onNavigate('charts')}>Open Trends</button><button type="button" onClick={() => onNavigate('context')}>Open Context</button></div>}
     <p>Inspection does not call a model. Measurements and provenance are code-generated; user reports are attributed and unverified; interpretations remain uncertain.</p>
     <form className="context-form" onSubmit={event => { event.preventDefault(); void inspect() }}>
-      <label>Review snapshot ID<input required maxLength={36} value={snapshotId} onChange={event => setSnapshotId(event.target.value)} /></label>
+      <label>Review snapshot ID<input aria-describedby="connected-review-id-help" required maxLength={36} value={snapshotId} onChange={event => setSnapshotId(event.target.value)} /></label>
       <button type="submit" disabled={busy}>{busy ? 'Loading…' : 'Inspect connected review'}</button>
     </form>
     {error && <p role="alert" className="access-message">{error}</p>}
@@ -136,8 +139,8 @@ export function ConnectedReviewPanel() {
       </>}
     </article>}
     <section className="context-form" aria-labelledby="restriction-conflicts-heading">
-      <h3 id="restriction-conflicts-heading">Restriction conflict pane</h3>
-      <p>Conflicting applicable structured restrictions block connected review; neither assertion is silently preferred.</p>
+      <h3 id="restriction-conflicts-heading">Check restriction conflicts</h3>
+      <p>Check whether saved restrictions disagree for this date and sport. A conflict blocks connected review; neither report overrides the other automatically.</p>
       <div className="context-actions">
         <label>Applicable on<input type="date" value={asOf} onChange={event => setAsOf(event.target.value)} /></label>
         <label>Sport (optional)<input maxLength={80} value={sport} onChange={event => setSport(event.target.value)} /></label>

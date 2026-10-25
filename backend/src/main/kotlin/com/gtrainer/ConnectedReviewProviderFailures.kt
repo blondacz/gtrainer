@@ -4,6 +4,7 @@ package com.gtrainer
 internal enum class ConnectedReviewProviderFailureCode(val wireCode: String) {
     OWNERSHIP_REFUSED("runtime_ownership_unavailable"),
     BINDING_MISMATCH("runtime_binding_mismatch"),
+    CONTEXT_REFUSED("model_input_not_admitted"),
     RESPONSE_TOO_LARGE("response_budget_exceeded"),
     PROTOCOL_OR_RUNTIME("provider_protocol_invalid"),
 }

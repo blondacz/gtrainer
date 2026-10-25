@@ -35,6 +35,23 @@ function fillNotes(notes: string) {
 const save = () => fireEvent.click(screen.getByRole('button', { name: 'Save manual event' }))
 
 describe('private manual event tile', () => {
+  it('warns when an Overview event was removed and never silently opens a replacement goal', async () => {
+    const fetch = vi.fn(async () => response(list([event(1)])))
+    vi.stubGlobal('fetch',fetch)
+    render(<ManualEventPanel csrfToken={token} initialEventId={id(2)} focusOnOpen />)
+    expect(await screen.findByText(/The event selected on Overview is no longer available/)).toBeInTheDocument()
+    expect(screen.getByRole('heading',{name:'Manual events'})).toHaveFocus()
+    expect(screen.queryByLabelText('Manual goal text')).not.toBeInTheDocument()
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('focuses the requested manual-events section even if its read fails', async () => {
+    vi.stubGlobal('fetch',vi.fn(async()=>response({},503)))
+    render(<ManualEventPanel csrfToken={token} initialEventId={id(1)} focusOnOpen />)
+    expect(await screen.findByRole('alert')).toHaveTextContent('Manual events unavailable')
+    expect(screen.getByRole('heading',{name:'Manual events'})).toHaveFocus()
+  })
+
   it('mounts read-only, sorts by date/end/id and pages one card with separate ongoing, past and next-upcoming status', async () => {
     const events = [event(4), event(3, '2026-10-02'), event(2, '2026-10-01', '2026-10-05'), event(1, '2020-02-01')]
     const fetchMock = vi.fn(async () => response(list(events)))

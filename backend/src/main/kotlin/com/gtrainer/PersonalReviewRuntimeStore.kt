@@ -23,20 +23,27 @@ internal class PersonalReviewRuntimeStore(private val connection: Connection) {
         val next = UUID.randomUUID().toString()
         connection.prepareStatement("UPDATE personal_review_runtime_owner SET epoch=? WHERE singleton=1").use { it.setString(1,next); check(it.executeUpdate()==1) }
         connection.prepareStatement("UPDATE personal_review_runtime_claims SET phase='UNKNOWN',publication_allowed=0 WHERE phase<>'STOP_CONFIRMED'").use { it.executeUpdate() }
+        val supervision=OwnerUatSupervisionStore(connection)
+        supervision.unresolved().forEach { supervision.tombstone(it.claim,"owner_lost") }
         return next
     }
 
-    fun reserve(expectedEpoch:String,binding:ScopedExecutionBinding,resource:PersonalResourceIdentity,at:Instant,deadline:Instant):PersonalReviewClaim? {
+    fun reserve(expectedEpoch:String,binding:ScopedExecutionBinding,resource:PersonalResourceIdentity,at:Instant,deadline:Instant,
+        supervisionRequired:Boolean=false):PersonalReviewClaim? {
         if(epoch()!=expectedEpoch || deadline<=at || binding.profile !in ScopedProfileAdmission.profiles) return null
         if(connection.prepareStatement("SELECT 1 FROM personal_review_runtime_claims WHERE domain_id=? AND phase<>'STOP_CONFIRMED'").use { it.setString(1,resource.domain);it.executeQuery().use(ResultSet::next) }) return null
         if(connection.createStatement().use { it.executeQuery("SELECT COUNT(*) FROM personal_review_runtime_claims").use { r->r.next();r.getLong(1)>=1000 } }) return null
         val generation=connection.prepareStatement("SELECT generation FROM personal_review_runtime_owner WHERE singleton=1 AND epoch=?").use { it.setString(1,expectedEpoch);it.executeQuery().use { r->if(!r.next()) return null; Math.addExact(r.getLong(1),1) } }
         connection.prepareStatement("UPDATE personal_review_runtime_owner SET generation=? WHERE singleton=1 AND epoch=?").use { it.setLong(1,generation);it.setString(2,expectedEpoch);if(it.executeUpdate()!=1)return null }
-        val claim=PersonalReviewClaim(UUID.randomUUID().toString(),expectedEpoch,generation,binding.executionId,binding.generation,binding.profile,resource,binding.consentSha256,binding.dependencyBindingSha256,at.toString(),deadline.toString())
+        val claim=PersonalReviewClaim(UUID.randomUUID().toString(),expectedEpoch,generation,binding.executionId,binding.generation,binding.profile,resource,binding.consentSha256,binding.dependencyBindingSha256,at.toString(),deadline.toString(),supervisionRequired)
         insert(claim,PersonalRuntimePhase.RESERVED,true,0); return claim
     }
 
     fun get(claimId:String):PersonalRuntimeLease? = select(claimId)
+    fun forExecution(executionId:String):PersonalRuntimeLease? = connection.prepareStatement(
+        "SELECT claim_id FROM personal_review_runtime_claims WHERE execution_id=? ORDER BY rowid DESC LIMIT 1").use {
+        it.setString(1,executionId);it.executeQuery().use { r->if(r.next())select(r.getString(1)) else null }
+    }
     /** Read-only recovery discovery includes expired/old-epoch claims and deleted execution sources. */
     fun unresolved(): List<PersonalRuntimeLease> {
         val ids=connection.createStatement().use { statement ->
@@ -58,10 +65,14 @@ internal class PersonalReviewRuntimeStore(private val connection: Connection) {
 
     fun revoke(claim:PersonalReviewClaim):PersonalRuntimeLease? {
         val l=select(claim.claimId)?:return null;if(l.claim!=claim)return null
+        if(claim.supervisionRequired) OwnerUatSupervisionStore(connection).tombstone(claim,"cancelled")
         if(l.phase!=PersonalRuntimePhase.STOP_CONFIRMED) update(claim,PersonalRuntimePhase.STOPPING,false,l.attempts)
         return select(claim.claimId)
     }
-    fun revokeExecution(executionId:String) { connection.prepareStatement("UPDATE personal_review_runtime_claims SET phase='STOPPING',publication_allowed=0 WHERE execution_id=? AND phase<>'STOP_CONFIRMED'").use { it.setString(1,executionId);it.executeUpdate() } }
+    fun revokeExecution(executionId:String) {
+        forExecution(executionId)?.claim?.takeIf { it.supervisionRequired }?.let { OwnerUatSupervisionStore(connection).tombstone(it,"cancelled") }
+        connection.prepareStatement("UPDATE personal_review_runtime_claims SET phase='STOPPING',publication_allowed=0 WHERE execution_id=? AND phase<>'STOP_CONFIRMED'").use { it.setString(1,executionId);it.executeUpdate() }
+    }
 
     fun confirmStop(authorityEpoch:String,claim:PersonalReviewClaim,evidence:PersonalStopEvidence,at:Instant):Boolean {
         val l=select(claim.claimId)?:return false

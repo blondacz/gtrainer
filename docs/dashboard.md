@@ -24,6 +24,30 @@ Left/Right/Home/End switch sections. Only the active section mounts its private
 controls. Ordinary views aim to fit the viewport; tiny displays, zoom and keyboards
 may still need accessible overflow rather than clipping content.
 
+**Overview dates:** edit First date and Last date, then select **Show range** to
+update activity totals and wellness averages. Pending edits do not change the
+displayed results until submitted. The applied range and the preceding comparison
+period are stated below the form in plain language. Import status counts all stored
+dates, the next event is upcoming relative to today, and the review queue is current;
+these three status cards are explicitly labeled as not date-filtered.
+
+Card links use the same names as the top tabs: activity/wellness metrics open
+**Trends**, import cards open **Source**, the next event opens **Events & plans**,
+and the queue opens **Reviews**. Import cards select **Import status** and the
+matching Activities/Wellness category, rather than the import form. The event card
+focuses **Manual events**, selects that exact upcoming event and opens its full goal;
+it does not default to the oldest event or the plan editor. A removed event is reported
+as unavailable rather than silently replaced. The queue card selects **Queue status**,
+not the action for requesting a new review. Keyboard focus follows these destinations.
+When a report time zone is missing, **Set report time zone in Reviews** opens its
+settings directly without saving settings or enabling a schedule.
+
+The applied Overview dates carry into the Trends
+custom-date form; select **Request factual report** there to load details. Returning
+to Overview retains the applied range for the signed-in session. Dates are not saved
+in browser storage and are cleared on sign-out or page reload. Navigation does not
+authorize inference or source reads.
+
 - **Trends** and **Reviews** share one factual review form: exact activities or
   periods, review/compare intent, wellness policy and factual focus. Periods cover
   day/night, calendar week/month/year, rolling 7/30/365 and custom 1–366 dates.
@@ -39,15 +63,70 @@ may still need accessible overflow rather than clipping content.
   CSRF-protected client after the saved time zone is confirmed. Dates come from
   the server in that zone, not the browser. No model call is made on opening.
 
+**Request factual report** displays calculations without saving a snapshot.
+**Prepare evidence snapshot** is a separate explicit save of the selected local
+evidence for later inspection; it does not authorize inference, hosted transfer or
+a plan change. **Connected insights** is an existing connected-review inspector,
+not a generator or a review list. It requires a connected-review ID, which is not
+interchangeable with a factual evidence snapshot ID. Without that ID, its **Open
+Trends** and **Open Context** buttons lead to reports and note management respectively.
+
+## Experimental local descriptive reviews
+
+The normal factual form now includes **Open local model reviews**. Opening it reads
+only private policy status and saved results; it never prepares evidence, imports
+records or starts a model. This source implementation is tested with fake owned
+transport. A real local runtime and persistent Mac installation are not accepted yet.
+
+For a new review, explicitly **Prepare evidence snapshot** with the desired source
+selection, then **Prepare local review preview**. The preview names its exact date
+coverage and selected model. After an app restart, **Re-arm manual local model jobs**
+is separate from **Request local model review**. Request availability means permission
+to submit through runtime guards, not live health, qualification or guaranteed success.
+No hosted request or automatic model schedule is enabled by these actions.
+
+**Refresh review status (read only)** shows saved state and stopping status without
+resending the request or renewing its deadline. **Cancel this model job** is an explicit
+mutation; uncertain stopping continues to block new jobs. Per-job deadlines never
+expire the application or delete owner records. Lost browser responses do not cause a
+retry; read saved results to discover the recorded outcome instead.
+
+Saved rows show coverage, model, local/hosted provenance and stored outcome. Select a
+row to reopen its source snapshot and validated result without copying internal IDs.
+Interpretations remain separate from factual calculations, disclose uncertainty, and
+open their exact cited evidence. Stale, rejected, removed and unverifiable output is
+withheld rather than salvaged or presented as current. An empty structurally accepted
+draft is not proof of usefulness. Historical hosted selections cannot execute in local UAT.
+
+Use **Your feedback on this stored result** to save an attributed rating/correction.
+Feedback never rewrites the original output, starts another generation or becomes a
+verified measurement. Result deletion refuses while any historical feedback dependency
+remains; review its deletion through the existing Context controls rather than silently
+purging shared notes. Source deletion includes affected results and their feedback in
+the same fingerprinted dependency preview and explicit redaction/confirmation boundary.
+
+Large evidence packets can be blocked before a model preview exists. In particular,
+the current 32-KiB packet limit can reject even short period comparisons with default
+wellness assessment. The UI does not drop chosen evidence to make these fit. An owner
+may explicitly choose a smaller permitted scope or wellness policy; the factual report
+remains available. Token/context admission is separately required before real execution.
+
 ## Read-only source
 
-**Source → read** starts an explicitly requested Intervals.icu read for the chosen
-dates. **Status** separates activity and wellness categories, latest attempt/success
+**Source → Import history** starts an explicitly requested Intervals.icu read for the chosen
+dates. **Import status** separates activity and wellness categories, latest attempt/success
 and stored observed dates. A failed read can coexist with retained charts.
 Garmin-to-Intervals.icu freshness remains unverified: missing imports do not prove
 missed activity, and missing wellness values do not imply illness.
 
-**Source → remove** confirms removal of local imported records and review snapshots.
+Import status covers **all stored dates**, not the Overview filter. When opened from
+an Overview card, it repeats the selected Overview dates and offers **Open selected
+dates in Trends**. This opens the matching report form without importing or running a
+model. The most recent stored-record date is separate from import timestamps and may
+be outside the selected range. Timestamps and record checks are available in an
+expandable section; status and source-limit sentences are not split into text pages.
+
+**Source → Remove imports** confirms removal of local imported records and review snapshots.
 It does not delete manual events, upstream account data or retained encrypted backups.
 Reads themselves make no model call; separately enabled review schedules can route
 changed records to guarded analysis. See **limits** for the intermediary's privacy

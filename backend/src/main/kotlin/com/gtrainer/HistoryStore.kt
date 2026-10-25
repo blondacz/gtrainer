@@ -41,6 +41,7 @@ class HistoryStore(path: Path, private val constraintClock: java.time.Clock = ja
     private val commitmentStore by lazy { CommitmentStore(connection) }
     private val evidenceCaptureOwner=java.util.UUID.randomUUID().toString()
     private var signalEvidenceAdapter=SignalEvidenceAdapter { it }
+    private var ownerUatContinuousClock: OwnerUatContinuousClock? = null
 
     /** Synthetic/trusted adapter seam only. No route or selector can install evidence authority. */
     internal constructor(path: Path,clock: java.time.Clock,adapter: SignalEvidenceAdapter): this(path,clock) {
@@ -1443,8 +1444,20 @@ class HistoryStore(path: Path, private val constraintClock: java.time.Clock = ja
         store.get(capture.stored.binding.executionId)
         if(totalChangesLocked()!=capture.source.totalChanges) throw ScopedEvidenceConflict()
         val runtime=PersonalReviewRuntimeStore(connection)
+        val supervision=OwnerUatSupervisionStore(connection)
+        val supervised=if(claim.supervisionRequired) supervision.get(claim.claimId) ?: throw PersonalRuntimeConflict() else null
+        fun publicationClock()=ownerUatContinuousClock?.sample() ?: throw PersonalRuntimeConflict()
+        if(supervised!=null && !supervision.authorizePublication(claim,publicationClock())) throw PersonalRuntimeConflict()
         if(!current || !scopedSourceTimeCurrent(capture.stored.binding,clock.instant()) || capture.stored.state!="RUNNING" || !personalBindingMatches(claim,capture.stored.binding) || !runtime.consumePublication(claim,clock.instant())) throw PersonalRuntimeConflict()
-        store.publish(capture.stored.binding.executionId,output)
+        val published=store.publish(capture.stored.binding.executionId,output)
+        if(supervised!=null) {
+            if(!supervision.authorizePublication(claim,publicationClock())) throw PersonalRuntimeConflict()
+            val finalState=requireNotNull(supervision.get(claim.claimId))
+            supervision.tombstone(claim,"published")
+            // Last check is inside the same transaction, after result/journal writes and before commit.
+            if(!finalState.permits(publicationClock())) throw PersonalRuntimeConflict()
+        }
+        published
     }
 
     private fun personalBindingMatches(claim: PersonalReviewClaim,binding: ScopedExecutionBinding)=
@@ -1463,18 +1476,31 @@ class HistoryStore(path: Path, private val constraintClock: java.time.Clock = ja
 
     @Synchronized internal fun personalOwnerEpoch(): String = PersonalReviewRuntimeStore(connection).epoch()
     @Synchronized internal fun personalRuntimeLease(id: String): PersonalRuntimeLease? = PersonalReviewRuntimeStore(connection).get(id)
+    @Synchronized internal fun personalReviewForExecution(id: String): PersonalRuntimeLease? = PersonalReviewRuntimeStore(connection).forExecution(id)
     @Synchronized internal fun unresolvedPersonalReviews(): List<PersonalRuntimeLease> = PersonalReviewRuntimeStore(connection).unresolved()
+    @Synchronized internal fun configureOwnerUatClock(clock: OwnerUatContinuousClock) {
+        check(ownerUatContinuousClock==null || ownerUatContinuousClock===clock)
+        ownerUatContinuousClock=clock
+    }
+    @Synchronized internal fun supervisedOwnerUatJob(claimId: String): OwnerUatSupervisedJob? = OwnerUatSupervisionStore(connection).get(claimId)
 
     @Synchronized internal fun reservePersonalReview(capture: CapturedExecutionCheck,current: Boolean,epoch: String,
-        observation: PersonalResourceObservation,resource: PersonalResourceIdentity,clock: java.time.Clock,totalTimeoutMillis: Long): PersonalReviewClaim? = transaction {
+        observation: PersonalResourceObservation,resource: PersonalResourceIdentity,clock: java.time.Clock,totalTimeoutMillis: Long,
+        policy: ConnectedReviewExecutionPolicy=ConnectedReviewExecutionPolicy.PERSONAL,
+        supervision: OwnerUatJobRegistration?=null): PersonalReviewClaim? = transaction {
         checkExecutionAdaptationLocked(capture.source.scoped?.adaptationReference?.current)
         val at=clock.instant()
-        require(totalTimeoutMillis in 1..600_000)
+        require(policy in setOf(ConnectedReviewExecutionPolicy.PERSONAL,ConnectedReviewExecutionPolicy.OWNER_LOCAL_UAT))
+        require(totalTimeoutMillis in 1..if(policy==ConnectedReviewExecutionPolicy.OWNER_LOCAL_UAT) 1_200_000 else 600_000)
         if(totalChangesLocked()!=capture.source.totalChanges) throw ScopedEvidenceConflict()
         val binding=capture.stored.binding
         if(!current || !scopedSourceTimeCurrent(binding,at) || capture.stored.state!="IN_FLIGHT" || binding.providerSelection!=resource.selection ||
             !observation.current(resource,at)) return@transaction null
-        PersonalReviewRuntimeStore(connection).reserve(epoch,binding,resource,at,at.plusMillis(totalTimeoutMillis))
+        require(supervision==null || policy==ConnectedReviewExecutionPolicy.OWNER_LOCAL_UAT)
+        val claim=PersonalReviewRuntimeStore(connection).reserve(epoch,binding,resource,at,at.plusMillis(totalTimeoutMillis),supervision!=null)
+        if(claim!=null && supervision!=null) OwnerUatSupervisionStore(connection).register(claim,supervision,
+            ownerUatContinuousClock?.sample() ?: throw PersonalRuntimeConflict())
+        claim
     }
 
     @Synchronized internal fun beginPersonalStart(claim: PersonalReviewClaim,observation: PersonalResourceObservation,clock: java.time.Clock): Boolean = transaction {
@@ -1487,13 +1513,20 @@ class HistoryStore(path: Path, private val constraintClock: java.time.Clock = ja
         personalSourceTimeCurrent(claim,at) && observation.current(claim.resource,at) && PersonalReviewRuntimeStore(connection).authorizeAttempt(claim,number,at)
     }
     /** Synchronous revocation is independent of the provider coroutine. Never call control.stop under this monitor. */
-    @Synchronized internal fun revokePersonalReview(claim: PersonalReviewClaim,reason: String="cancelled"): PersonalRuntimeLease? = transaction {
+    @Synchronized internal fun revokePersonalReview(claim: PersonalReviewClaim,reason: String="cancelled",ownerOutcome: String="cancelled"): PersonalRuntimeLease? = transaction {
+        if(claim.supervisionRequired) OwnerUatSupervisionStore(connection).tombstone(claim,ownerOutcome)
         val revoked=PersonalReviewRuntimeStore(connection).revoke(claim)
         if(revoked!=null) try { ScopedExecutionStore(connection).fail(claim.executionId,reason) } catch(_: ConnectedReviewNotFound) { }
         revoked
     }
     @Synchronized internal fun confirmPersonalStop(epoch: String,claim: PersonalReviewClaim,evidence: PersonalStopEvidence,at: Instant): Boolean = transaction {
-        PersonalReviewRuntimeStore(connection).confirmStop(epoch,claim,evidence,at)
+        val journal=OwnerUatSupervisionStore(connection)
+        val supervised=if(claim.supervisionRequired) journal.get(claim.claimId) ?: return@transaction false else null
+        if(supervised!=null && (supervised.claim!=claim || !supervised.tombstoned)) return@transaction false
+        val confirmed=PersonalReviewRuntimeStore(connection).confirmStop(epoch,claim,evidence,at)
+        if(confirmed && supervised!=null) check(journal.save(supervised,supervised.copy(phase="STOP_CONFIRMED",
+            stopObservation=runCatching { ownerUatContinuousClock?.sample() }.getOrNull())))
+        confirmed
     }
     @Synchronized internal fun markPersonalStopUnknown(epoch: String,claim: PersonalReviewClaim): Boolean = transaction {
         PersonalReviewRuntimeStore(connection).unknown(epoch,claim)
@@ -1507,8 +1540,41 @@ class HistoryStore(path: Path, private val constraintClock: java.time.Clock = ja
 
     @Synchronized
     internal fun discardScopedExecution(id: String): Boolean = transaction {
+        ensureScopedExecutionDiscardableLocked(id)
         PersonalReviewRuntimeStore(connection).revokeExecution(id)
         ScopedExecutionStore(connection).delete(id)
+    }
+
+    @Synchronized internal fun scopedExecutionHistory(profile: String,snapshotId: String?,offset: Int,limit: Int)=
+        ScopedExecutionStore(connection).history(profile,snapshotId,offset,limit)
+
+    @Synchronized internal fun ensureScopedExecutionDiscardable(id: String)=ensureScopedExecutionDiscardableLocked(id)
+
+    private fun ensureScopedExecutionDiscardableLocked(id: String) {
+        validateContextId(id)
+        // Every historical/retired revision is a dependency, not only its latest presentation.
+        val linked=connection.prepareStatement("SELECT 1 FROM athlete_context WHERE category='feedback' AND review_id=? LIMIT 1").use {
+            it.setString(1,id);it.executeQuery().use { r -> r.next() }
+        }
+        if(linked) throw ScopedExecutionFeedbackConflict()
+    }
+
+    @Synchronized internal fun recordScopedExecutionFeedback(id: String,input: ScopedExecutionFeedbackRequest,observedOn: LocalDate): AthleteContext = constraintTransaction {
+        val stored=ScopedExecutionStore(connection).get(id)
+        require(stored.binding.profile==ScopedDescriptiveContractV1.PROFILE && stored.state in setOf("PUBLISHED","STALE")) {
+            "Feedback requires a stored descriptive result"
+        }
+        val output=requireNotNull(stored.output) { "Feedback requires a stored descriptive result" }
+        require(AnalysisClaims.hash(output)==input.expectedOutputSha256) { "Feedback result changed" }
+        require(restoredScopedInvocation(stored.binding).validate(output) is ConnectedReviewValidation.Accepted) {
+            "Feedback result could not be verified"
+        }
+        val count=connection.createStatement().use { it.executeQuery("SELECT count(DISTINCT context_id) FROM athlete_context").use { r -> r.next();r.getInt(1) } }
+        require(count<1000) { "Context capacity reached" }
+        val content=listOfNotNull(input.feedback.rating?.let { "rating=$it" },input.feedback.correction?.let { "correction=$it" }).joinToString("\n")
+        saveContext(java.util.UUID.randomUUID().toString(),1,AthleteContextRequest(category="feedback",sourceCategory="review_feedback",
+            authorAttribution="athlete",observedOn=observedOn.toString(),reviewId=id,content=content))
+            .also { ScopedQueueStore(connection).planReasonChanged() }
     }
 
     @Synchronized

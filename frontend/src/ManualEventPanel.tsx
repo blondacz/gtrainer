@@ -75,10 +75,11 @@ function TextPages({ value, label }: { value: string | null; label: string }) {
 }
 
 /** A keyed session boundary removes private drafts immediately when the authenticated token changes. */
-export function ManualEventPanel({ csrfToken, onChanged }: { csrfToken: string; onChanged?: () => void }) {
-  return <ManualEventContent key={csrfToken} csrfToken={csrfToken} onChanged={onChanged} />
+type Props = { csrfToken: string; onChanged?: () => void; initialEventId?: string; focusOnOpen?: boolean }
+export function ManualEventPanel(props: Props) {
+  return <ManualEventContent key={props.csrfToken} {...props} />
 }
-function ManualEventContent({ csrfToken, onChanged }: { csrfToken: string; onChanged?: () => void }) {
+function ManualEventContent({ csrfToken, onChanged, initialEventId, focusOnOpen = false }: Props) {
   const prefix = useId()
   const [list, setList] = useState<EventList | null>(null)
   const [page, setPage] = useState(0)
@@ -93,7 +94,24 @@ function ManualEventContent({ csrfToken, onChanged }: { csrfToken: string; onCha
   const generation = useRef(0)
   const controller = useRef<AbortController | null>(null)
   const changed = useRef(onChanged)
+  const heading = useRef<HTMLHeadingElement>(null)
+  const destinationHandled = useRef(false)
+  const [missingDestination, setMissingDestination] = useState(false)
   changed.current = onChanged
+  useEffect(() => {
+    if (!focusOnOpen) return
+    heading.current?.focus()
+    heading.current?.scrollIntoView?.({ block: 'start' })
+  }, [focusOnOpen])
+  useEffect(() => {
+    if (!list || !focusOnOpen || destinationHandled.current) return
+    destinationHandled.current = true
+    if (initialEventId) {
+      const index = list.events.findIndex(event => event.id === initialEventId)
+      if (index >= 0) { setPage(index); setStep(1) }
+      else setMissingDestination(true)
+    }
+  }, [list, initialEventId, focusOnOpen])
   function invalidate() { generation.current++; controller.current?.abort(); controller.current = null }
   function begin() {
     invalidate()
@@ -178,8 +196,9 @@ function ManualEventContent({ csrfToken, onChanged }: { csrfToken: string; onCha
     setEditor({ ...editor, draft: { ...editor.draft, [field]: value } })
   }
   return <section className="dashboard-tile events-tile" aria-labelledby={`${prefix}-heading`}>
-    <h2 id={`${prefix}-heading`}>Manual events</h2>
+    <h2 ref={heading} tabIndex={-1} id={`${prefix}-heading`}>Manual events</h2>
     <p>Your dates, goal and current-state notes. No AI or training decisions; imports and schedules stay unchanged.</p>
+    {missingDestination && <p role="status">The event selected on Overview is no longer available. Return to Overview to refresh the next event.</p>}
     {unauthorized ? <p role="alert">Sign in again to view manual events.</p> : <>
       <div className="tile-pagination">
         <button type="button" onClick={() => navigate(() => { setEditor({ id: null, draft: { ...blank } }); setStep(0) })}>New manual event</button>

@@ -37,7 +37,7 @@ export function ScopedEvidenceInspection({ snapshot, onSnapshot, onRemoved, onRe
   const adaptation=displayPacket?(packet as Record<string,unknown>).adaptation:undefined
   return <section aria-label="Evidence snapshot inspection"><h4>Evidence snapshot</h4>
     <p>{snapshot.state} · {snapshot.snapshotId} · created {snapshot.createdUtc} · packet SHA-256 {snapshot.packetSha256 ?? 'unavailable'} · {snapshot.manifest.packetBytes} bytes</p>
-    <p>Admission remains closed. Preparation is not qualification, hosted consent, inference or plan approval.</p>
+    <p>This snapshot grants no model execution, qualification, hosted consent or plan approval. Model requests have a separate guarded action.</p>
     <p>Subjects: {snapshot.manifest.scope.request.mode} · {snapshot.manifest.scope.request.intent}. Wellness: {snapshot.manifest.scope.wellnessPolicy}. Captured cutoff: {snapshot.manifest.scope.asOf}.</p>
     {(['included','displayOnly','excluded','missing','needsConfirmation'] as const).map(key=><section key={key} aria-label={key}>
       <h5>{{included:'Included',displayOnly:'Display only — not transferred',excluded:'Excluded',missing:'Missing / unsupported',needsConfirmation:'Needs confirmation'}[key]}</h5>

@@ -55,7 +55,7 @@ Automatic reviews MUST use a saved explicit provider/model/profile selection and
 - **THEN** prior claimed execution is not replayed and the saved configuration is visibly awaiting explicit re-arming
 
 ### Requirement: New profiles require independent usefulness qualification
-New scoped-review, context-extraction and amendment profiles MUST have separately versioned contracts and frozen realistic synthetic evaluation before model calls. Evaluation MUST retain failures and test end-to-end evidence/context reuse, useful finals and constraint compliance. Structural validation, development acceptance and legacy model scores MUST NOT qualify a new profile; independent human assessment and separate runtime approval MUST remain required.
+New scoped-review, context-extraction and amendment profiles MUST have separately versioned contracts and frozen realistic synthetic evaluation before model calls. Evaluation MUST retain failures and test end-to-end evidence/context reuse, useful finals and constraint compliance. Structural validation, development acceptance and legacy model scores MUST NOT qualify a new profile. Independent human assessment and separate runtime approval MUST remain required for ordinary admission. A separately accepted manual local owner-UAT policy MUST keep the model unqualified and ordinary/automatic gates closed, while independently enforcing runtime, source-binding, validation and resource controls.
 
 #### Scenario: Legacy candidate passed schema validation
 - **WHEN** that candidate is selected for a new amendment profile
@@ -64,3 +64,7 @@ New scoped-review, context-extraction and amendment profiles MUST have separatel
 #### Scenario: Longitudinal cases are evaluated
 - **WHEN** the new protocol tests stale illness, older restrictions, late imports and fixed commitments
 - **THEN** missed context, unsafe amendments, misleading explanations and needless repeated questions are scored, not only JSON validity
+
+#### Scenario: Experimental owner UAT is requested
+- **WHEN** the authenticated owner explicitly requests a permitted manual job under a separately accepted local owner-UAT policy and accepted runtime
+- **THEN** that experimental job can use selected personal evidence without claiming qualification, enabling automatic inference or weakening ordinary admission

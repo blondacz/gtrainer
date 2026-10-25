@@ -19,13 +19,17 @@ data class ConnectedReviewExecutionLimits(
     init {
         require(attemptTimeoutMillis in 1..policy.attemptCapMillis)
         require(totalTimeoutMillis in attemptTimeoutMillis..policy.totalCapMillis)
-        require(maxAttempts == 2)
+        require(maxAttempts == if(policy==ConnectedReviewExecutionPolicy.OWNER_LOCAL_UAT) 1 else 2)
         require(maxPacketBytes in 1..32 * 1024 && maxResponseBytes in 1..12 * 1024)
         require(maxHostedCostPerAttemptUsd.signum() > 0 && maxHostedCostTotalUsd >= maxHostedCostPerAttemptUsd)
         if(policy==ConnectedReviewExecutionPolicy.PERSONAL) require(maxHostedCostPerAttemptUsd<=BigDecimal("0.25") && maxHostedCostTotalUsd<=BigDecimal("0.50"))
     }
 
     companion object {
+        /** Work budget excludes the cleanup reserve from the 1200-second owner-UAT deadline. */
+        internal fun ownerLocalUat()=ConnectedReviewExecutionLimits(attemptTimeoutMillis=900_000,
+            totalTimeoutMillis=1_140_000,maxAttempts=1,policy=ConnectedReviewExecutionPolicy.OWNER_LOCAL_UAT)
+
         fun developmentLocal(
             remainingTtlMillis: Long,
             attemptTimeoutMillis: Long = DEVELOPMENT_ATTEMPT_CAP_MILLIS,
@@ -48,6 +52,7 @@ enum class ConnectedReviewExecutionPolicy(val attemptCapMillis: Long, val totalC
     ORDINARY(600_000, 1_200_000),
     PERSONAL(300_000, 600_000),
     DEVELOPMENT_LOCAL(900_000, 1_840_000),
+    OWNER_LOCAL_UAT(900_000, 1_140_000),
 }
 
 data class ConnectedReviewProviderReply(val response: String, val costUsd: BigDecimal?) {
@@ -152,10 +157,10 @@ class ConnectedReviewExecutor(
     private val personalAttemptAuthority: (suspend (Int)->Boolean)? = null,
 ) {
     init {
-        require(durableClaimOriginNanos == null || limits.policy in setOf(ConnectedReviewExecutionPolicy.DEVELOPMENT_LOCAL,ConnectedReviewExecutionPolicy.PERSONAL)) {
+        require(durableClaimOriginNanos == null || limits.policy in setOf(ConnectedReviewExecutionPolicy.DEVELOPMENT_LOCAL,ConnectedReviewExecutionPolicy.PERSONAL,ConnectedReviewExecutionPolicy.OWNER_LOCAL_UAT)) {
             "Durable claim timing requires an owned execution policy"
         }
-        require(limits.policy!=ConnectedReviewExecutionPolicy.PERSONAL || (durableClaimOriginNanos!=null && personalAttemptAuthority!=null))
+        require(limits.policy !in setOf(ConnectedReviewExecutionPolicy.PERSONAL,ConnectedReviewExecutionPolicy.OWNER_LOCAL_UAT) || (durableClaimOriginNanos!=null && personalAttemptAuthority!=null))
     }
     private val json = Json { encodeDefaults = true; ignoreUnknownKeys = false; isLenient = false }
 
@@ -181,8 +186,12 @@ class ConnectedReviewExecutor(
 
         if (snapshot.state != "IN_FLIGHT") return result("REFUSED", "snapshot_not_in_flight")
         if(!ScopedProfileAdmission.supportedExecutionContract(snapshot.contractVersion)) return result("REFUSED","unsupported_profile")
-        if(snapshot.contractVersion in ScopedProfileAdmission.profiles && limits.policy!=ConnectedReviewExecutionPolicy.PERSONAL)
+        if(snapshot.contractVersion in ScopedProfileAdmission.profiles && limits.policy !in setOf(ConnectedReviewExecutionPolicy.PERSONAL,ConnectedReviewExecutionPolicy.OWNER_LOCAL_UAT))
             return result("REFUSED","personal_policy_required")
+        if(limits.policy==ConnectedReviewExecutionPolicy.OWNER_LOCAL_UAT) {
+            if(provider.hosted) return result("REFUSED","owner_uat_local_only")
+            if(snapshot.contractVersion !in ScopedProfileAdmission.profiles) return result("REFUSED","unsupported_profile")
+        }
         if (limits.policy == ConnectedReviewExecutionPolicy.DEVELOPMENT_LOCAL && provider.hosted)
             return result("REFUSED", "development_policy_local_only")
         if (selection.storageId != snapshot.provider || selection.modelId != snapshot.model ||

@@ -11,6 +11,60 @@ function statuses(count = 0, readStatus = 'NEVER_READ') {
 const response = (body: unknown) => ({ ok: true, json: async () => body })
 
 describe('private read-only imports', () => {
+  it('separates the selected Overview range from all-history import dates without splitting status sentences', async () => {
+    const body = statuses(14, 'SUCCESS').map(s=>({...s,lastAttemptUtc:'2026-10-22T21:51:03.159534Z',lastSuccessUtc:'2026-10-22T21:51:03.159534Z',latestObservedDate:'2026-10-22'}))
+    const fetch=vi.fn(async()=>response(body)), openTrends=vi.fn()
+    vi.stubGlobal('fetch',fetch)
+    render(<ImportPanel compact csrfToken={csrf} configured={false} initialView="status" overviewRange={{oldest:'2026-10-09',newest:'2026-10-15'}} onOpenTrends={openTrends}/>)
+    await screen.findByText('14')
+    expect(screen.getByRole('heading',{name:'Import status — all stored dates'})).toBeInTheDocument()
+    expect(screen.getByText(/Your Overview range: 2026-10-09 to 2026-10-15/)).toHaveTextContent('The import dates below are not filtered by this range.')
+    expect(screen.getByText('Most recent stored record').nextElementSibling).toHaveTextContent('2026-10-22')
+    expect(screen.getByText('Last import attempt').nextElementSibling).toHaveTextContent('22 Oct 2026, 21:51 UTC')
+    expect(screen.getByText('We cannot verify whether Intervals.icu has received the latest Garmin data. Missing records do not prove inactivity or illness.')).toBeInTheDocument()
+    expect(screen.queryByRole('button',{name:/next read status/i})).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button',{name:'Open selected dates in Trends'}))
+    expect(openTrends).toHaveBeenCalledTimes(1)
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows complete source-limit statements rather than character-sliced fragments', () => {
+    vi.stubGlobal('fetch',vi.fn(async()=>response(statuses())))
+    render(<ImportPanel compact csrfToken={csrf} configured={false}/>)
+    fireEvent.click(screen.getByRole('button',{name:'Source limits'}))
+    expect(screen.getByText('Recorded activity time and Intervals.icu load are not proprietary Garmin scores.')).toBeInTheDocument()
+    expect(screen.getByText('The source read itself makes no model call. Separately selected, explicitly enabled review schedules can queue guarded local analysis. No hosted fallback.')).toBeInTheDocument()
+    expect(screen.queryByRole('button',{name:/next source limits/i})).not.toBeInTheDocument()
+  })
+
+  it('uses readable subsection names and opens the requested category without importing or removing anything', async () => {
+    const fetch = vi.fn(async () => response(statuses(3, 'SUCCESS')))
+    vi.stubGlobal('fetch', fetch)
+    render(<ImportPanel csrfToken={csrf} configured={false} compact initialView="status" initialCategory="wellness" />)
+    await screen.findByText('3')
+    expect(screen.getByRole('button', { name: 'Import status' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByLabelText('Imported category')).toHaveValue('wellness')
+    for (const label of ['Import history', 'Import status', 'Remove imports', 'Source limits']) {
+      fireEvent.click(screen.getByRole('button', { name: label }))
+      expect(screen.getByRole('button', { name: label })).toHaveAttribute('aria-pressed', 'true')
+    }
+    expect(screen.getByText(/Reads only from Intervals.icu/)).toBeInTheDocument()
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows import status after an explicitly requested compact import finishes', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(response(statuses())).mockResolvedValueOnce(response(statuses(4, 'SUCCESS')))
+    vi.stubGlobal('fetch', fetch)
+    render(<ImportPanel csrfToken={csrf} configured compact />)
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1))
+    fireEvent.click(screen.getByRole('button', { name: 'Read Intervals.icu' }))
+    await screen.findByText(/Import finished/)
+    expect(screen.getByText(/Import finished/)).toHaveTextContent('in Import status')
+    expect(screen.getByRole('button', { name: 'Import status' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText('4')).toBeInTheDocument()
+    expect(fetch).toHaveBeenCalledTimes(2)
+  })
+
   it('starts only after user action and sends the session CSRF token', async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(response(statuses())).mockResolvedValueOnce(response(statuses(1, 'SUCCESS')))
     vi.stubGlobal('fetch', fetchMock)
@@ -18,7 +72,8 @@ describe('private read-only imports', () => {
     expect(await screen.findAllByText(/Not imported yet/)).toHaveLength(2)
     expect(fetchMock).toHaveBeenCalledTimes(1)
     fireEvent.click(screen.getByRole('button', { name: 'Read Intervals.icu' }))
-    expect(await screen.findByText(/Read finished/)).toBeInTheDocument()
+    expect(await screen.findByText(/Import finished/)).toBeInTheDocument()
+    expect(screen.getByText(/Import finished/)).toHaveTextContent('below')
     expect(fetchMock).toHaveBeenLastCalledWith('/api/sync', expect.objectContaining({
       method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
     }))

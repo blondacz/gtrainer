@@ -69,7 +69,7 @@ class ConnectedReviewService(
 ) {
     init {
         require(limits.policy == ConnectedReviewExecutionPolicy.ORDINARY ||
-            (limits.policy==ConnectedReviewExecutionPolicy.PERSONAL && durableClaimOriginNanos!=null && personalAttemptAuthority!=null)) {
+            (limits.policy in setOf(ConnectedReviewExecutionPolicy.PERSONAL,ConnectedReviewExecutionPolicy.OWNER_LOCAL_UAT) && durableClaimOriginNanos!=null && personalAttemptAuthority!=null)) {
             "Connected-review service requires ordinary or explicitly owned personal execution policy"
         }
     }

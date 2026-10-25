@@ -18,9 +18,9 @@ function fixture(request: ScopedRequest): ScopedReport {
   }
   function period(first: string, last: string, prior: boolean) {
     return { oldest: first, newest: last, days, activityRecords: 2, wellnessRecords: 2, flags: [],
-      sports: [{ sport: 'Ride', metrics: [metric('movingTime', 'seconds', prior ? [3600] : [3600, 1800], first, 'sum'),
+      sports: [{ sport: 'Ride', metrics: [metric('movingTime', 'seconds', prior ? [3600] : days <= 2 ? [1800] : [3600, 1800], first, 'sum'),
         metric('calories', 'kcal', prior ? [100] : [0, 0], first, 'sum')] }],
-      wellness: [metric('weight', 'kg', [70, 72], first, 'mean'), metric('hrv', 'ms', [0], first, 'mean'),
+      wellness: [metric('weight', 'kg', days <= 2 ? [72] : [70, 72], first, 'mean'), metric('hrv', 'ms', [0], first, 'mean'),
         metric('sleepSecs', 'seconds', [28800, 25200], first, 'mean'), metric('vo2max', 'mL/kg/min', [], first, 'mean')] }
   }
   const selected = period(oldest, newest, false), previous = period(offset(oldest, -days), offset(oldest, -1), true)
@@ -95,10 +95,27 @@ describe('private factual overview tiles', () => {
     render(<OverviewTiles revision={0} csrfToken={'s'.repeat(43)} onNavigate={navigate} />)
     await waitFor(() => expect(card('Weight')).toHaveTextContent('71 kg'))
     for (const label of ['Activity imports', 'Weight', 'Next manual event', 'Review queue']) fireEvent.click(card(label))
-    expect(navigate.mock.calls).toEqual([['imports'], ['charts'], ['events'], ['reviews']])
+    expect(navigate.mock.calls).toEqual([['imports', { category: 'activities' }], ['charts'], ['events', { eventId: event.id }], ['reviews']])
+    expect(card('Activity imports')).toHaveTextContent('Open Source — import status')
+    expect(card('Activity imports')).toHaveAccessibleName(/Open Source — import status$/)
+    expect(card('Weight')).toHaveTextContent('Open Trends')
+    expect(card('Next manual event')).toHaveTextContent('Open Events & plans')
+    expect(card('Review queue')).toHaveTextContent('Open Reviews')
+    expect(card('Review queue')).toHaveAccessibleName(/Open Reviews — queue status$/)
     expect(card('Weight')).toHaveClass('dashboard-tile--wellness')
     expect(card('HRV')).toHaveClass('dashboard-tile--wellness')
     expect(screen.getByText(/Colors identify categories, not health or readiness/)).toBeInTheDocument()
+  })
+
+  it('offers the manual event list rather than promising a nonexistent event detail when none is scheduled', async () => {
+    vi.stubGlobal('fetch',vi.fn(async(path:string,init?:RequestInit)=>response(path==='/api/events'?{events:[],nextUpcoming:null,ongoing:[],evaluatedOn:'2020-06-02'}:body(path,init))))
+    const navigate=vi.fn()
+    render(<OverviewTiles revision={0} csrfToken="csrf" onNavigate={navigate}/>)
+    await waitFor(()=>expect(card('Next manual event')).toHaveTextContent('None scheduled'))
+    expect(card('Next manual event')).toHaveAccessibleName(/Open Events & plans — manual events$/)
+    expect(card('Next manual event')).not.toHaveTextContent('full goal')
+    fireEvent.click(card('Next manual event'))
+    expect(navigate).toHaveBeenCalledWith('events',{})
   })
 
   it.each(['unconfirmed', 'unavailable'])('never prepares facts when saved-zone options are %s', async state => {
@@ -166,10 +183,37 @@ describe('private factual overview tiles', () => {
     fireEvent.change(screen.getByLabelText('First date'), { target: { value: '2020-06-01' } })
     fireEvent.click(screen.getByRole('button', { name: 'Show range' }))
     await waitFor(() => expect(fetch.mock.calls.some(([path, init]) => path === '/api/reviews/prepare' && JSON.parse(String((init as RequestInit).body)).oldest === '2020-06-01' && (init as RequestInit).method === 'POST')).toBe(true))
+    await waitFor(() => expect(card('Ride moving time')).toHaveTextContent('0.5 h'))
+    expect(card('Weight')).toHaveTextContent('72 kg')
+    expect(card('Activity imports')).toHaveTextContent('2 stored')
+    expect(card('Activity imports')).toHaveTextContent('All stored dates — not filtered')
+    expect(card('Next manual event')).toHaveTextContent('Not filtered by date range')
+    expect(card('Review queue')).toHaveTextContent('Current queue — not filtered')
+    expect(screen.getByText('Activity and wellness: 2020-06-01 to 2020-06-02. “Prior” means 2020-05-30 to 2020-05-31.')).toBeInTheDocument()
+    expect(screen.queryByText(/comparable selected/)).not.toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('First date'), { target: { value: '2018-01-01' } })
     fireEvent.click(screen.getByRole('button', { name: 'Show range' }))
     expect(screen.getByRole('status')).toHaveTextContent('Choose 1–366 ordered dates')
     expect(fetch).toHaveBeenCalledTimes(14)
+  })
+
+  it('does not apply edited dates until submit and restores the last applied range on remount', async () => {
+    const fetch = mockFetch(), changed = vi.fn()
+    const view = render(<OverviewTiles revision={0} csrfToken="csrf" onNavigate={vi.fn()} onRangeChange={changed}/>)
+    await waitFor(() => expect(card('Weight')).toHaveTextContent('71 kg'))
+    const calls = fetch.mock.calls.length
+    fireEvent.change(screen.getByLabelText('First date'), { target: { value: '2020-06-01' } })
+    expect(screen.getByRole('status')).toHaveTextContent('Dates changed. Select Show range')
+    expect(card('Weight')).toHaveTextContent('71 kg')
+    expect(fetch.mock.calls).toHaveLength(calls)
+    fireEvent.click(screen.getByRole('button', { name: 'Show range' }))
+    await waitFor(() => expect(card('Weight')).toHaveTextContent('72 kg'))
+    expect(changed).toHaveBeenLastCalledWith({ oldest: '2020-06-01', newest: '2020-06-02' })
+    view.unmount()
+    render(<OverviewTiles revision={0} csrfToken="csrf" onNavigate={vi.fn()} initialRange={{ oldest: '2020-06-01', newest: '2020-06-02' }}/>)
+    await waitFor(() => expect(card('Weight')).toHaveTextContent('72 kg'))
+    expect(screen.getByLabelText('First date')).toHaveValue('2020-06-01')
+    expect(screen.getByLabelText('Last date')).toHaveValue('2020-06-02')
   })
 
   it('paginates all cards and adapts to very short through tall viewports without hidden overflow', async () => {
@@ -209,7 +253,7 @@ describe('private factual overview tiles', () => {
     render(<OverviewTiles revision={0} csrfToken={'s'.repeat(43)} onNavigate={navigate} />)
     await waitFor(() => expect(card('Next manual event')).toHaveTextContent('View event details for full goal'))
     expect(screen.queryByText(/PRIVATE EVENT NOTES/)).not.toBeInTheDocument()
-    fireEvent.click(card('Next manual event')); expect(navigate).toHaveBeenCalledWith('events')
+    fireEvent.click(card('Next manual event')); expect(navigate).toHaveBeenCalledWith('events', { eventId: event.id })
   })
 
   it('keeps absent activity and wellness unknown instead of manufacturing zero or inactivity', async () => {

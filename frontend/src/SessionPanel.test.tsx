@@ -2,11 +2,132 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { AuthoredPlan, AuthoredPlanRequest, PlansView } from './PlanClient'
 import { describe, expect, it, vi } from 'vitest'
 import { SessionPanel } from './SessionPanel'
+import { options } from './scoped-review.test-fixtures'
 
 const csrf = 'a'.repeat(43)
 const syntheticPassword = 'synthetic-test-password-not-a-real-credential'
 
 describe('private access', () => {
+  it('distinguishes October import timestamps from the Overview filter and opens those exact selected dates in Trends', async () => {
+    const fetch=vi.fn(async(path:string,_init?:RequestInit)=>{
+      if(path==='/api/session')return {ok:true,json:async()=>({authenticated:true,csrfToken:csrf,intervalsConfigured:false})}
+      if(path==='/api/reviews/options')return {ok:true,json:async()=>({...options,today:'2026-10-22',asOf:'2026-10-22T21:51:03Z',browseRange:{oldest:'2026-10-01',newest:'2026-10-22'},activities:[]})}
+      return {ok:false,status:503}
+    })
+    vi.stubGlobal('fetch',fetch);render(<SessionPanel />)
+    await waitFor(()=>expect(fetch.mock.calls.some(([path])=>path==='/api/reviews/prepare')).toBe(true))
+    fireEvent.change(screen.getByLabelText('First date'),{target:{value:'2026-10-09'}})
+    fireEvent.change(screen.getByLabelText('Last date'),{target:{value:'2026-10-15'}})
+    fireEvent.click(screen.getByRole('button',{name:'Show range'}))
+    await waitFor(()=>expect(fetch.mock.calls.some(([path,init])=>path==='/api/reviews/prepare'&&JSON.parse(String(init?.body)).newest==='2026-10-15')).toBe(true))
+    fireEvent.click(screen.getByRole('button',{name:/^Activity imports:/}))
+    expect(screen.getByText(/Your Overview range: 2026-10-09 to 2026-10-15/)).toBeInTheDocument()
+    const before=fetch.mock.calls.filter(([path])=>path==='/api/reviews/prepare').length
+    fireEvent.click(screen.getByRole('button',{name:'Open selected dates in Trends'}))
+    await screen.findByText(/Options read only. Saved zone/)
+    expect(screen.getByLabelText('First date')).toHaveValue('2026-10-09')
+    expect(screen.getByLabelText('Last date')).toHaveValue('2026-10-15')
+    expect(fetch.mock.calls.filter(([path])=>path==='/api/reviews/prepare')).toHaveLength(before)
+  })
+
+  it('routes missing report time zone directly to its settings without enabling a schedule', async () => {
+    const fetch = vi.fn(async (path: string, _init?: RequestInit) => {
+      if(path==='/api/session') return {ok:true,json:async()=>({authenticated:true,csrfToken:csrf,intervalsConfigured:false})}
+      if(path==='/api/reviews/options') return {ok:true,json:async()=>({...options,timeZone:null,today:null,browseRange:null,configurationVersion:0,activities:[]})}
+      return {ok:false,status:503}
+    })
+    vi.stubGlobal('fetch',fetch);render(<SessionPanel />)
+    fireEvent.click(await screen.findByRole('button',{name:'Set report time zone in Reviews'}))
+    expect(screen.getByRole('tab',{name:'Reviews'})).toHaveAttribute('aria-selected','true')
+    expect(screen.getByRole('button',{name:'Preset editor'})).toHaveAttribute('aria-pressed','true')
+    expect(screen.getByRole('button',{name:'Consent and time zone'})).toHaveAttribute('aria-pressed','true')
+    expect(screen.getByLabelText('Schedule time zone')).toBeInTheDocument()
+    expect(fetch.mock.calls.every(([,init])=>!init?.method || init.method==='GET')).toBe(true)
+  })
+
+  it('opens the exact import category, queue subsection and upcoming event promised by Overview cards', async () => {
+    const past = { id: '00000000-0000-0000-0000-000000000001', startDate: '2026-03-01', endDate: '2026-03-01', sport: 'Run', goal: 'Past synthetic goal', notes: null }
+    const upcoming = { ...past, id: '00000000-0000-0000-0000-000000000002', startDate: '2026-04-03', endDate: '2026-04-03', sport: 'Ride', goal: 'Upcoming synthetic goal' }
+    const fetch = vi.fn(async (path: string, _init?: RequestInit) => {
+      if (path === '/api/session') return { ok: true, json: async () => ({ authenticated: true, csrfToken: csrf, intervalsConfigured: false }) }
+      if (path === '/api/reviews/options') return { ok: true, json: async () => options }
+      if (path === '/api/events') return { ok: true, status: 200, json: async () => ({ events: [past, upcoming], nextUpcoming: upcoming, ongoing: [], evaluatedOn: '2026-03-30' }) }
+      if (path === '/api/imports') return { ok: true, json: async () => ['activities', 'wellness'].map(category => ({category,recordCount:category==='activities'?2:7,readStatus:'SUCCESS',rejected:0,incomplete:0,lastAttemptUtc:null,lastSuccessUtc:null,latestObservedDate:null,latestObservedAgeDays:null,upstreamFreshness:'unknown'})) }
+      return { ok: false, status: 503 }
+    })
+    vi.stubGlobal('fetch', fetch)
+    render(<SessionPanel />)
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Activity imports:/ })).toHaveTextContent('2 stored'))
+    fireEvent.click(screen.getByRole('button', { name: /^Activity imports:/ }))
+    await screen.findByLabelText('Imported category')
+    expect(screen.getByRole('button', { name: 'Import status' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByLabelText('Imported category')).toHaveValue('activities')
+    expect(screen.getByRole('tabpanel')).toHaveFocus()
+    fireEvent.click(screen.getByRole('tab', { name: 'Overview' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Show range' })).toBeEnabled())
+    for (let i=0; i<6 && !screen.queryByRole('button', {name:/^Wellness imports:/}); i++) fireEvent.click(screen.getByRole('button', {name:'Next cards'}))
+    fireEvent.click(screen.getByRole('button', { name: /^Wellness imports:/ }))
+    expect(await screen.findByLabelText('Imported category')).toHaveValue('wellness')
+    fireEvent.click(screen.getByRole('tab', { name: 'Overview' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Show range' })).toBeEnabled())
+    fireEvent.click(screen.getByRole('button', { name: /^Review queue:/ }))
+    expect(screen.getByRole('button', { name: 'Queue status' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByRole('button', { name: 'Run review now — enqueue' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('tab', { name: 'Overview' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Next manual event:/ })).toHaveTextContent('2026-04-03'))
+    fireEvent.click(screen.getByRole('button', { name: /^Next manual event:/ }))
+    await screen.findByText('Upcoming synthetic goal')
+    expect(screen.getByText('Event 2 of 2')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Manual events' })).toHaveFocus()
+    expect(screen.getByRole('tab', { name: 'Goal' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.queryByText('Past synthetic goal')).not.toBeInTheDocument()
+    expect(fetch.mock.calls.filter(([,init])=>init?.method && init.method !== 'GET').every(([path])=>path==='/api/reviews/prepare')).toBe(true)
+  })
+
+  it('offers honest routes out of saved connected-review inspection without requesting a model', async () => {
+    const fetch = vi.fn(async (path: string, _init?: RequestInit) => path==='/api/session' ?
+      {ok:true,json:async()=>({authenticated:true,csrfToken:csrf,intervalsConfigured:false})}:{ok:false,status:503})
+    vi.stubGlobal('fetch',fetch);render(<SessionPanel />)
+    fireEvent.click(await screen.findByRole('tab',{name:'Connected insights'}))
+    expect(screen.getByRole('heading',{name:'Connected insights — saved review inspection'})).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button',{name:'Open Trends'}))
+    expect(await screen.findByRole('heading',{name:'Historical trends'})).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('tab',{name:'Connected insights'}))
+    fireEvent.click(screen.getByRole('button',{name:'Open Context'}))
+    expect(screen.getByRole('tab',{name:'Context'})).toHaveAttribute('aria-selected','true')
+    expect(fetch.mock.calls.every(([,init])=>!init?.method || init.method==='GET')).toBe(true)
+  })
+
+  it('carries applied Overview dates into Trends and retains them when returning without automatic trend preparation', async () => {
+    const fetchMock = vi.fn(async (path: string, _init?: RequestInit) => {
+      if (path === '/api/session') return { ok: true, json: async () => ({ authenticated: true, csrfToken: csrf, intervalsConfigured: false }) }
+      if (path === '/api/reviews/options') return { ok: true, json: async () => options }
+      return { ok: false, status: 503 }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<SessionPanel />)
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Show range' })).toBeEnabled())
+    await waitFor(() => expect(fetchMock.mock.calls.some(([path]) => path === '/api/reviews/prepare')).toBe(true))
+    fireEvent.change(screen.getByLabelText('First date'), { target: { value: '2026-03-10' } })
+    fireEvent.change(screen.getByLabelText('Last date'), { target: { value: '2026-03-12' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Show range' }))
+    await waitFor(() => expect(fetchMock.mock.calls.some(([path, init]) => path === '/api/reviews/prepare' && JSON.parse(String(init?.body)).oldest === '2026-03-10')).toBe(true))
+    const beforeNavigation = fetchMock.mock.calls.filter(([path]) => path === '/api/reviews/prepare').length
+    fireEvent.click(screen.getByRole('button', { name: /^Weight:.*Open Trends/ }))
+    await screen.findByText(/Options read only. Saved zone/)
+    expect(screen.getByLabelText('Period scope')).toHaveValue('custom')
+    expect(screen.getByLabelText('First date')).toHaveValue('2026-03-10')
+    expect(screen.getByLabelText('Last date')).toHaveValue('2026-03-12')
+    expect(fetchMock.mock.calls.filter(([path]) => path === '/api/reviews/prepare')).toHaveLength(beforeNavigation)
+    fireEvent.click(screen.getByRole('button', { name: 'Request factual report' }))
+    await waitFor(() => expect(fetchMock.mock.calls.filter(([path]) => path === '/api/reviews/prepare')).toHaveLength(beforeNavigation + 1))
+    expect(JSON.parse(String(fetchMock.mock.calls.filter(([path]) => path === '/api/reviews/prepare').at(-1)?.[1]?.body))).toMatchObject({scope:'custom', oldest:'2026-03-10', newest:'2026-03-12'})
+    fireEvent.click(screen.getByRole('tab', { name: 'Overview' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Show range' })).toBeEnabled())
+    expect(screen.getByLabelText('First date')).toHaveValue('2026-03-10')
+    expect(screen.getByLabelText('Last date')).toHaveValue('2026-03-12')
+    expect(fetchMock.mock.calls.some(([path]) => ['/api/review-now', '/api/analysis', '/api/sync'].includes(path))).toBe(false)
+  })
   it('mounts only the selected section and keeps writes and model calls off during navigation', async () => {
     const fetchMock = vi.fn(async (path: string) => {
       if (path === '/api/session') return { ok: true, json: async () => ({ authenticated: true, csrfToken: csrf, intervalsConfigured: false }) }

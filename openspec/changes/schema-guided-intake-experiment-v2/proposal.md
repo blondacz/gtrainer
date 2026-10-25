@@ -1,5 +1,18 @@
 # Proposal
 
+## Status reconciliation — 2026-10-22
+
+V2 delivered its offline wire/binding/semantic validation and private replay
+checkpoint. Its live acquisition path remains blocked by incompatibility between
+the frozen provider schema and the pinned provider. This is deferred historical
+work, not the next execution backlog and not a completed live experiment.
+
+The separately versioned [V3 proposal](../provider-compatible-intake-experiment-v3/proposal.md)
+addresses provider constraint ownership without rewriting V2. Later V3/V4/V5 and
+live-pilot results do not complete V2's six unchecked tasks or supply its missing
+independent human assessment. Preserve frozen artifacts and historical requirements;
+do not resume V2 automatically, archive it as implemented, or claim qualification.
+
 ## Why
 
 The frozen Qwen3 8B intake baseline produced 15 complete, structurally rejected

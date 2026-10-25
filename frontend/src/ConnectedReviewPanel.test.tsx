@@ -27,6 +27,19 @@ const inspection = {
 }
 
 describe('connected review evidence display', () => {
+  it('explains the required existing ID and routes to factual reports or notes without inspecting or generating', () => {
+    const fetch = vi.fn(), navigate = vi.fn()
+    vi.stubGlobal('fetch',fetch)
+    render(<ConnectedReviewPanel onNavigate={navigate}/>)
+    expect(screen.getByText(/This screen does not create a review/)).toBeInTheDocument()
+    expect(screen.getByText(/Factual evidence snapshot IDs are not connected-review IDs/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Review snapshot ID')).toHaveAccessibleDescription(/no review list/)
+    fireEvent.click(screen.getByRole('button',{name:'Open Trends'}))
+    fireEvent.click(screen.getByRole('button',{name:'Open Context'}))
+    expect(navigate.mock.calls).toEqual([['charts'],['context']])
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
   it('separates facts, attributed reports, interpretations, uncertainty, and questions', async () => {
     const fetchMock = vi.fn(async (path: string) => path === `/api/connected-reviews/${snapshotId}`
       ? { ok: true, status: 200, json: async () => inspection }

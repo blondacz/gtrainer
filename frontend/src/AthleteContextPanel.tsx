@@ -140,7 +140,7 @@ function AthleteContextContent({ csrfToken, reload }: { csrfToken: string; reloa
   if(confirmDelete) return <ContextDeletionControls contextId={confirmDelete} csrfToken={csrfToken} onDeleted={reload} onCancel={reload} />
   return <section aria-labelledby="context-heading">
     <h2 id="context-heading">Athlete context</h2>
-    <p>Context is user-entered information, not independently verified. Measurements remain imported evidence.</p>
+    <p>Save notes, preferences, restrictions, or guidance you received from a coach or clinician. These are attributed reports, not independently verified facts or imported measurements.</p>
     <ContextIntakeControls csrfToken={csrfToken} onConfirmed={() => void load()} />
     <details open={editing !== null || undefined}>
       <summary>Direct context entry / legacy corrections</summary>

@@ -68,6 +68,21 @@ object HistorySchema {
                     check(rows.next() && rows.getInt(1)==1 && rows.getLong(3)>=0)
                     validateContextId(rows.getString(2));check(!rows.next())
                 }
+                s.executeQuery("SELECT claim_id,state_json FROM owner_uat_job_supervision").use { rows ->
+                    while(rows.next()) {
+                        val job=StrictProfileDraftJson.decode<OwnerUatSupervisedJob>(rows.getString(2))
+                        check(job.claim.claimId==rows.getString(1) && job.claim.supervisionRequired)
+                        val lease=PersonalReviewRuntimeStore(connection).get(job.claim.claimId)
+                        check(lease!=null && lease.claim==job.claim)
+                        if(job.phase=="STOP_CONFIRMED") check(lease.phase==PersonalRuntimePhase.STOP_CONFIRMED)
+                    }
+                }
+                s.executeQuery("SELECT claim_json FROM personal_review_runtime_claims").use { rows ->
+                    while(rows.next()) {
+                        val claim=StrictProfileDraftJson.decode<PersonalReviewClaim>(rows.getString(1))
+                        if(claim.supervisionRequired) check(OwnerUatSupervisionStore(connection).get(claim.claimId)?.claim==claim)
+                    }
+                }
                 s.executeQuery("SELECT singleton,removal_generation,typeof(removal_generation) FROM signal_evidence_epoch").use { rows ->
                     check(rows.next() && rows.getInt(1)==1 && rows.getString(3)=="integer" && rows.getLong(2)>=0 && !rows.next())
                 }

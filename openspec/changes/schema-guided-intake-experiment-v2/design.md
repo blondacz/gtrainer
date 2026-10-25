@@ -1,5 +1,26 @@
 # Design
 
+## Status reconciliation — 2026-10-22
+
+This document preserves the original V2 design. Subsequent
+[source-audited offline token counts](../../../benchmarks/intake-extraction-v2/README.md#source-audited-token-counts-and-retained-context)
+resolved the original context-fit question for the exact frozen requests: maximum
+816 input tokens + 1536 output reserve + 256 margin = 2608, within 4096. These are
+offline vocabulary counts, not model generation or measured provider input counts.
+References below to unresolved fit describe the original planning checkpoint; changed
+request/template/tokenizer paths still invalidate the proof.
+
+The remaining admission blocker is
+[provider-schema compatibility](../../../benchmarks/intake-extraction-v2/README.md#provider-schema-compatibility-blocker):
+the pinned converter does not enforce V2's `uniqueItems:true` constraints and turns
+repetition bounds above 2000 into unbounded grammar rules. The independently frozen
+[V3 design](../provider-compatible-intake-experiment-v3/design.md) addresses those
+limits without weakening local validation or changing V2's frozen schema.
+
+V2 acquisition and human assessment remain deferred and uncompleted. Later-version
+evidence must retain its own identity; no source/hash refresh, new inference or
+production admission follows from this status reconciliation.
+
 ## Context
 
 See [proposal.md](proposal.md#why) for motivation. Relevant observed dependencies:

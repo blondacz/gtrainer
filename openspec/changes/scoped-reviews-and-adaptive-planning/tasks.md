@@ -188,6 +188,11 @@ Shared context: [design decision 9](design.md#9-qualification-evaluates-the-real
 
 - [ ] 9.4 **Approval-gated, not authorized here:** after separate explicit inference approval, run only named candidates on frozen synthetic protocols and obtain independent human scores. Verify complete case coverage and a documented per-profile decision; leave qualification incomplete/closed when approval, useful finals or scoring is absent. Personal runtime acceptance requires its own separate approval and must not be substituted by this synthetic evaluation.
 
+  Owner-confirmed clarification, 2026-10-23: this task remains outstanding for ordinary
+  qualification. [Integrated local owner UAT](../integrated-local-model-uat/tasks.md)
+  defines separate experimental manual permission and does not complete this task,
+  authorize automatic inference or reuse its synthetic execution allowance.
+
   Read: [qualification requirement](specs/personalized-training-guidance/spec.md#requirement-new-profiles-require-independent-usefulness-qualification), named protocol and approval record only. Pending legacy/Hugging Face run status is in the local historical checkpoint, not evidence that this gate is open.
   Planning checkpoint: [temporary Mac cluster and bounded candidate proposal](../../../docs/infrastructure/mac-scoped-qualification-plan.md). Planning approval does not authorize acquisition, downloads or inference; frozen files remain unchanged.
   Initial acquisition checkpoint: [bounded intake runner, checks and first-attempt refusal](../../../benchmarks/scoped-profiles/ACQUISITION.md#first-approved-attempt-2026-10-18). Separate user approval covered the named intake run, but metadata preflight stopped it before any model call. All eight cases remained unrun; the transport defect was fixed without automatic inference.

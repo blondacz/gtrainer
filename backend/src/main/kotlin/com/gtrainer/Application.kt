@@ -24,6 +24,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.withContext
 import io.ktor.server.application.ApplicationStopping
 import java.time.LocalDate
@@ -64,9 +65,12 @@ fun Application.module(auth: SingleUserAuth = SingleUserAuth.fromEnvironment(),
                           contextLifecycle: ContextLifecycleService? = history?.contextLifecycle(),
                           commitments: CommitmentService? = history?.commitments(),
                           contextDeletion: ContextDeletionService? = history?.contextDeletion(),
-                          plans: PlanService? = history?.plans()) {
+                           plans: PlanService? = history?.plans(),
+                           ownerUat: OwnerUatAdmission? = null,
+                           ownerUatExecution: ((CoroutineScope)->OwnerUatExecutionService)? = null) {
     val access = PrivateApiAccess(auth)
-    val scopedExecutions=history?.scopedExecutions()
+    val ownerUatJobs=ownerUatExecution?.invoke(this)
+    val scopedExecutions=history?.scopedExecutions(ownerUat,ownerUatJobs)
     val schedulerJob = schedules?.let { scheduler -> launch {
         while (isActive) {
             delay(30_000)
@@ -79,7 +83,7 @@ fun Application.module(auth: SingleUserAuth = SingleUserAuth.fromEnvironment(),
             catch (_: Exception) { /* Private failure, no payload logging or retrying a model attempt. */ }
         }
     } }
-    monitor.subscribe(ApplicationStopping) { schedulerJob?.cancel(); reviewQueue?.close() }
+    monitor.subscribe(ApplicationStopping) { ownerUatJobs?.close(); schedulerJob?.cancel(); reviewQueue?.close() }
     monitor.subscribe(ApplicationStopped) { history?.close(); reviews.close() }
     installPrivateHttpSecurity()
     install(ContentNegotiation) {
@@ -104,11 +108,12 @@ fun Application.module(auth: SingleUserAuth = SingleUserAuth.fromEnvironment(),
                             call.respondContextDeletion(path, contextDeletion) -> Unit
                             call.respondPlan(path, plans) -> Unit
                              call.respondScopedEvidence(path, history) -> Unit
-                             call.respondScopedExecution(path,scopedExecutions) -> Unit
+                              call.respondOwnerUatExecution(path,ownerUatJobs) -> Unit
+                              call.respondScopedExecution(path,scopedExecutions,ownerUatJobs) -> Unit
                              path=="/api/review-profiles" && call.request.local.method==HttpMethod.Get -> {
                                  val parameters=call.request.queryParameters
                                  require(parameters.names().all { it=="profile" && parameters.getAll(it)?.size==1 })
-                                 call.respond(parameters["profile"]?.let { listOf(ScopedProfileAdmission.inspect(it)) } ?: ScopedProfileAdmission.inspectAll())
+                                  call.respond(parameters["profile"]?.let { listOf(ScopedProfileAdmission.inspect(it,ownerUat)) } ?: ScopedProfileAdmission.inspectAll(ownerUat))
                              }
                             contexts != null && path == "/api/context-retrieval" && call.request.local.method == HttpMethod.Get -> {
                                 val parameters = call.request.queryParameters
@@ -201,6 +206,8 @@ fun Application.module(auth: SingleUserAuth = SingleUserAuth.fromEnvironment(),
                         throw cancelled
                     } catch (_: SyncBusy) {
                         call.respond(HttpStatusCode.Conflict, ApiError("private_operation_running"))
+                      } catch (_: ScopedExecutionFeedbackConflict) {
+                          call.respond(HttpStatusCode.Conflict,ApiError("review_has_linked_feedback_use_context_deletion_review"))
                       } catch (_: ScopedEvidenceConflict) {
                           call.respond(HttpStatusCode.Conflict, mapOf("error" to "Evidence changed; inspect or prepare again without inference"))
                       } catch (_: ScopedEvidenceNotFound) {

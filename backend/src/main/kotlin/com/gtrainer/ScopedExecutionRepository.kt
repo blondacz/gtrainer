@@ -4,7 +4,8 @@ import java.time.Clock
 import java.util.UUID
 
 /** Local preparation/inspection only. There is no runtime selection, provider construction or inference here. */
-internal class ScopedExecutionService(private val store: HistoryStore,private val clock: Clock=Clock.systemUTC()) {
+internal class ScopedExecutionService(private val store: HistoryStore,private val clock: Clock=Clock.systemUTC(),
+    private val ownerUat: OwnerUatAdmission? = null,private val ownerUatJobs: OwnerUatExecutionService? = null) {
     fun prepare(profile: String,source: ScopedExecutionSource,selection: ConnectedReviewProviderSelection,
         dateResolution: ContextIntakeDateResolutionV1? = null): ScopedExecutionInspection {
         return inspection(store.saveScopedExecution(assemble(profile,source,selection,dateResolution)))
@@ -46,11 +47,17 @@ internal class ScopedExecutionService(private val store: HistoryStore,private va
         return inspection(store.finishScopedExecutionCheck(capture,current))
     }
     private fun inspection(stored: StoredScopedExecution): ScopedExecutionInspection {
-        val admission=ScopedProfileAdmission.inspect(stored.binding.profile).copy(selectedProviderModel=stored.binding.providerSelection,
-            blockingReasons=ScopedProfileAdmission.inspect(stored.binding.profile).blockingReasons.filter { it!="provider_model_not_selected" })
-        return ScopedExecutionInspection(stored.binding,stored.state,stored.staleReason,stored.output,admission)
+        val status=ownerUat?.inspectExecution(stored.binding) ?: ScopedProfileAdmission.inspect(stored.binding.profile)
+        val admission=status.copy(selectedProviderModel=stored.binding.providerSelection,
+            blockingReasons=status.blockingReasons.filter { it!="provider_model_not_selected" })
+        return ScopedExecutionInspection(stored.binding,stored.state,stored.staleReason,stored.output,admission,
+            stored.output?.let(AnalysisClaims::hash),ownerUatJobs?.requestAdmission(stored) ?: unavailableOwnerUatRequest())
     }
     fun discard(id: String)=store.discardScopedExecution(id)
+    fun ensureDiscardable(id: String)=store.ensureScopedExecutionDiscardable(id)
+    fun history(profile: String,snapshotId: String?,offset: Int,limit: Int)=store.scopedExecutionHistory(profile,snapshotId,offset,limit)
+    fun feedback(id: String,input: ScopedExecutionFeedbackRequest)=store.recordScopedExecutionFeedback(id,input,
+        clock.instant().atZone(java.time.ZoneOffset.UTC).toLocalDate())
     fun savedSuggestions(intakeId: String,expectedRevision: Int): SavedIntakeSuggestions {
         val unavailable=SavedIntakeSuggestions(intakeId,expectedRevision,"unavailable")
         val id=store.savedIntakeSuggestionExecutionId(intakeId,expectedRevision) ?: return unavailable

@@ -484,6 +484,15 @@ Freeze a new synthetic longitudinal protocol per new profile before any separate
 
 Require useful complete finals, every case/dimension at least 2/4, weighted mean at least 80%, zero critical failures and independent human scoring. Freeze dimensions/weights/case count and exact artifacts before runs; any revision receives a new evaluation version. Count all rejections, timeouts, corrections, empty results and unrun cases. Context extraction also tests faithful suggestions and confirmation; adaptation tests unsupported operations, omitted restrictions, misleading explanations and no-change usefulness. Model self-review, candidate selection and JSON passes never open production gates.
 
+Owner-confirmed clarification, 2026-10-23: these requirements remain prerequisites
+for ordinary/qualified and automatic admission. The separately versioned
+[integrated local owner-UAT policy](../integrated-local-model-uat/design.md#2-make-owner-uat-a-named-admission-mode)
+permits only explicitly requested experimental local jobs after its independent
+runtime, binding, validation and resource controls are accepted. It leaves the model
+unqualified, ordinary/automatic gates closed, existing ordinary budgets unchanged,
+and task 9.4 outstanding. Synthetic development permission and old captures do not
+authorize that mode; installation/import/inference retain separate operational gates.
+
 ## Mermaid diagrams
 
 All four diagrams depict the **proposed** flow. Solid arrows show an allowed interaction once its prerequisite exists; deployment dashed arrows show separately gated/optional inference. No diagram grants deployment, source credentials or inference permission.

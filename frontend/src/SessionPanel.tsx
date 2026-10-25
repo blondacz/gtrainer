@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ImportPanel } from './ImportPanel'
 import { TrendPanel } from './TrendPanel'
 import { ReviewControls } from './ReviewControls'
-import { OverviewTiles } from './OverviewTiles'
+import { OverviewTiles, type OverviewTarget } from './OverviewTiles'
 import { ManualEventPanel } from './ManualEventPanel'
 import { AthleteContextPanel } from './AthleteContextPanel'
 import { PlansPanel } from './PlansPanel'
 import { ConnectedReviewPanel } from './ConnectedReviewPanel'
+import type { ReviewDateRange } from './ScopedReviewControls'
 
 type Session = { authenticated: true; csrfToken: string; intervalsConfigured: boolean }
 
@@ -28,13 +29,25 @@ export function SessionPanel({ onAuthenticatedChange }: { onAuthenticatedChange?
   const [historyRevision, setHistoryRevision] = useState(0)
   const [section, setSection] = useState<'overview' | 'charts' | 'imports' | 'reviews' | 'events' | 'context' | 'connected'>('overview')
   const [planNavigationLocked, setPlanNavigationLocked] = useState(false)
+  const [overviewRange, setOverviewRange] = useState<ReviewDateRange | null>(null)
+  const [overviewDestination, setOverviewDestination] = useState<(OverviewTarget & { section: 'charts' | 'imports' | 'reviews' | 'events' }) | null>(null)
+  const content = useRef<HTMLDivElement>(null)
   function navigate(next: typeof section): boolean {
     if(next!==section && planNavigationLocked) {
       setMessage('Finish or discard the authored plan draft, or reload to inspect its uncertain save outcome, before leaving Events & plans.')
       return false
     }
-    setMessage('');setSection(next);return true
+    setMessage('');setOverviewDestination(null);setSection(next);return true
   }
+  function navigateFromOverview(next: 'charts' | 'imports' | 'reviews' | 'events', target?: OverviewTarget) {
+    if (navigate(next)) setOverviewDestination({ section: next, ...target })
+  }
+  useEffect(() => {
+    if (overviewDestination && section !== 'events') {
+      content.current?.focus()
+      content.current?.scrollIntoView?.({ block: 'start' })
+    }
+  }, [overviewDestination, section])
   useEffect(() => { onAuthenticatedChange?.(session !== null) }, [session, onAuthenticatedChange])
 
   useEffect(() => {
@@ -92,6 +105,8 @@ export function SessionPanel({ onAuthenticatedChange }: { onAuthenticatedChange?
       if (!response.ok && response.status !== 401) throw new Error('Logout failed')
       setSession(null)
       setPlanNavigationLocked(false)
+      setOverviewRange(null)
+      setOverviewDestination(null)
     } catch {
       setMessage('Could not sign out. Retry while the connection is available.')
     } finally {
@@ -122,14 +137,14 @@ export function SessionPanel({ onAuthenticatedChange }: { onAuthenticatedChange?
           }}>
           {{ overview: 'Overview', charts: 'Trends', imports: 'Source', reviews: 'Reviews', events: 'Events & plans', context: 'Context', connected: 'Connected insights' }[name]}</button>)}
       </nav>
-      <div id="dashboard-section" className="dashboard-content" role="tabpanel" aria-labelledby={`dashboard-tab-${section}`}>
-        {section === 'overview' && <OverviewTiles revision={historyRevision} csrfToken={session.csrfToken} onNavigate={navigate} />}
-        {section === 'imports' && <ImportPanel compact csrfToken={session.csrfToken} configured={session.intervalsConfigured} onChanged={() => setHistoryRevision(value => value + 1)} />}
-        {section === 'charts' && <TrendPanel revision={historyRevision} csrfToken={session.csrfToken} />}
-        {section === 'reviews' && <ReviewControls revision={historyRevision} csrfToken={session.csrfToken} />}
-        {section === 'events' && <><PlansPanel csrfToken={session.csrfToken} onNavigationLockChange={setPlanNavigationLocked}/><ManualEventPanel csrfToken={session.csrfToken} onChanged={() => setHistoryRevision(value => value + 1)} /></>}
+      <div ref={content} id="dashboard-section" className="dashboard-content" role="tabpanel" tabIndex={-1} aria-labelledby={`dashboard-tab-${section}`}>
+        {section === 'overview' && <OverviewTiles revision={historyRevision} csrfToken={session.csrfToken} onNavigate={navigateFromOverview} initialRange={overviewRange} onRangeChange={setOverviewRange} />}
+        {section === 'imports' && <ImportPanel compact csrfToken={session.csrfToken} configured={session.intervalsConfigured} initialView={overviewDestination ? 'status' : undefined} initialCategory={overviewDestination?.category} overviewRange={overviewDestination?.section === 'imports' ? overviewRange : null} onOpenTrends={() => navigate('charts')} onChanged={() => setHistoryRevision(value => value + 1)} />}
+        {section === 'charts' && <TrendPanel revision={historyRevision} csrfToken={session.csrfToken} initialRange={overviewRange} />}
+        {section === 'reviews' && <ReviewControls revision={historyRevision} csrfToken={session.csrfToken} initialSection={overviewDestination?.reviewSettings ?? (overviewDestination ? 'queue' : undefined)} />}
+        {section === 'events' && <><PlansPanel csrfToken={session.csrfToken} onNavigationLockChange={setPlanNavigationLocked}/><ManualEventPanel csrfToken={session.csrfToken} initialEventId={overviewDestination?.eventId} focusOnOpen={overviewDestination?.section === 'events'} onChanged={() => setHistoryRevision(value => value + 1)} /></>}
         {section === 'context' && <AthleteContextPanel csrfToken={session.csrfToken} />}
-        {section === 'connected' && <ConnectedReviewPanel />}
+        {section === 'connected' && <ConnectedReviewPanel onNavigate={navigate} />}
       </div>
     </> : <form onSubmit={event => void signIn(event)}>
       <p>Sign in before accessing private records. Your password is never stored in browser storage.</p>

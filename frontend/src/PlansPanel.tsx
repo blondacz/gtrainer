@@ -100,8 +100,8 @@ export function PlansPanel({csrfToken,onNavigationLockChange}: {csrfToken:string
     finally {setBusy(false)}
   },[csrfToken])
   return <section aria-labelledby="plans-heading"><h2 id="plans-heading">Authored training plans</h2>
-    <p>Enter an existing user/coach-authored plan locally. Events and goals are not plans. Initial model plan generation and external plan/calendar adapters are unavailable.</p>
-    <p>Saving, selecting a base plan, enabling bounded permissions, consenting to model transfer and approving an exact amendment are separate actions.</p>
+    <p>A plan lists training sessions written by you or a coach. Enter that existing plan here; an event or a goal does not create one. This screen cannot generate a plan or connect an external plan or calendar service.</p>
+    <p>Saving a plan does not select it for adaptation, enable changes, allow model data transfer, or approve an amendment. Each requires a separate explicit action.</p>
     <button type="button" disabled={busy||reconciliationLocked||rulesLocked||amendmentLocked} onClick={()=>void reload()}>Reload plans and discard unsaved drafts</button>
     <button type="button" disabled={busy || reconciliationLocked || rulesLocked || amendmentLocked || uncertain || !view || draft!==null} onClick={()=>{setEditing(null);setDraft(blankPlan());setMessage('Unsaved authored draft only. No calendar or active plan has changed.')}}>Enter authored plan</button>
     {view && <>

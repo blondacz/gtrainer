@@ -43,3 +43,8 @@ Targeted changes to Kotlin evidence preparation, SQLite repositories, existing s
 - No external write-back, automatic amendment application, screenshot/OCR pipeline, comprehensive activity-stream import, or implicit conversational memory.
 - Depends on the implemented context/snapshot foundation; its pending spec synchronization and qualification remain separate. Synchronize that capability before this follow-on's deltas; do not mark its remaining tasks complete.
 - Artifact creation authorizes no implementation, inference, downloads, personal-data transfer, live-source probing, runtime acceptance test, migration, publication or deployment. Existing production gates stay closed.
+- Owner-confirmed clarification, 2026-10-23: the separate `integrated-local-model-uat`
+  change defines explicitly accepted manual experimental local admission, not model
+  qualification or automatic permission. Its runtime/binding/validation/resource
+  controls remain mandatory; ordinary gates and this change's unfinished qualification
+  task remain unchanged. No operational approval is implied by this cross-reference.

@@ -1,5 +1,25 @@
 # Tasks
 
+## Status reconciliation — 2026-10-22
+
+**5/11 tasks complete. Tasks 3.1–4.2 are deferred historical work, not the next
+execution backlog.** Keep their IDs and unchecked boxes: neither later-version
+implementation nor a successful live pilot proves these V2 tasks were completed.
+
+The offline checkpoint is usable. Exact frozen input fit was subsequently proven
+at a maximum of 816 + 1536 + 256 = 2608 tokens within 4096; this does not earn an acquisition
+checkbox. The remaining blocker is the pinned provider's unsupported schema
+constraints. Evidence and limitations are recorded in the
+[V2 investigation](../../../benchmarks/intake-extraction-v2/README.md#provider-schema-compatibility-blocker).
+
+The separately versioned [V3 follow-up](../provider-compatible-intake-experiment-v3/proposal.md)
+addresses provider/local constraint ownership without changing V2 or claiming its
+completion. Do not automatically implement or run the six tasks below, relabel
+them as passed, or archive V2 as implemented. Resumption or a different disposition
+requires an explicit decision preserving frozen inputs, historical outcomes and
+independent assessment boundaries. This reconciliation authorizes no inference,
+runtime operation, personal-data access or deployment.
+
 **Implementation approved; 5/11 tasks complete.** The eight-case offline pipeline,
 private replay and independent-review packet pass focused checks. No inference, download, hosted transfer or runtime
 operation is authorized. The existing v1 qualification task remains incomplete

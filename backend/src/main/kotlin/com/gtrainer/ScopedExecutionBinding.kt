@@ -43,9 +43,27 @@ internal fun scopedExecutionRequestId(profile: String,sourceId: String)="scoped-
 @Serializable
 data class ScopedExecutionInspection(val binding: ScopedExecutionBinding,val state: String,val staleReason: String?,
     val validatedOutputJson: String?,val admission: ScopedProfileAdmissionStatus,
+    val validatedOutputSha256: String?,val manualRequestAdmission: OwnerUatRequestAdmission,
     val limitation: String="inspection_is_not_execution_consent_confirmation_or_plan_approval") {
     override fun toString()="ScopedExecutionInspection([REDACTED])"
 }
+
+@Serializable
+data class ScopedExecutionSummary(val executionId: String,val source: ScopedExecutionSource,val profile: String,
+    val providerSelection: ConnectedReviewProviderSelection,val coverageFrom: String,val coverageUntil: String,
+    val createdUtc: String,val state: String,val staleReason: String?,val outputSha256: String?)
+
+@Serializable
+data class ScopedExecutionHistory(val items: List<ScopedExecutionSummary>,val nextOffset: Int?,
+    val limitation: String="stored_outcomes_open_result_to_recheck_source_currentness")
+
+@Serializable
+internal data class ScopedExecutionFeedbackRequest(val expectedOutputSha256: String,val feedback: ReviewFeedbackRequest) {
+    init { require(expectedOutputSha256.matches(Regex("[a-f0-9]{64}"))) }
+    override fun toString()="ScopedExecutionFeedbackRequest([REDACTED])"
+}
+
+internal class ScopedExecutionFeedbackConflict: IllegalStateException("Review has linked feedback")
 
 @Serializable
 internal data class SavedIntakeSuggestions(val intakeId: String,val intakeRevision: Int,val status: String,
